@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/index.js", "use": "@vercel/node" },
+    { "src": "public/**/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/voice-data.json", "dest": "/public/voice-data.json" },
+    { "src": "/emoji/(.*)", "headers": { "Cache-Control": "public, max-age=2592000" }, "dest": "/public/emoji/$1" },
+    { "src": "/stickers/(.*)", "headers": { "Cache-Control": "public, max-age=604800" }, "dest": "/public/stickers/$1" },
+    { "src": "/(.*)", "dest": "/public/index.html" }
+  ]
+}
