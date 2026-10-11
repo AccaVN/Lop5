@@ -62,7 +62,7 @@ const server = http.createServer((req, res) => {
       for (let w = 0; w < WEEKS.length; w++) for (let d = 0; d < 6; d++) { const qs = buildLevel(w, d); if (qs.length !== 15) errs.push(`Toán ${w + 1}.${d + 1}: ${qs.length} câu`); qs.forEach((q, i) => run(q, `Toán chặng ${w + 1} bài ${d + 1} câu ${i + 1}`)); }
       for (let u = 0; u < TV_UNITS.length; u++) for (let d = 0; d < 3; d++) { const qs = buildTv(u, d); if (qs.length !== 15) errs.push(`TV ${u + 1}.${d + 1}: ${qs.length} câu`); qs.forEach((q, i) => run(q, `TV phần ${u + 1} bài ${d + 1} câu ${i + 1}`)); }
       for (let u = 0; u < EN_UNITS.length; u++) for (let d = 0; d < 3; d++) { const qs = buildEn(u, d); if (qs.length !== 15) errs.push(`EN ${u + 1}.${d + 1}: ${qs.length} câu`); qs.forEach((q, i) => run(q, `EN ${EN_UNITS[u].lab} bài ${d + 1} câu ${i + 1}`)); }
-      for (const subj of ['toan', 'tv', 'en']) EXAM_SUBJ[subj].list().forEach((_, k) => EXAM_SUBJ[subj].build(k).forEach((q, i) => run(q, `Đề ${subj} ${k + 1} câu ${i + 1}`)));
+      for (const subj of ['toan', 'tv', 'en']) EXAM_SUBJ[subj].list().forEach((x, j) => { const k = x.k != null ? x.k : j; EXAM_SUBJ[subj].build(k).forEach((q, i) => run(q, `Đề ${subj} ${x.g || ''} ${x.t} câu ${i + 1}`)); });
     }
     // Màn hình chính
     for (const f of ['renderHome', 'renderTv', 'renderEnglish', 'renderSpeed']) { try { window[f] ? window[f]() : eval(f + '()'); } catch (e) { errs.push('Màn hình ' + f + ': ' + e.message); } }

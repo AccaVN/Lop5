@@ -201,8 +201,14 @@ node scripts/smoke-test.js      # (tùy chọn) mở app trên Chromium, làm th
 - Mỗi bài có 20–24 câu trong ngân hàng; mỗi lượt học lấy ngẫu nhiên 12 câu + 3 câu ⭐ thử thách = 15 câu (số liệu Toán thay đổi).
 - **Số thập phân**: bàn phím có nút dấu phẩy (gõ `12,5`), bàn phím máy tính gõ được cả `,` và `.`.
   Giọng đọc đọc đúng “12 phẩy 5”, “3 phần 4”, “2 và 1 phần 3”, %, m², m³, km/giờ, héc-ta, “tỉ lệ 1 phần 1 000”.
-- **Luyện đề**: Toán 10 đề cuối HK2 (trắc nghiệm M1–M2 + tự luận) + 3 đề nâng cao; Tiếng Việt 10 đề đọc hiểu mới;
-  English 8 bài kiểm tra theo nhóm Unit; Cambridge Starters/Movers/Flyers giữ nguyên.
+- **Luyện đề** (chia theo thời điểm kiểm tra, mỗi đề chỉ hỏi kiến thức đã học đến lúc đó):
+  - Toán: Giữa HK I (Bài 1–18) 3 đề · Cuối HK I (Bài 1–35) 3 đề · Giữa HK II (Bài 36–55) 3 đề · Cuối HK II 10 đề · Nâng cao 3 đề
+    (`EX5_HK` + `buildExamToanHK` trong `math5-hard.js`; mỗi đề 6 câu M1 + 6 câu M2 + 6 câu tự luận, số liệu đổi mỗi lần).
+  - Tiếng Việt: 12 đề, gắn nhãn `gk1/ck1/gk2/ck2` (`EXT_G` trong `tv5-exam.js`); câu bổ sung lọc theo phần Luyện từ và câu đã học.
+  - English: 8 đề Giữa/Cuối HK I – II theo Global Success (`EN_TESTS5` trong `en5.js`), 22 câu/đề: 🎧 Listening (chọn tranh, hội thoại ngắn)
+    · 📖 Reading (điền từ vào đoạn văn A–D, đọc hiểu ~100 từ True/False + trả lời câu hỏi) · ✏️ Language (ngữ pháp 4 phương án, chọn câu đáp)
+    · 📝 Writing (sắp xếp chữ cái, sắp xếp câu). `build-content.js` tự kiểm tra cấu trúc đề.
+  - Kết quả đề cũ (Toán đề 1–13) giữ nguyên; Cambridge Starters/Movers/Flyers giữ nguyên.
 - Kỹ năng ở Góc phụ huynh: Số tự nhiên · Phân số · Số thập phân · Tỉ số, % · Giải toán · Hình học, thể tích ·
   Đo lường, thời gian, chuyển động · Thống kê, xác suất (Toán) và các kỹ năng Tiếng Việt / English như bản lớp 3.
 - Bài đọc Tiếng Việt là **bản tóm tắt / kể lại bằng lời văn mới** của từng bài đọc trong SGK (không chép nguyên văn); đề luyện thi là bài viết mới.

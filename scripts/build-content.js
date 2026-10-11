@@ -77,6 +77,19 @@ const EN_BANK = EN5.map(U => [
 const CH5 = get('CH5');
 CH5.forEach((Ls, w) => Ls.forEach((g, i) => { for (let t = 0; t < 120; t++) L.checkQ(g(), `Thử thách Toán ${w + 1}.${i + 1}`); }));
 for (let k = 0; k < 13; k++) get(`buildExamToan(${k},${k >= 10})`).forEach((q, i) => L.checkQ(q, `Đề Toán ${k + 1} câu ${i + 1}`));
+for (const h of ['gk1', 'ck1', 'gk2']) for (let k = 0; k < 3; k++) for (let t = 0; t < 20; t++) get(`buildExamToanHK('${h}',${k})`).forEach((q, i) => L.checkQ(q, `Đề Toán ${h} ${k + 1} câu ${i + 1}`));
+/* Đề English: đủ phần, đáp án không trùng phương án sai, chỗ trống khớp đoạn văn */
+get('EN_TESTS5').forEach((T, k) => {
+  const w = `Đề English ${k + 1}`;
+  const chkMC = (a, wr, where) => { if (!a || wr.length < 2 || wr.includes(a) || new Set(wr).size !== wr.length) throw new Error(`${w} ${where}: phương án lỗi (${a} | ${wr})`); };
+  if (!T.g || T.lis.length !== 3 || T.cloze.ans.length !== 4 || T.read.tf.length !== 2 || T.read.mc.length !== 3 || T.gram.length !== 4 || T.ord.length !== 2) throw new Error(w + ': thiếu phần');
+  T.lis.forEach(([sc, q, a, wr], i) => { if (!sc.length || !q) throw new Error(w + ' nghe ' + i); chkMC(a, wr, 'nghe ' + (i + 1)); });
+  T.cloze.ans.forEach(([a, wr], i) => { if (!T.cloze.text.includes(`(${i + 1}) ___`)) throw new Error(`${w}: thiếu chỗ trống (${i + 1})`); chkMC(a, wr, 'điền từ ' + (i + 1)); if (wr.length !== 3) throw new Error(w + ' điền từ cần 4 phương án'); });
+  T.read.mc.forEach(([q, a, wr], i) => chkMC(a, wr, 'đọc hiểu ' + (i + 1)));
+  T.gram.forEach(([q, a, wr], i) => { if (!q.includes('___')) throw new Error(w + ' ngữ pháp ' + i); chkMC(a, wr, 'ngữ pháp ' + (i + 1)); });
+  T.u.forEach(u => { if (!get('EN5')[u]) throw new Error(w + ': Unit sai ' + u); });
+  const words = T.read.text.split(/\s+/).length; if (words < 80) throw new Error(`${w}: bài đọc quá ngắn (${words} từ)`);
+});
 get('EXT').forEach((P, k) => { if (P.qs.length < 5 || P.lt.length < 3) throw new Error('Đề TV ' + (k + 1) + ' thiếu câu'); });
 
 /* ---------------- Ghi vào index.html ---------------- */

@@ -98,6 +98,21 @@ function chMath(w,d){const L=CH5[w]||CH5[0];const pool=d===5?shuffle(L):shuffle(
 const EX5_M1=['readBigN','decRead','decWrite','decPlace','decCompare','fracToDec','pctWrite','convArea','kmHa','volConv','timeConv','shapeCount','circParts','triKind','decUnitLen','decUnitMass','angleKind','netQ','calcKeys'];
 const EX5_M2=['decRound','decSort','pctOfTwo','pctValue','circS','circC','trapArea','triArea','volBox','cubeArea','boxArea','speed','distance','duration','pieChart','statTable','probab','timeAdd','timeSub','mixedToFrac','addFrac'];
 const EX5_TL=['decAdd','decSub','decMulDec','decDivDec','natDivDec','decExpr','decFindX','timeMul','timeDiv','tankWp','decDivWp','sumRatio','diffRatio','mapScale2','volConv2','wheel','trapWp','pctInterest'];
+/* Đề theo từng thời điểm kiểm tra (đúng phạm vi kiến thức SGK Toán 5 KNTT):
+   gk1 = Giữa học kì I (Bài 1–18) · ck1 = Cuối học kì I (Bài 1–35) · gk2 = Giữa học kì II (Bài 36–55, có ôn HK I). Cuối học kì II dùng EX5_M1/M2/TL ở trên. */
+const EX5_HK={
+  gk1:{m1:['readBigN','placeBig','simplify','compareFrac','decFracWrite','mixedToFrac','decRead','decWrite','decPlace','decCompare','fracToDec','kmHa'],
+       m2:['roundBig','sortFrac','fracOfQty','addFrac','mulFrac','divFrac','fracToMixed','decSort','decRound','decUnitLen','decUnitMass','convArea','areaUnits'],
+       tl:['calcNat','exprNat','findX','wpFrac','decUnitBack','convArea','addFrac','mulFracNat']},
+  ck1:{m1:['decRead','decPlace','decCompare','fracToDec','decUnitLen','decUnitMass','kmHa','triKind','circParts','decMul10','decDiv10','convArea'],
+       m2:['decRound','decSort','decMul01','decDiv01','triArea','trapArea','circC','circS','average','mixedToFrac','decUnitBack'],
+       tl:['decAdd','decSub','decMulDec','decDivDec','natDivDec','decExpr','decFindX','decDivWp','decMulWp','trapWp','wheel','geoMix']},
+  gk2:{m1:['ratio','pctWrite','ratioFrac','mapScale','cubeCount','shapeCount','volConv','netQ','calcKeys','decCompare','decRound'],
+       m2:['pctOfTwo','pctValue','pctCalc','boxArea','cubeArea','volBox','volCube','circS','trapArea'],
+       tl:['sumRatio','diffRatio','sumRatioAge','diffRatio2','mapScale2','volConv2','tankWp','pctInterest','decExpr']}};
+function buildExamToanHK(h,k){const P=EX5_HK[h];const rot=(arr,n,off)=>{const out=[];for(let i=0;i<n;i++)out.push(arr[(off+i*5)%arr.length]);return out;};
+  const names=rot(P.m1,6,k*3).concat(rot(P.m2,6,k*4+1),rot(P.tl,6,k*5+2));
+  return uniqList(names.map(n=>()=>M5[n]()));}
 function buildExamToan(k,adv){const rot=(arr,n,off)=>{const out=[];for(let i=0;i<n;i++)out.push(arr[(off+i*5)%arr.length]);return out;};
   if(adv){const qs=[];CH5.forEach((L,w)=>{const g=L[(k*2+w)%L.length];qs.push(g());});return shuffle(CH5.flat()).slice(0,4).map(g=>g()).concat(qs).slice(0,12);}
   const names=rot(EX5_M1,6,k).concat(rot(EX5_M2,6,k*2),rot(EX5_TL,6,k*3));
