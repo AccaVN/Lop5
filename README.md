@@ -2,7 +2,7 @@
 
 Bản lớp 5 của app Học Vui, dựng từ khung **Học Vui Lớp 3** (giữ nguyên toàn bộ tính năng: tài khoản học sinh/phụ huynh/admin,
 đăng nhập 1 thiết bị, giọng đọc, sticker, cửa hàng, bảng xếp hạng, luyện đề, luyện nói, mini game…), nội dung viết mới
-theo SGK lớp 5 bộ **Chân trời sáng tạo**. Xem mục *Nội dung lớp 5* ở cuối file.
+theo SGK lớp 5 bộ **Kết nối tri thức với cuộc sống** (Toán 5, Tiếng Việt 5) và **Tiếng Anh 5 Global Success**. Xem mục *Nội dung lớp 5* ở cuối file.
 
 > Lớp 5 dùng **database Neon riêng** và **project Vercel riêng** (không dùng chung với lớp 3).
 
@@ -192,11 +192,11 @@ node scripts/smoke-test.js      # (tùy chọn) mở app trên Chromium, làm th
 ```
 `smoke-test` cần `npm i -D playwright && npx playwright install chromium` (chỉ ở máy của bạn, Vercel không cần).
 
-| Môn | Lộ trình | File |
+| Môn | Lộ trình (bám SGK) | File |
 |---|---|---|
-| **Toán 5** | 8 chặng × 6 bài: ôn số tự nhiên & phân số · tỉ số và các bài toán · số thập phân · cộng/trừ/nhân STP · chia STP · tam giác, hình thang, hình tròn · tỉ số phần trăm, thể tích · thời gian, chuyển động đều, thống kê – xác suất | `math5.js` (bộ sinh câu hỏi), `math5-hard.js` (thử thách, đề thi) |
-| **Tiếng Việt 5** | 8 chủ điểm (Khung trời tuổi thơ, Chủ nhân tương lai, Chung sống yêu thương, Cộng đồng gắn bó, Giữ mãi màu xanh, Đất nước ngàn năm, Khúc ca hòa bình, Chân trời mở rộng) chia 15 phần + Ôn tập. Mỗi phần: Đọc hiểu · Chính tả & Từ ngữ · Câu & Viết (từ đồng nghĩa, đa nghĩa, đại từ, kết từ, câu ghép, liên kết câu, dấu gạch ngang, điệp từ…) | `tv5-a.js`, `tv5-b.js`, `tv5-exam.js` |
-| **English 5** | Family and Friends 5: Starter + Unit 1–12 + 3 bài Review; mỗi Unit có Vocabulary, Listen & Phonics, Sentences, 📒 Từ vựng, 🗣️ Luyện nói | `en5.js` |
+| **Toán 5** (KNTT, 12 chủ đề, 75 bài) | 8 chặng × 6 bài: (1) Ôn tập và bổ sung – Bài 1–9 · (2) Số thập phân, đơn vị đo diện tích (km², ha) – Bài 10–18 · (3) Các phép tính với số thập phân – Bài 19–24 · (4) Hình tam giác, hình thang, đường tròn · Ôn tập HK1 – Bài 25–35 · (5) Tỉ số, tỉ lệ bản đồ, tổng – tỉ, hiệu – tỉ, tỉ số phần trăm, máy tính cầm tay – Bài 36–44 · (6) Thể tích, cm³ – dm³ – m³, hình khai triển, Sxq/Stp, thể tích HHCN – HLP – Bài 45–55 · (7) Số đo thời gian, vận tốc, quãng đường, thời gian – Bài 56–62 · (8) Thống kê, xác suất · Ôn tập cuối năm – Bài 63–75 | `math5.js` (bộ sinh câu hỏi + `WEEKS5`), `math5-hard.js` (thử thách, đề thi) |
+| **Tiếng Việt 5** (KNTT, 8 chủ điểm, 64 bài đọc) | 16 phần, mỗi phần = 4 bài học (2 tuần): Thế giới tuổi thơ · Thiên nhiên kì thú · Trên con đường học tập · Nghệ thuật muôn màu (tập một) · Vẻ đẹp cuộc sống · Hương sắc trăm miền · Tiếp bước cha ông · Thế giới của chúng ta (tập hai). Mỗi phần: Đọc hiểu (4 bài đọc, tóm tắt bằng lời văn mới + câu hỏi theo SGK) · Chính tả & Từ ngữ · Câu & Viết (đúng bài Luyện từ và câu, Viết của sách: danh từ/động từ/tính từ, đại từ, từ đồng nghĩa, từ đa nghĩa, từ điển, dấu gạch ngang, điệp từ, kết từ, câu đơn – câu ghép, liên kết câu, viết hoa…; kể chuyện sáng tạo, báo cáo công việc, tả phong cảnh, tả người, chương trình hoạt động, đoạn văn nêu ý kiến…) | `tv5-a.js` (tập một), `tv5-b.js` (tập hai), `tv5-exam.js` |
+| **English 5** (Global Success) | 20 Unit theo Book map (Unit 1 All about me! … Unit 20 Our summer holidays); mỗi Unit có Vocabulary, Listen & Phonics, Sentences, 📒 Từ vựng, 🗣️ Luyện nói; 8 bài kiểm tra theo nhóm Unit | `en5.js` |
 
 - Mỗi bài có 20–24 câu trong ngân hàng; mỗi lượt học lấy ngẫu nhiên 12 câu + 3 câu ⭐ thử thách = 15 câu (số liệu Toán thay đổi).
 - **Số thập phân**: bàn phím có nút dấu phẩy (gõ `12,5`), bàn phím máy tính gõ được cả `,` và `.`.
@@ -205,5 +205,6 @@ node scripts/smoke-test.js      # (tùy chọn) mở app trên Chromium, làm th
   English 8 bài kiểm tra theo nhóm Unit; Cambridge Starters/Movers/Flyers giữ nguyên.
 - Kỹ năng ở Góc phụ huynh: Số tự nhiên · Phân số · Số thập phân · Tỉ số, % · Giải toán · Hình học, thể tích ·
   Đo lường, thời gian, chuyển động · Thống kê, xác suất (Toán) và các kỹ năng Tiếng Việt / English như bản lớp 3.
-- Bài đọc Tiếng Việt và đề thi là bài **viết mới, phỏng theo chủ đề** từng bài đọc trong sách (không chép nguyên văn SGK).
+- Bài đọc Tiếng Việt là **bản tóm tắt / kể lại bằng lời văn mới** của từng bài đọc trong SGK (không chép nguyên văn); đề luyện thi là bài viết mới.
+- Tiến độ English nay có 60 bài (20 Unit × 3); sticker Xe cộ vẫn tặng cho 48 bài đầu.
 - `localStorage` của bản lớp 5 dùng khóa `lop5_hoc_vui_v1` (không lẫn với lớp 3).

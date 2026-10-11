@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Tạo nội dung Học Vui Lớp 5 từ content-src/ và ghi vào public/index.html.
+/* Tạo nội dung Học Vui Lớp 5 (SGK Kết nối tri thức + Global Success) từ content-src/ và ghi vào public/index.html.
    Chạy:  node scripts/build-content.js
    - Ngân hàng câu hỏi (MATH_BANK, TV_BANK, EN_BANK) được tạo sẵn, mỗi bài 20–24 câu không trùng
      (mỗi lượt học app lấy ngẫu nhiên 12 câu + 3 câu thử thách = 15 câu).
@@ -32,9 +32,9 @@ const mcq = (skill, [q, a, w, ex], extra = {}) => mc(skill, q, a, w, Object.assi
 const TV_UNITS = TV5.map(U => ({ lab: U.lab, t: U.t, vn: U.vn }));
 const TV_BANK = TV5.map((U, u) => {
   const where = `TV ${U.lab}`;
-  const passage = { title: U.P.title, text: U.P.text };
+  const PS = Array.isArray(U.P) ? U.P : [Object.assign({ R: U.R }, U.P)];
   const dedupe = (arr, n, w) => { const out = [], k = new Set(); for (const q of arr) { L.checkQ(q, w); const key = L.qKey(q); if (k.has(key)) continue; k.add(key); out.push(q); } if (out.length < n) throw new Error(`${w}: chỉ có ${out.length} câu`); return out; };
-  const R = U.R.map(x => mcq('dochieu', x, { passage }));
+  const R = PS.flatMap(P => P.R.map(x => mcq('dochieu', x, { passage: { title: P.title, text: P.text } })));
   const V = U.V.map(x => mcq('tucau', x));
   const G = U.G.map(x => mcq(/dấu|viết hoa|Tên/.test(x[0]) ? 'daucau' : 'tucau', x));
   const S = U.S.map(([right, wr]) => mc('chinhta', 'Nghe đọc và chọn từ viết đúng chính tả:', right, wr, { say: right, explain: `Viết đúng: “${right}”.` }));

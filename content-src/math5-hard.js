@@ -1,7 +1,7 @@
 /* ============ TOÁN 5: CÂU THỬ THÁCH (cuối mỗi bài) + LUYỆN ĐỀ THI ============ */
 const H5I=(skill,p,a,ex,o)=>Object.assign(inp(skill,p,r6(a),Object.assign({explain:ex},o||{})),{hard:true});
 const H5M=(skill,p,a,w,ex,o)=>Object.assign(mc(skill,p,String(a),shuffle([...new Set(w.map(String))].filter(x=>x!==String(a))).slice(0,3),Object.assign({explain:ex},o||{})),{hard:true});
-const CH5=[
+const CH5_OLD=[
  [ // Chặng 1
   ()=>{const s=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,4);s.push(0);const big=Math.random()<.5;const d=s.slice().sort((a,b)=>big?b-a:a-b);if(!big&&d[0]===0){const k=d.findIndex(x=>x>0);[d[0],d[k]]=[d[k],d[0]];}const n=+d.join('');
     return H5I('so',`Dùng cả năm chữ số ${shuffle(s).join(', ')} (mỗi chữ số dùng một lần), viết số ${big?'lớn':'bé'} nhất có năm chữ số.`,n,big?`Xếp các chữ số từ lớn đến bé: ${fmtN(n)}`:`Chữ số 0 không đứng đầu, nên chọn chữ số nhỏ nhất khác 0 đứng đầu: ${fmtN(n)}`);},
@@ -32,15 +32,15 @@ const CH5=[
  [ // Chặng 4
   ()=>{const a=rd(1,9,2),b=rd(1,9,2);return H5I('stp','Tính bằng cách thuận tiện:',a*10,`${fd(a)} × (${fd(b)} + ${fd(r6(10-b))}) = ${fd(a)} × 10 = ${fd(a*10)}`,{big:`${fd(a)} × ${fd(b)} + ${fd(a)} × ${fd(r6(10-b))}`});},
   ()=>{const a=rd(10,99,2);return H5I('stp','Tính nhẩm:',a*10,`× 0,5 rồi × 20 bằng × 10: ${fd(a*10)}`,{big:`${fd(a)} × 0,5 × 20 = ?`});},
-  ()=>{const x=rd(1,9,1),y=rd(1,9,1);const s=r6(x+y);const d=r6(Math.abs(x-y));if(d===0)return CH5[3][1]();const big=Math.max(x,y),sm=Math.min(x,y);return H5I('stp',`Tổng hai số thập phân là ${fd(s)}, hiệu của chúng là ${fd(d)}. Tìm số lớn.`,big,`Số lớn = (tổng + hiệu) : 2 = (${fd(s)} + ${fd(d)}) : 2 = ${fd(big)}`);},
+  ()=>{const x=rd(1,9,1),y=rd(1,9,1);const s=r6(x+y);const d=r6(Math.abs(x-y));if(d===0)return CH5_OLD[3][1]();const big=Math.max(x,y),sm=Math.min(x,y);return H5I('stp',`Tổng hai số thập phân là ${fd(s)}, hiệu của chúng là ${fd(d)}. Tìm số lớn.`,big,`Số lớn = (tổng + hiệu) : 2 = (${fd(s)} + ${fd(d)}) : 2 = ${fd(big)}`);},
   ()=>{const a=rd(1,5,1),k=rnd(2,4);return H5I('giaitoan',`Một tấm vải dài ${fd(a*k+1.5)} m. Người ta cắt ra ${k} mảnh, mỗi mảnh dài ${fd(a)} m. Hỏi tấm vải còn lại bao nhiêu mét?`,1.5,`${fd(a)} × ${k} = ${fd(a*k)} (m); ${fd(a*k+1.5)} − ${fd(a*k)} = 1,5 (m)`,{unit:'m',icon:'🧵'});},
   ()=>{const a=rd(1,9,1);return H5I('stp','Tìm số thích hợp thay cho ?:',a,`? × 10 + ? = ? × 11 = ${fd(a*11)} → ? = ${fd(a)}`,{big:`? × 10 + ? = ${fd(a*11)}`});},
   ()=>{const n=rd(2,9,2);return H5I('stp','Tính nhẩm:',n,`× 100 rồi × 0,01 thì số không đổi: ${fd(n)}`,{big:`${fd(n)} × 100 × 0,01 = ?`});}
  ],
  [ // Chặng 5
-  ()=>{const a=rd(20,60,1),b=rd(20,60,1);const c=r6((a+b)/2+rnd(1,5));const avg=r6((a+b+c)/3);if(decPlaces(avg)>2)return CH5[4][1]();return H5I('giaitoan',`Ba bạn cân nặng lần lượt ${fd(a)} kg, ${fd(b)} kg và ${fd(c)} kg. Hỏi trung bình mỗi bạn cân nặng bao nhiêu ki-lô-gam?`,avg,`(${fd(a)} + ${fd(b)} + ${fd(c)}) : 3 = ${fd(avg)} (kg)`,{unit:'kg',icon:'⚖️'});},
+  ()=>{const a=rd(20,60,1),b=rd(20,60,1);const c=r6((a+b)/2+rnd(1,5));const avg=r6((a+b+c)/3);if(decPlaces(avg)>2)return CH5_OLD[4][1]();return H5I('giaitoan',`Ba bạn cân nặng lần lượt ${fd(a)} kg, ${fd(b)} kg và ${fd(c)} kg. Hỏi trung bình mỗi bạn cân nặng bao nhiêu ki-lô-gam?`,avg,`(${fd(a)} + ${fd(b)} + ${fd(c)}) : 3 = ${fd(avg)} (kg)`,{unit:'kg',icon:'⚖️'});},
   ()=>{const avg=rnd(30,50),n=4,x=rnd(3,8);return H5I('giaitoan',`Trung bình cộng của bốn số là ${avg}. Nếu thêm số thứ năm thì trung bình cộng của năm số tăng thêm ${x}. Tìm số thứ năm.`,(avg+x)*5-avg*4,`Tổng bốn số: ${avg*4}; tổng năm số: ${(avg+x)*5}; số thứ năm: ${(avg+x)*5-avg*4}`);},
-  ()=>{const b=rd(0.5,4,1),q=rnd(2,9),r=rd(0.1,b-0.1,1);if(r>=b)return CH5[4][0]();const a=r6(b*q+r);return H5I('stp',`Trong phép chia ${fd(a)} : ${fd(b)}, nếu chỉ lấy thương là số tự nhiên thì số dư là bao nhiêu?`,r,`${fd(b)} × ${q} = ${fd(b*q)}; ${fd(a)} − ${fd(b*q)} = ${fd(r)}`);},
+  ()=>{const b=rd(0.5,4,1),q=rnd(2,9),r=rd(0.1,b-0.1,1);if(r>=b)return CH5_OLD[4][0]();const a=r6(b*q+r);return H5I('stp',`Trong phép chia ${fd(a)} : ${fd(b)}, nếu chỉ lấy thương là số tự nhiên thì số dư là bao nhiêu?`,r,`${fd(b)} × ${q} = ${fd(b*q)}; ${fd(a)} − ${fd(b*q)} = ${fd(r)}`);},
   ()=>{const x=rd(1,9,1),k=rnd(2,5);return H5I('stp','Tìm số thích hợp thay cho ?:',x,`? × ${k} + ? = ? × ${k+1} = ${fd(x*(k+1))} → ? = ${fd(x)}`,{big:`? × ${k} + ? = ${fd(x*(k+1))}`});},
   ()=>{const a=rd(1,9,2);return H5I('stp','Tính nhẩm:',a*4,`Chia cho 0,25 là nhân với 4: ${fd(a*4)}`,{big:`${fd(a)} : 0,25 = ?`});},
   ()=>{const b=rd(1.5,4.5,1),n=rnd(5,20);return H5I('giaitoan',`Cứ ${fd(b)} m vải may được 1 bộ quần áo. Có ${fd(b*n+0.6)} m vải thì may được nhiều nhất bao nhiêu bộ quần áo như thế?`,n,`${fd(b*n+0.6)} : ${fd(b)} = ${n} (dư ${fd(0.6)}) → ${n} bộ`,{unit:'bộ',icon:'👕'});}
@@ -64,18 +64,40 @@ const CH5=[
  [ // Chặng 8
   ()=>{const v=rnd(15,30),w=rnd(2,5),t=pick([2,3,4]);return H5I('doluong',`Một ca nô đi xuôi dòng với vận tốc thực ${v} km/giờ, vận tốc dòng nước ${w} km/giờ. Hỏi sau ${t} giờ ca nô đi được bao nhiêu ki-lô-mét?`,(v+w)*t,`Vận tốc xuôi dòng: ${v} + ${w} = ${v+w} (km/giờ); quãng đường: ${v+w} × ${t} = ${(v+w)*t} (km)`,{unit:'km',icon:'🚤'});},
   ()=>{const h=rnd(6,8),m=pick([0,15,30]),s=rnd(4,9)*15,v=pick([30,45,60]);const T=s/v*60;const E=h*60+m+T;const ans=GP(Math.floor(E/60),E%60);return H5M('doluong',`Một ô tô khởi hành lúc ${GP(h,m)}, đi quãng đường ${s} km với vận tốc ${v} km/giờ. Hỏi ô tô đến nơi lúc mấy giờ?`,ans,[GP(Math.floor(E/60)+1,E%60),GP(Math.floor(E/60),(E+15)%60),GP(h+Math.floor(s/v),m)],`Thời gian đi: ${s} : ${v} = ${fd(s/v)} giờ = ${T} phút; ${GP(h,m)} + ${T} phút = ${ans}`,{icon:'🚗'});},
-  ()=>{const v1=rnd(4,6),v2=rnd(12,18),s=rnd(6,15);const t=r6(s/(v2-v1));if(decPlaces(t)>2)return CH5[7][0]();return H5I('doluong',`Một người đi bộ với vận tốc ${v1} km/giờ, đi trước người đi xe đạp ${s} km. Người đi xe đạp đuổi theo với vận tốc ${v2} km/giờ. Hỏi sau bao nhiêu giờ thì đuổi kịp?`,t,`Hiệu vận tốc: ${v2-v1} km/giờ; ${s} : ${v2-v1} = ${fd(t)} (giờ)`,{unit:'giờ',icon:'🚲'});},
+  ()=>{const v1=rnd(4,6),v2=rnd(12,18),s=rnd(6,15);const t=r6(s/(v2-v1));if(decPlaces(t)>2)return CH5_OLD[7][0]();return H5I('doluong',`Một người đi bộ với vận tốc ${v1} km/giờ, đi trước người đi xe đạp ${s} km. Người đi xe đạp đuổi theo với vận tốc ${v2} km/giờ. Hỏi sau bao nhiêu giờ thì đuổi kịp?`,t,`Hiệu vận tốc: ${v2-v1} km/giờ; ${s} : ${v2-v1} = ${fd(t)} (giờ)`,{unit:'giờ',icon:'🚲'});},
   ()=>{const y=rnd(1945,2025);return H5I('doluong',`Năm ${y} cách năm 2026 bao nhiêu năm?`,2026-y,`2026 − ${y} = ${2026-y} (năm)`);},
   ()=>{const n=pick([40,50,80,100]);const k=rnd(Math.floor(n*0.3),Math.floor(n*0.7));const p=r6(k/n*100);return H5I('xacsuat',`Tung đồng xu ${n} lần thấy ${k} lần mặt ngửa. Số lần mặt ngửa chiếm bao nhiêu phần trăm số lần tung?`,p,`${k} : ${n} = ${fd(k/n)} = ${fd(p)}%`,{unit:'%',icon:'🪙'});},
   ()=>{const a=rnd(2,4),b=rnd(10,50);return H5M('doluong',`Đổi ${a} giờ ${b} phút ra giờ (số thập phân, làm tròn đến hàng phần trăm):`,fd(r6(Math.round((a+b/60)*100)/100)),[fd(r6(a+b/100)),fd(r6(Math.round((a+b/60)*10)/10)),fd(r6(a+b/600))],`${b} phút = ${b} : 60 giờ ≈ ${fd(Math.round(b/60*100)/100)} giờ`);}
  ]
 ];
+/* Câu thử thách xếp lại theo 8 chặng của SGK Toán 5 Kết nối tri thức */
+const CH5_NEW={
+  angleSum:()=>{const a=rnd(30,80),b=rnd(30,80);return H5I('hinhhoc',`Một hình tam giác có hai góc là ${a}° và ${b}°. Tính số đo góc còn lại (tổng ba góc của hình tam giác là 180°).`,180-a-b,`180° − ${a}° − ${b}° = ${180-a-b}°`,{icon:'🔺',unit:'°'});},
+  timeCentury:()=>{const y=rnd(1001,2026);const c=Math.floor((y-1)/100)+1;return H5I('doluong',`Năm ${y} thuộc thế kỉ thứ mấy? (viết số)`,c,`Thế kỉ thứ ${c} gồm các năm từ ${(c-1)*100+1} đến ${c*100}.`);},
+  haPlot:()=>{const a=rnd(2,9)*50,b=rnd(2,8)*25;const S=a*b;return H5I('doluong',`Một thửa ruộng hình chữ nhật dài ${a} m, rộng ${b} m. Cứ 1 ha thu hoạch được 6 tấn thóc. Hỏi thửa ruộng thu được bao nhiêu tấn thóc?`,S/10000*6,`Diện tích: ${a} × ${b} = ${fmtN(S)} m² = ${fd(S/10000)} ha; ${fd(S/10000)} × 6 = ${fd(S/10000*6)} (tấn)`,{icon:'🌾',unit:'tấn'});},
+  volBoxCube:()=>{const a=rnd(2,6);const V=a*a*a;const l=a*2,w=a;const h=V/(l*w);if(!Number.isInteger(h*2))return CH5_NEW.volBoxCube();return H5I('hinhhoc',`Một hình hộp chữ nhật có chiều dài ${l} cm, chiều rộng ${w} cm và có thể tích bằng thể tích hình lập phương cạnh ${a} cm. Tính chiều cao hình hộp.`,h,`V = ${a} × ${a} × ${a} = ${V} (cm³); h = ${V} : (${l} × ${w}) = ${fd(h)} (cm)`,{icon:'📦',unit:'cm'});},
+  paintBox:()=>{const a=rnd(4,9),b=rnd(3,a),c=rnd(2,5);const S=(a+b)*2*c+a*b;return H5I('hinhhoc',`Một cái bể không có nắp dạng hình hộp chữ nhật dài ${a} m, rộng ${b} m, cao ${c} m. Người ta quét vôi mặt ngoài và đáy (không quét nắp). Tính diện tích cần quét.`,S,`Sxq = (${a} + ${b}) × 2 × ${c} = ${(a+b)*2*c} (m²); thêm một đáy ${a*b} m² → ${S} m²`,{icon:'🪣',unit:'m²'});},
+  timeSchedule:()=>{const h=rnd(7,9),m=pick([0,15,30]),n=rnd(3,5),d=pick([35,40,45]),r=pick([5,10]);const T=h*60+m+n*d+(n-1)*r;return H5M('doluong',`Buổi học bắt đầu lúc ${GP(h,m)}, gồm ${n} tiết, mỗi tiết ${d} phút, giữa hai tiết nghỉ ${r} phút. Buổi học kết thúc lúc mấy giờ?`,GP(Math.floor(T/60),T%60),[GP(Math.floor((T+r)/60),(T+r)%60),GP(Math.floor((T-r)/60),(T-r)%60),GP(Math.floor(T/60)+1,T%60)],`${n} × ${d} + ${n-1} × ${r} = ${n*d+(n-1)*r} phút → kết thúc lúc ${GP(Math.floor(T/60),T%60)}`);},
+  speedWalk:()=>{const v=pick([4,5,6]),m=pick([15,30,45]);return H5I('doluong',`Một bạn đi bộ với vận tốc ${v} km/giờ trong ${m} phút. Bạn đó đi được bao nhiêu ki-lô-mét?`,v*m/60,`${m} phút = ${fd(m/60)} giờ; ${v} × ${fd(m/60)} = ${fd(v*m/60)} (km)`,{icon:'🚶',unit:'km'});},
+  pieFind:()=>{const N=pick([200,300,400,500]),p=pick([20,25,30,40]);return H5I('xacsuat',`Biểu đồ hình quạt tròn cho biết ${p}% số học sinh của trường thích môn Toán. Trường có ${N} học sinh. Hỏi có bao nhiêu học sinh thích môn Toán?`,N*p/100,`${N} × ${p} : 100 = ${N*p/100} (học sinh)`,{icon:'🥧',unit:'học sinh'});},
+  ratioRepeat:()=>{const n=pick([20,30,40,50]),k=rnd(5,n-5);return H5I('xacsuat',`Lấy ngẫu nhiên một quả bóng trong hộp rồi trả lại, làm ${n} lần thì có ${k} lần lấy được bóng đỏ. Số lần KHÔNG lấy được bóng đỏ là bao nhiêu?`,n-k,`${n} − ${k} = ${n-k} (lần); tỉ số lần lấy được bóng đỏ là ${k}/${n}.`,{icon:'🔴',unit:'lần'});}
+};
+const CH5=[
+  CH5_OLD[0].concat([CH5_NEW.angleSum,CH5_NEW.timeCentury]),
+  CH5_OLD[2].concat([CH5_OLD[1][5],CH5_NEW.haPlot]),
+  CH5_OLD[3].concat(CH5_OLD[4]),
+  CH5_OLD[5],
+  [CH5_OLD[1][0],CH5_OLD[1][1],CH5_OLD[1][2],CH5_OLD[1][4],CH5_OLD[6][0],CH5_OLD[6][1],CH5_OLD[6][4]],
+  [CH5_OLD[6][2],CH5_OLD[6][3],CH5_OLD[6][5],CH5_NEW.volBoxCube,CH5_NEW.paintBox],
+  [CH5_OLD[7][1],CH5_OLD[7][3],CH5_OLD[7][5],CH5_NEW.timeSchedule,CH5_NEW.speedWalk],
+  [CH5_OLD[7][4],CH5_NEW.pieFind,CH5_NEW.ratioRepeat,CH5_OLD[6][4],CH5_OLD[5][1],CH5_NEW.speedWalk]
+];
 function chMath(w,d){const L=CH5[w]||CH5[0];const pool=d===5?shuffle(L):shuffle(L);const out=[];const keys=new Set();for(const g of pool){if(out.length>=3)break;let q;try{q=g();}catch(e){continue;}if(!q||keys.has(q.prompt+'|'+q.big))continue;keys.add(q.prompt+'|'+q.big);q.hard=true;out.push(q);}return out;}
 
 /* ---------- Luyện đề thi Toán: đề cuối học kì II lớp 5 (trắc nghiệm M1–M2 + tự luận + vận dụng) ---------- */
-const EX5_M1=['readBigN','decRead','decWrite','decPlace','decCompare','fracToDec','pctWrite','convArea','volConv','timeConv','shapeCount','circParts','triKind','decUnitLen','decUnitMass'];
+const EX5_M1=['readBigN','decRead','decWrite','decPlace','decCompare','fracToDec','pctWrite','convArea','kmHa','volConv','timeConv','shapeCount','circParts','triKind','decUnitLen','decUnitMass','angleKind','netQ','calcKeys'];
 const EX5_M2=['decRound','decSort','pctOfTwo','pctValue','circS','circC','trapArea','triArea','volBox','cubeArea','boxArea','speed','distance','duration','pieChart','statTable','probab','timeAdd','timeSub','mixedToFrac','addFrac'];
-const EX5_TL=['decAdd','decSub','decMulDec','decDivDec','natDivDec','decExpr','decFindX','timeMul','timeDiv','tankWp','decDivWp','sumRatio','diffRatio','unitRate','meet','wheel','trapWp','pctInterest'];
+const EX5_TL=['decAdd','decSub','decMulDec','decDivDec','natDivDec','decExpr','decFindX','timeMul','timeDiv','tankWp','decDivWp','sumRatio','diffRatio','mapScale2','volConv2','wheel','trapWp','pctInterest'];
 function buildExamToan(k,adv){const rot=(arr,n,off)=>{const out=[];for(let i=0;i<n;i++)out.push(arr[(off+i*5)%arr.length]);return out;};
   if(adv){const qs=[];CH5.forEach((L,w)=>{const g=L[(k*2+w)%L.length];qs.push(g());});return shuffle(CH5.flat()).slice(0,4).map(g=>g()).concat(qs).slice(0,12);}
   const names=rot(EX5_M1,6,k).concat(rot(EX5_M2,6,k*2),rot(EX5_TL,6,k*3));

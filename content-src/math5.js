@@ -1,4 +1,4 @@
-/* ============ TOÁN LỚP 5 (Chân trời sáng tạo) — bộ sinh câu hỏi ============
+/* ============ TOÁN LỚP 5 (Kết nối tri thức với cuộc sống) — bộ sinh câu hỏi ============
    Dùng chung cho: ngân hàng câu hỏi (MATH_BANK, tạo sẵn bằng scripts/build-content.js),
    câu thử thách cuối bài (CH_M) và Luyện đề thi (buildExamToan).
    Số thập phân viết bằng dấu phẩy (3,75); đáp án ô nhập là số (3.75). */
@@ -31,7 +31,7 @@ const GP=(h,m)=>m?`${h} giờ ${m} phút`:`${h} giờ`;
 const nm2=()=>{const a=pick(P5N);let b;do{b=pick(P5N);}while(b===a);return[a,b];};
 
 const M5={
-  /* ---------- Chặng 1: Số tự nhiên, phân số ---------- */
+  /* ---------- Nhóm: Số tự nhiên, phân số ---------- */
   readBigN(){const n=pick([rnd(10000,99999),rnd(100000,999999),rnd(1000000,99999999),rnd(100,999)*1000000+rnd(0,999)]);
     return Math.random()<.5?mc3('so',`Số ${fmtN(n)} đọc là:`,readBig(n),[readBig(n+pick([1000,10000,100000])),readBig(Math.floor(n/10))]):mc3('so',`Số “${readBig(n)}” viết là:`,fmtN(n),[fmtN(n*10),fmtN(Math.floor(n/10)),fmtN(n+pick([100,1000,10000]))].filter(x=>x!==fmtN(n)));},
   placeBig(){const n=rnd(1000000,99999999);const s=String(n);const pos=rnd(0,s.length-2);const d=+s[pos];if(d===0)return M5.placeBig();const k=s.length-1-pos;const H=['đơn vị','chục','trăm','nghìn','chục nghìn','trăm nghìn','triệu','chục triệu'];const v=d*10**k;
@@ -82,7 +82,7 @@ const M5={
     if(L===1){const d=pick([3,4,5]),n=rnd(1,d-1),tot=d*rnd(4,12);return ING('giaitoan',`Một tấm vải dài ${tot} m. Người ta cắt đi ${n}/${d} tấm vải. Hỏi tấm vải còn lại bao nhiêu mét?`,tot-tot/d*n,{icon:'🧵',unit:'m',explain:`Bài giải\nSố mét vải đã cắt là:\n${tot} × ${n}/${d} = ${tot/d*n} (m)\nSố mét vải còn lại là:\n${tot} − ${tot/d*n} = ${tot-tot/d*n} (m)\nĐáp số: ${tot-tot/d*n} m.`});}
     if(L===2){const d=pick([2,4,5]),n=rnd(1,d-1),k=rnd(6,20)*d;return ING('giaitoan',`${n1} có ${k} viên bi, ${n1} cho em ${n}/${d} số bi. Hỏi ${n1} cho em bao nhiêu viên bi?`,k/d*n,{icon:'🔵',unit:'viên bi',explain:`Bài giải\nSố bi ${n1} cho em là:\n${k} × ${n}/${d} = ${k/d*n} (viên)\nĐáp số: ${k/d*n} viên bi.`});}
     const a=rnd(2,6),b=rnd(2,6),d=pick([4,6,8,12]);const s1=rnd(1,d-1),s2=rnd(1,d-1);const ans=fr(s1+s2,d);return mc3('giaitoan',`Buổi sáng bác An cày được ${s1}/${d} thửa ruộng, buổi chiều cày được ${s2}/${d} thửa ruộng. Hỏi cả ngày bác cày được bao nhiêu phần thửa ruộng?`,ans,[frRaw(s1+s2,d*2),fr(Math.abs(s1-s2)||1,d),fr(s1+s2+1,d)].filter(x=>x!==ans),{icon:'🚜',explain:`${s1}/${d} + ${s2}/${d} = ${s1+s2}/${d}${ans!==`${s1+s2}/${d}`?' = '+ans:''}`});},
-  /* ---------- Chặng 2: Tỉ số và các bài toán ---------- */
+  /* ---------- Nhóm: Tỉ số và các bài toán ---------- */
   ratio(){const a=rnd(2,9),b=rnd(2,9);if(a===b)return M5.ratio();const[x,y]=pick([['bạn nam','bạn nữ'],['quả cam','quả quýt'],['bút xanh','bút đỏ'],['con gà','con vịt']]);
     return mc3('tiso',`Có ${a} ${x} và ${b} ${y}. Tỉ số của số ${x} và số ${y} là:`,`${a} : ${b}`,[`${b} : ${a}`,`${a} : ${a+b}`,`${b} : ${a+b}`],{explain:`Tỉ số của ${a} và ${b} viết là ${a} : ${b} hay ${a}/${b}.`});},
   ratioFrac(){const a=rnd(2,15),b=rnd(2,15);if(a===b)return M5.ratioFrac();return mc3('tiso',`Tỉ số của ${a} và ${b} viết dưới dạng phân số là:`,`${a}/${b}`,[`${b}/${a}`,`${a}/${a+b}`,`${a+b}/${b}`],{explain:`Tỉ số của a và b là a : b hay a/b.`});},
@@ -104,7 +104,7 @@ const M5={
     const k=rnd(2,9);const[a,u,v]=pick(L.slice(0,4));const b=a.split(' ')[1];return ING('doluong','Điền số thích hợp:',k*v,{big:`${k} ${b} = ? ${u}`,explain:`1 ${b} = ${fmtN(v)} ${u} nên ${k} ${b} = ${fmtN(k*v)} ${u}`});},
   convLenMass(){const L=[['tấn','kg',1000],['tạ','kg',100],['yến','kg',10],['km','m',1000],['m','cm',100],['kg','g',1000]];const[a,u,v]=pick(L);const k=rnd(2,15);const back=Math.random()<.4;
     return back?ING('doluong','Điền số thích hợp:',k,{big:`${fmtN(k*v)} ${u} = ? ${a}`,explain:`1 ${a} = ${fmtN(v)} ${u} nên ${fmtN(k*v)} ${u} = ${k} ${a}`}):ING('doluong','Điền số thích hợp:',k*v,{big:`${k} ${a} = ? ${u}`,explain:`1 ${a} = ${fmtN(v)} ${u} nên ${k} ${a} = ${fmtN(k*v)} ${u}`});},
-  /* ---------- Chặng 3: Số thập phân ---------- */
+  /* ---------- Nhóm: Số thập phân ---------- */
   decRead(){const x=rd(1,999,pick([1,2,3]));if(Number.isInteger(x))return M5.decRead();return mc3('stp',`Số thập phân ${fd(x)} đọc là:`,readDec(x),[readDec(r6(x*10)),readDec(r6(x/10)),readDec(r6(x+pick([1,10])))].filter(s=>s!==readDec(x)),{explain:`Đọc phần nguyên, đọc “phẩy”, rồi đọc phần thập phân.`});},
   decWrite(){const x=rd(1,99,pick([1,2,3]));if(Number.isInteger(x))return M5.decWrite();return mc3('stp',`Số thập phân “${readDec(x)}” viết là:`,fd(x),[fd(r6(x*10)),fd(r6(x/10)),fd(r6(x+0.1))].filter(s=>s!==fd(x)));},
   fracToDec(){const d=pick([10,100,1000]);const n=rnd(1,d*5);if(n%10===0)return M5.fracToDec();const x=r6(n/d);return mc3('stp',`Viết phân số thập phân ${n}/${d} dưới dạng số thập phân:`,fd(x),[fd(x*10),fd(x/10),fd(x*100)].filter(s=>s!==fd(x)),{explain:`${n}/${d} = ${fd(x)} (mẫu số có ${String(d).length-1} chữ số 0 thì phần thập phân có ${String(d).length-1} chữ số).`});},
@@ -129,7 +129,7 @@ const M5={
     return ING('stp',`Viết số đo dưới dạng số thập phân có đơn vị là ${b}:`,r6(a+c/v),{big:`${a} ${b} ${c} ${s} = ? ${b}`,explain:`${c} ${s} = ${c}/${v} ${b} nên ${a} ${b} ${c} ${s} = ${fd(a+c/v)} ${b}`});},
   decUnitBack(){const L=[['m','cm',100],['km','m',1000],['kg','g',1000],['tấn','kg',1000],['m²','dm²',100],['ha','m²',10000]];const[b,s,v]=pick(L);const x=rd(1,20,v===10000?2:2);if(Number.isInteger(x))return M5.decUnitBack();
     return ING('stp','Điền số thích hợp:',r6(x*v),{big:`${fd(x)} ${b} = ? ${s}`,explain:`1 ${b} = ${fmtN(v)} ${s} nên ${fd(x)} ${b} = ${fd(x*v)} ${s}`});},
-  /* ---------- Chặng 4: Cộng, trừ, nhân số thập phân ---------- */
+  /* ---------- Nhóm: Cộng, trừ, nhân số thập phân ---------- */
   decAdd(){const a=rd(1,500,pick([1,2])),b=rd(0.1,300,pick([1,2,3]));return ING('stp','Đặt tính rồi tính:',a+b,{big:`${fd(a)} + ${fd(b)} = ?`,explain:`Viết các chữ số cùng hàng thẳng cột, dấu phẩy thẳng dấu phẩy, cộng như số tự nhiên rồi đặt dấu phẩy ở tổng: ${fd(a+b)}`});},
   decSub(){let a=rd(5,500,pick([1,2])),b=rd(0.1,a-0.5,pick([1,2,3]));if(b>=a)return M5.decSub();return ING('stp','Đặt tính rồi tính:',a-b,{big:`${fd(a)} − ${fd(b)} = ?`,explain:`Nếu phần thập phân của số bị trừ ít chữ số hơn, viết thêm chữ số 0 cho đủ rồi trừ như số tự nhiên: ${fd(a-b)}`});},
   decAddWp(){const[n1]=nm2();const a=rd(20,45,1),b=rd(1,9,1);const t=rnd(1,2);
@@ -147,7 +147,7 @@ const M5={
     const g=rd(2,9,1)*1000,k=rd(1,4,1);return ING('giaitoan',`Một ki-lô-gam táo giá ${fmtN(Math.round(g*10)/10)} đồng. Mẹ mua ${fd(k)} kg táo. Hỏi mẹ phải trả bao nhiêu tiền?`,Math.round(g*k),{icon:'🍎',unit:'đồng',explain:`${fmtN(g)} × ${fd(k)} = ${fmtN(Math.round(g*k))} (đồng)`});},
   decMulProp(){const a=rd(1,20,2),b=pick([4,25,2,5]),c=b===4?25:b===25?4:b===2?5:2;return ING('stp','Tính bằng cách thuận tiện:',a*b*c,{big:`${fd(a)} × ${b} × ${c}`,explain:`${b} × ${c} = ${b*c}; ${fd(a)} × ${b*c} = ${fd(a*b*c)}`});},
   decDistrib(){const a=rd(1,9,2),b=rnd(2,9),c=10-b;return ING('stp','Tính bằng cách thuận tiện:',a*10,{big:`${fd(a)} × ${b} + ${fd(a)} × ${c}`,explain:`${fd(a)} × (${b} + ${c}) = ${fd(a)} × 10 = ${fd(a*10)}`});},
-  /* ---------- Chặng 5: Chia số thập phân ---------- */
+  /* ---------- Nhóm: Chia số thập phân ---------- */
   decDivNat(){const k=rnd(2,19),q=rd(0.5,40,pick([1,2]));return ING('stp','Đặt tính rồi tính:',q,{big:`${fd(q*k)} : ${k} = ?`,explain:`Chia phần nguyên trước; khi hạ chữ số đầu tiên của phần thập phân thì viết dấu phẩy vào thương: ${fd(q)}`});},
   decDiv10(){const a=rd(1,999,pick([0,1,2])),k=pick([10,100,1000]);if(decPlaces(a/k)>3)return M5.decDiv10();return ING('stp','Tính nhẩm:',a/k,{big:`${fd(a)} : ${fmtN(k)} = ?`,explain:`Chia cho ${fmtN(k)}: chuyển dấu phẩy sang trái ${String(k).length-1} chữ số → ${fd(a/k)}`});},
   natDivNat(){const P=[[2,1],[4,2],[5,1],[8,3],[20,2],[25,2],[40,3],[16,4],[50,2]];const[k,p]=pick(P);let a;do{a=rnd(k+1,k*30);}while(a%k===0);const q=r6(a/k);if(decPlaces(q)>3)return M5.natDivNat();return ING('stp','Đặt tính rồi tính (thương là số thập phân):',q,{big:`${a} : ${k} = ?`,explain:`Còn dư thì viết dấu phẩy vào thương, thêm chữ số 0 vào số dư rồi chia tiếp: ${fd(q)}`});},
@@ -167,7 +167,7 @@ const M5={
     if(t===1){const k=rnd(3,8),each=rd(1,6,2);return ING('giaitoan',`Có ${fd(each*k)} kg đường chia đều vào ${k} túi. Hỏi mỗi túi có bao nhiêu ki-lô-gam đường?`,each,{icon:'🍬',unit:'kg',explain:`Bài giải\nMỗi túi có: ${fd(each*k)} : ${k} = ${fd(each)} (kg)\nĐáp số: ${fd(each)} kg.`});}
     if(t===2){const b=rd(0.5,2.5,1),q=rnd(6,40);const a=r6(b*q);return ING('giaitoan',`Người ta đổ ${fd(a)} l dầu vào các chai, mỗi chai ${fd(b)} l. Hỏi cần bao nhiêu chai?`,q,{icon:'🧴',unit:'chai',explain:`Bài giải\nSố chai cần dùng: ${fd(a)} : ${fd(b)} = ${q} (chai)\nĐáp số: ${q} chai.`});}
     const h=rnd(2,5),d=rd(20,50,1);return ING('giaitoan',`Một ô tô đi trong ${h} giờ được ${fd(d*h)} km. Hỏi trung bình mỗi giờ ô tô đi được bao nhiêu ki-lô-mét?`,d,{icon:'🚗',unit:'km',explain:`Bài giải\nMỗi giờ ô tô đi được: ${fd(d*h)} : ${h} = ${fd(d)} (km)\nĐáp số: ${fd(d)} km.`});},
-  /* ---------- Chặng 6: Hình học ---------- */
+  /* ---------- Nhóm: Hình học ---------- */
   triArea(){const a=rd(3,25,pick([0,1])),h=rd(2,18,pick([0,1]));if(decPlaces(a*h/2)>2)return M5.triArea();return ING('hinhhoc',`Tính diện tích hình tam giác có độ dài đáy ${fd(a)} cm và chiều cao ${fd(h)} cm.`,a*h/2,{icon:'🔺',unit:'cm²',explain:`S = a × h : 2 = ${fd(a)} × ${fd(h)} : 2 = ${fd(a*h/2)} (cm²)`});},
   triRight(){const a=rnd(3,20),b=rnd(3,20);return ING('hinhhoc',`Hình tam giác vuông có hai cạnh góc vuông dài ${a} cm và ${b} cm. Tính diện tích hình tam giác đó.`,a*b/2,{icon:'📐',unit:'cm²',explain:`Diện tích tam giác vuông bằng tích hai cạnh góc vuông chia 2: ${a} × ${b} : 2 = ${fd(a*b/2)} (cm²)`});},
   triBase(){const h=rnd(4,20),a=rnd(3,24);const S=a*h/2;return ING('hinhhoc',`Hình tam giác có diện tích ${fd(S)} cm², chiều cao ${h} cm. Tính độ dài đáy.`,a,{icon:'🔺',unit:'cm',explain:`Đáy = S × 2 : h = ${fd(S)} × 2 : ${h} = ${a} (cm)`});},
@@ -186,7 +186,7 @@ const M5={
   wheel(){const d=rd(0.5,1.2,1),n=rnd(10,500);const C=d*3.14;return ING('giaitoan',`Bánh xe đạp có đường kính ${fd(d)} m. Hỏi người đi xe đạp đi được bao nhiêu mét nếu bánh xe lăn trên mặt đất ${n} vòng?`,C*n,{icon:'🚲',unit:'m',explain:`Bài giải\nChu vi bánh xe: ${fd(d)} × 3,14 = ${fd(C)} (m)\nQuãng đường: ${fd(C)} × ${n} = ${fd(C*n)} (m)\nĐáp số: ${fd(C*n)} m.`});},
   geoMix(){const t=rnd(1,2);if(t===1){const a=rnd(10,30),b=rnd(6,a-2);const r=Math.floor(b/2);const S=a*b-r*r*3.14;return ING('hinhhoc',`Một tấm bìa hình chữ nhật dài ${a} cm, rộng ${b} cm. Người ta khoét một lỗ hình tròn bán kính ${r} cm. Tính diện tích phần bìa còn lại.`,S,{icon:'🟫',unit:'cm²',explain:`Diện tích hình chữ nhật: ${a} × ${b} = ${a*b} (cm²); hình tròn: ${r} × ${r} × 3,14 = ${fd(r*r*3.14)} (cm²); còn lại: ${fd(S)} (cm²)`});}
     const a=rnd(4,16);return ING('hinhhoc',`Hình vuông ABCD cạnh ${a} cm. Nối A với C được hai hình tam giác. Tính diện tích tam giác ABC.`,a*a/2,{icon:'◪',unit:'cm²',explain:`Tam giác ABC vuông tại B: ${a} × ${a} : 2 = ${fd(a*a/2)} (cm²)`});},
-  /* ---------- Chặng 7: Tỉ số phần trăm, thể tích ---------- */
+  /* ---------- Nhóm: Tỉ số phần trăm, thể tích ---------- */
   pctWrite(){const t=rnd(1,3);if(t===1){const n=rnd(1,99);return mc3('tiso',`Viết phân số ${n}/100 dưới dạng tỉ số phần trăm:`,`${n}%`,[`${n/10}%`.replace('.',','),`${n*10}%`,`${100-n}%`],{explain:`${n}/100 = ${n}%`});}
     if(t===2){const P=[[1,2,50],[1,4,25],[3,4,75],[1,5,20],[2,5,40],[3,5,60],[4,5,80],[1,10,10],[3,20,15],[7,20,35],[9,25,36],[1,25,4],[3,50,6],[1,20,5]];const[n,d,p]=pick(P);return ING('tiso',`Viết phân số ${n}/${d} dưới dạng tỉ số phần trăm (chỉ ghi số):`,p,{big:`${n}/${d} = ?%`,explain:`${n}/${d} = ${n*100/d}/100 = ${p}%`});}
     const x=rd(0.01,0.99,2);return ING('tiso','Viết số thập phân dưới dạng tỉ số phần trăm (chỉ ghi số):',x*100,{big:`${fd(x)} = ?%`,explain:`${fd(x)} = ${fd(x*100)}/100 = ${fd(x*100)}%`});},
@@ -216,7 +216,7 @@ const M5={
   tankWp(){const a=rd(1,3,1),b=rd(0.5,2,1),c=rd(0.5,1.5,1);if(b>a)return M5.tankWp();const V=r6(a*b*c);return ING('giaitoan',`Một bể nước hình hộp chữ nhật có chiều dài ${fd(a)} m, chiều rộng ${fd(b)} m, chiều cao ${fd(c)} m. Hỏi bể chứa đầy được bao nhiêu lít nước? (1 dm³ = 1 l)`,V*1000,{icon:'🛁',unit:'l',explain:`Bài giải\nThể tích bể: ${fd(a)} × ${fd(b)} × ${fd(c)} = ${fd(V)} (m³) = ${fd(V*1000)} dm³\nBể chứa được ${fd(V*1000)} l nước.\nĐáp số: ${fd(V*1000)} l.`});},
   shapeCount(){const L=[['Hình hộp chữ nhật có bao nhiêu mặt?','6'],['Hình lập phương có bao nhiêu cạnh?','12'],['Hình hộp chữ nhật có bao nhiêu đỉnh?','8'],['Các mặt của hình lập phương là hình gì?','hình vuông']];const[q,a]=pick(L);
     return mc3('hinhhoc',q,a,{'6':['4','8'],'12':['8','6'],'8':['6','12'],'hình vuông':['hình chữ nhật','hình tam giác']}[a]);},
-  /* ---------- Chặng 8: Thời gian, chuyển động, thống kê ---------- */
+  /* ---------- Nhóm: Thời gian, chuyển động, thống kê ---------- */
   timeConv(){const L=[['1 thế kỉ','năm',100],['1 năm','tháng',12],['1 ngày','giờ',24],['1 giờ','phút',60],['1 phút','giây',60],['1 tuần','ngày',7]];const t=Math.random();
     if(t<.3){const[a,u,v]=pick(L);return ING('doluong','Điền số thích hợp:',v,{big:`${a} = ? ${u}`});}
     if(t<.6){const x=pick([1.5,2.5,0.5,3.5,1.25,0.25,0.75]);const[a,u,v]=pick([['giờ','phút',60],['phút','giây',60],['ngày','giờ',24],['năm','tháng',12]]);return ING('doluong','Điền số thích hợp:',x*v,{big:`${fd(x)} ${a} = ? ${u}`,explain:`${fd(x)} × ${v} = ${fd(x*v)} ${u}`});}
@@ -252,32 +252,79 @@ function pieSVG(parts){const C=['#1D8CE0','#F0476A','#16A34A','#D97706','#7C5CF0
   const leg=parts.map(([n],i)=>`<rect x="200" y="${22+i*40}" width="22" height="22" rx="4" fill="${C[i%5]}"/><text x="230" y="${40+i*40}" font-size="19" font-weight="700" fill="currentColor" font-family="inherit">${n}</text>`).join('');
   return `<svg class="shape" viewBox="0 0 340 200" role="img" aria-label="Biểu đồ hình quạt tròn">${s}${leg}</svg>`;}
 
-/* Lộ trình 8 chặng × 6 bài (theo thứ tự SGK Toán 5 Chân trời sáng tạo) */
+/* ---------- Bộ sinh câu hỏi bổ sung theo SGK Toán 5 Kết nối tri thức ---------- */
+function angleSVG(deg){const r=70,cx=40,cy=100,a=deg*Math.PI/180;const x=cx+r*Math.cos(-a),y=cy+r*Math.sin(-a);
+  const arc=deg===90?`<path d="M${cx+16} ${cy} L${cx+16} ${cy-16} L${cx} ${cy-16}" fill="none" stroke="#F0476A" stroke-width="2.5"/>`:`<path d="M${cx+22} ${cy} A22 22 0 ${deg>180?1:0} 0 ${(cx+22*Math.cos(-a)).toFixed(1)} ${(cy+22*Math.sin(-a)).toFixed(1)}" fill="none" stroke="#F0476A" stroke-width="2.5"/>`;
+  return `<svg class="shape" viewBox="0 0 200 120" role="img" aria-label="Góc ${deg} độ"><line x1="${cx}" y1="${cy}" x2="${cx+r+60}" y2="${cy}" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>${arc}<circle cx="${cx}" cy="${cy}" r="3.5" fill="currentColor"/></svg>`;}
+Object.assign(M5,{
+  angleKind(){const deg=pick([30,40,45,60,70,80,90,100,120,135,150,160,180]);const k=deg<90?'góc nhọn':deg===90?'góc vuông':deg<180?'góc tù':'góc bẹt';
+    if(Math.random()<.35){const L=[['Góc vuông có số đo bằng bao nhiêu độ?','90°'],['Góc bẹt có số đo bằng bao nhiêu độ?','180°'],['Góc nhọn có số đo thế nào?','Bé hơn 90°'],['Góc tù có số đo thế nào?','Lớn hơn 90° và bé hơn 180°']];const[q,ans]=pick(L);return mc3('hinhhoc',q,ans,['90°','180°','Bé hơn 90°','Lớn hơn 90° và bé hơn 180°','60°'].filter(x=>x!==ans),{explain:'Góc nhọn bé hơn góc vuông (90°); góc tù lớn hơn góc vuông, bé hơn góc bẹt (180°).'});}
+    return mc3('hinhhoc',`Góc có số đo ${deg}° là góc gì?`,k,[],{fixed:['góc nhọn','góc vuông','góc tù','góc bẹt'],visual:angleSVG(deg),explain:`${deg}° ${deg<90?'bé hơn 90°':deg===90?'bằng 90°':deg<180?'lớn hơn 90° và bé hơn 180°':'bằng 180°'} nên là ${k}.`});},
+  lineRel(){const L=[['Hai đường thẳng cắt nhau tạo thành bốn góc vuông là hai đường thẳng:','vuông góc',['song song','trùng nhau']],['Hai đường thẳng không bao giờ cắt nhau (trên một mặt phẳng) là hai đường thẳng:','song song',['vuông góc','cắt nhau']],['Hình chữ nhật có mấy cặp cạnh đối diện song song?','2 cặp',['1 cặp','4 cặp']],['Hình chữ nhật có mấy góc vuông?','4 góc',['2 góc','1 góc']],['Hình bình hành có hai cặp cạnh đối diện:','song song và bằng nhau',['vuông góc với nhau','không song song']],['Hình thoi có đặc điểm gì?','Bốn cạnh bằng nhau, hai cặp cạnh đối diện song song',['Bốn góc vuông, các cạnh khác nhau','Chỉ có một cặp cạnh song song']],['Hai cạnh kề nhau của hình vuông thì:','vuông góc với nhau',['song song với nhau','không cắt nhau']],['Hình thang có mấy cặp cạnh đối diện song song?','1 cặp',['2 cặp','0 cặp']]];const[q,ans,w]=pick(L);return mc3('hinhhoc',q,ans,w);},
+  timeUnits(){const t=rnd(1,5);
+    if(t===1){const h=rnd(2,9);return ING('doluong','Điền số thích hợp:',h*60,{big:`${h} giờ = ? phút`,explain:`1 giờ = 60 phút nên ${h} giờ = ${h*60} phút`});}
+    if(t===2){const h=rnd(1,4),m=rnd(5,55);return ING('doluong','Điền số thích hợp:',h*60+m,{big:`${h} giờ ${m} phút = ? phút`,explain:`${h} × 60 + ${m} = ${h*60+m} (phút)`});}
+    if(t===3){const m=rnd(1,9),sg=rnd(5,55);return ING('doluong','Điền số thích hợp:',m*60+sg,{big:`${m} phút ${sg} giây = ? giây`,explain:`${m} × 60 + ${sg} = ${m*60+sg} (giây)`});}
+    if(t===4){const k=rnd(2,9);return ING('doluong','Điền số thích hợp:',k*100,{big:`${k} thế kỉ = ? năm`,explain:`1 thế kỉ = 100 năm nên ${k} thế kỉ = ${k*100} năm`});}
+    const y=pick([1010,1288,1428,1789,1945,1975,2000,2025]);const c=Math.floor((y-1)/100)+1;const R=['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];return mc3('doluong',`Năm ${y} thuộc thế kỉ nào?`,`thế kỉ ${R[c]}`,[`thế kỉ ${R[c-1]}`,`thế kỉ ${R[Math.min(21,c+1)]}`,`thế kỉ ${R[Math.max(1,c-2)]}`],{explain:`Từ năm ${(c-1)*100+1} đến năm ${c*100} là thế kỉ ${R[c]}.`});},
+  kmHa(){const t=rnd(1,6);
+    if(t===1){const a=rnd(2,40);return ING('doluong','Điền số thích hợp:',a*100,{big:`${a} km² = ? ha`,explain:`1 km² = 100 ha nên ${a} km² = ${a*100} ha`});}
+    if(t===2){const a=rnd(2,30);return ING('doluong','Điền số thích hợp:',a*10000,{big:`${a} ha = ? m²`,explain:`1 ha = 10 000 m² nên ${a} ha = ${fmtN(a*10000)} m²`});}
+    if(t===3){const a=rnd(1,9),b=rnd(1,99);return ING('doluong','Điền số thích hợp:',a*100+b,{big:`${a} km² ${b} ha = ? ha`,explain:`${a} km² = ${a*100} ha; ${a*100} + ${b} = ${a*100+b} (ha)`});}
+    if(t===4){const h=rnd(1,99)*100;return ING('doluong','Điền số thích hợp:',h/100,{big:`${fmtN(h)} ha = ? km²`,explain:`100 ha = 1 km² nên ${fmtN(h)} ha = ${fmtN(h/100)} km²`});}
+    if(t===5){const a=rnd(2,9),b=rnd(150,950);const s=a*100>b?'>':a*100<b?'<':'=';return mc3('doluong','Chọn dấu thích hợp:',s,[],{fixed:['>','<','='],big:`${a} km² ☐ ${b} ha`,explain:`${a} km² = ${a*100} ha; ${a*100} ${s} ${b}`});}
+    const d=rnd(2,9)*100,r=rnd(1,9)*100;return ING('doluong',`Một khu rừng hình chữ nhật dài ${fmtN(d)} m, rộng ${r} m. Diện tích khu rừng là bao nhiêu héc-ta?`,d*r/10000,{icon:'🌲',unit:'ha',explain:`${fmtN(d)} × ${r} = ${fmtN(d*r)} (m²) = ${fd(d*r/10000)} ha`});},
+  areaUnits(){const U=['km²','hm²','dam²','m²','dm²','cm²','mm²'];const t=rnd(1,4);
+    if(t===1){const i=rnd(3,5),a=rnd(2,20);return ING('doluong','Điền số thích hợp:',a*100,{big:`${a} ${U[i]} = ? ${U[i+1]}`,explain:`Hai đơn vị đo diện tích liền nhau hơn kém nhau 100 lần: ${a} ${U[i]} = ${a*100} ${U[i+1]}`});}
+    if(t===2){const i=rnd(3,5),a=rnd(1,9),b=rnd(1,99);return ING('doluong','Điền số thích hợp:',a*100+b,{big:`${a} ${U[i]} ${b} ${U[i+1]} = ? ${U[i+1]}`,explain:`${a} ${U[i]} = ${a*100} ${U[i+1]}; ${a*100} + ${b} = ${a*100+b}`});}
+    if(t===3){const i=rnd(3,5),a=rd(1,9,pick([1,2]));return ING('doluong','Điền số thích hợp:',a*100,{big:`${fd(a)} ${U[i]} = ? ${U[i+1]}`,explain:`${fd(a)} × 100 = ${fd(a*100)}`});}
+    const i=rnd(3,5),b=rnd(1,99);return ING('doluong','Viết số đo dưới dạng số thập phân:',b/100,{big:`${b} ${U[i+1]} = ? ${U[i]}`,explain:`${b} ${U[i+1]} = ${b}/100 ${U[i]} = ${fd(b/100)} ${U[i]}`});},
+  mapScale2(){const sc=pick([10000,50000,100000,200000,500000,1000000]);const cm=rnd(2,12);const km=cm*sc/100000;return ING('doluong',`Quãng đường thực tế dài ${fd(km)} km. Trên bản đồ tỉ lệ 1 : ${fmtN(sc)}, quãng đường đó dài bao nhiêu xăng-ti-mét?`,cm,{icon:'🗺️',unit:'cm',explain:`${fd(km)} km = ${fmtN(cm*sc)} cm; ${fmtN(cm*sc)} : ${fmtN(sc)} = ${cm} (cm)`});},
+  calcKeys(){const t=rnd(1,4);const K=n=>String(n).split('').join(' ');
+    if(t===1){const a=rnd(100,999),b=rnd(100,999),op=pick(['+','−','×']);return mc3('so',`Để tính ${a} ${op} ${b} bằng máy tính cầm tay, ta lần lượt bấm các phím:`,`${K(a)} ${op} ${K(b)} =`,[`${K(a)} ${op==='+'?'×':'+'} ${K(b)} =`,`${K(b)} ${op} ${K(a)} ${op}`,`${K(a)} ${K(b)} ${op} =`],{explain:'Bấm số thứ nhất, phím phép tính, số thứ hai rồi bấm phím “=”.'});}
+    if(t===2){const a=rnd(2,9),b=rnd(2,9),c=rnd(2,9);return ING('so',`Rô-bốt bấm lần lượt các phím ${a} + ${b} × ${c} = trên máy tính cầm tay (máy thực hiện phép tính theo thứ tự bấm phím). Màn hình hiện kết quả bao nhiêu?`,(a+b)*c,{icon:'🧮',explain:`Máy tính theo thứ tự bấm: ${a} + ${b} = ${a+b}; ${a+b} × ${c} = ${(a+b)*c}. (Nếu tính đúng thứ tự thực hiện phép tính thì kết quả là ${a+b*c}.)`});}
+    if(t===3){const N=pick([120000,250000,400000,80000]),p=pick([10,15,20,25]);return mc3('tiso',`Để tìm ${p}% của ${fmtN(N)} bằng máy tính cầm tay, ta bấm:`,`${K(N)} × ${K(p)} %`,[`${K(N)} + ${K(p)} %`,`${K(p)} ÷ ${K(N)} %`,`${K(N)} − ${K(p)} =`],{explain:`Tìm ${p}% của ${fmtN(N)}: bấm ${fmtN(N)} × ${p} % → ${fmtN(N*p/100)}`});}
+    const a=rnd(5,40),b=pick([50,80,100,125,200]);return mc3('tiso',`Để tìm tỉ số phần trăm của ${a} và ${b} bằng máy tính cầm tay, ta bấm:`,`${K(a)} ÷ ${K(b)} %`,[`${K(b)} ÷ ${K(a)} %`,`${K(a)} × ${K(b)} %`,`${K(a)} + ${K(b)} %`],{explain:`Tỉ số phần trăm của ${a} và ${b}: bấm ${a} ÷ ${b} % → ${fd(a/b*100)}%`});},
+  cubeCount(){const t=rnd(1,3);const a=rnd(2,5),b=rnd(2,5),c=rnd(2,5);
+    if(t===1)return ING('hinhhoc',`Một hình được xếp bởi các hình lập phương nhỏ: có ${c} lớp, mỗi lớp có ${a} hàng, mỗi hàng ${b} hình lập phương nhỏ. Hình đó gồm bao nhiêu hình lập phương nhỏ?`,a*b*c,{icon:'🧊',explain:`${a} × ${b} × ${c} = ${a*b*c} (hình)`});
+    if(t===2){const x=a*b*c,y=x+pick([-3,-2,2,3,4]);const s=x>y?'Hình A':'Hình B';return mc3('hinhhoc',`Hình A gồm ${x} hình lập phương nhỏ, hình B gồm ${y} hình lập phương nhỏ (các hình lập phương nhỏ như nhau). Hình nào có thể tích lớn hơn?`,s,[],{fixed:['Hình A','Hình B','Bằng nhau'],explain:'Hình gồm nhiều hình lập phương nhỏ hơn thì có thể tích lớn hơn.'});}
+    const k=a*b;return ING('hinhhoc',`Mỗi lớp của một khối hộp xếp được ${k} hình lập phương 1 cm³. Khối hộp có ${c} lớp. Thể tích khối hộp là bao nhiêu xăng-ti-mét khối?`,k*c,{icon:'📦',unit:'cm³',explain:`${k} × ${c} = ${k*c} (cm³)`});},
+  volConv2(){const t=rnd(1,4);
+    if(t===1){const a=rd(1,9,pick([1,2]));return ING('doluong','Điền số thích hợp:',a*1000,{big:`${fd(a)} m³ = ? dm³`,explain:`1 m³ = 1 000 dm³ nên ${fd(a)} m³ = ${fd(a*1000)} dm³`});}
+    if(t===2){const b=rnd(1,999);return ING('doluong','Viết số đo dưới dạng số thập phân:',b/1000,{big:`${b} dm³ = ? m³`,explain:`${b} dm³ = ${b}/1000 m³ = ${fd(b/1000)} m³`});}
+    if(t===3){const a=rnd(1,9),b=rnd(1,999);return ING('doluong','Điền số thích hợp:',a*1000+b,{big:`${a} dm³ ${b} cm³ = ? cm³`,explain:`${a} dm³ = ${a*1000} cm³; ${a*1000} + ${b} = ${a*1000+b} (cm³)`});}
+    const a=rnd(2,40);return ING('doluong','Điền số thích hợp:',a,{big:`${a} dm³ = ? l`,explain:'1 dm³ = 1 l'});},
+  netQ(){const L=[['Hình khai triển của hình lập phương gồm mấy hình vuông bằng nhau?','6',['4','8']],['Hình khai triển của hình hộp chữ nhật gồm mấy hình chữ nhật?','6',['4','2']],['Hình khai triển của hình trụ gồm:','hai hình tròn và một hình chữ nhật',['ba hình tròn','sáu hình vuông']],['Diện tích xung quanh của hình hộp chữ nhật bằng chu vi mặt đáy nhân với:','chiều cao',['chiều dài','chiều rộng']],['Diện tích toàn phần của hình hộp chữ nhật bằng:','diện tích xung quanh cộng diện tích hai đáy',['diện tích xung quanh nhân 2','chu vi đáy nhân 6']],['Diện tích xung quanh của hình lập phương bằng diện tích một mặt nhân với:','4',['6','2']],['Diện tích toàn phần của hình lập phương bằng diện tích một mặt nhân với:','6',['4','8']],['Hình trụ có mấy mặt đáy là hình tròn?','2',['1','3']]];const[q,ans,w]=pick(L);return mc3('hinhhoc',q,ans,w);},
+  dataTally(){const items=pick([[['Cam','🍊'],['Táo','🍎'],['Xoài','🥭']],[['Bóng đá','⚽'],['Cầu lông','🏸'],['Bơi','🏊']],[['Đỏ','🔴'],['Xanh','🔵'],['Vàng','🟡']]]);const n=rnd(12,18);const data=Array.from({length:n},()=>pick(items));const [nm,ic]=pick(items);const k=data.filter(x=>x[0]===nm).length;
+    return ING('xacsuat',`Bạn Mai hỏi ${n} bạn trong lớp về lựa chọn yêu thích và ghi lại: ${data.map(x=>x[0]).join(', ')}. Có bao nhiêu bạn chọn “${nm}”?`,k,{icon:ic,unit:'bạn',explain:`Đếm số lần xuất hiện “${nm}” trong dãy số liệu: ${k} lần.`});}
+});
+
+/* Lộ trình 8 chặng × 6 bài theo 12 chủ đề, 75 bài của SGK Toán 5 Kết nối tri thức (tập một: chặng 1–4, tập hai: chặng 5–8) */
 const WEEKS5=[
-  {t:'Ôn tập số tự nhiên và phân số',s:'Số và phép tính đến lớp triệu, phân số, phân số thập phân, hỗn số. Tiếng Việt: từ đồng nghĩa, từ đa nghĩa.',
-   lv:[['Số tự nhiên','🔢'],['Ôn tập phân số','🍰'],['Phân số thập phân','🔟'],['Cộng, trừ phân số','➕'],['Nhân, chia phân số · hỗn số','✖️'],['Ôn tập chặng 1','🏆']],
-   g:[['readBigN','placeBig','roundBig','calcNat','exprNat','findX','divisible'],['simplify','equivFrac','compareFrac','sortFrac','fracOfQty'],['decFracWrite','toDecFrac','isDecFrac','equivFrac','fracOfQty'],['addFrac','addFracSame','wpFrac','compareFrac',['addFrac',1]],['mulFrac','divFrac','mulFracNat','mixedToFrac','fracToMixed','wpFrac'],'*']},
-  {t:'Tỉ số và các bài toán',s:'Tỉ số, tổng – tỉ, hiệu – tỉ, rút về đơn vị, tỉ lệ bản đồ, km² và héc-ta. Tiếng Việt: đại từ.',
-   lv:[['Tỉ số','➗'],['Tổng và tỉ','🧩'],['Hiệu và tỉ','⚖️'],['Rút về đơn vị','🛒'],['Tỉ lệ bản đồ · đo diện tích','🗺️'],['Ôn tập chặng 2','🏆']],
-   g:[['ratio','ratioFrac','fracOfQty'],['sumRatio','sumRatioAge','ratio'],['diffRatio','diffRatio2','ratioFrac'],['unitRate','unitRate2'],['mapScale','convArea','convLenMass'],'*']},
-  {t:'Số thập phân',s:'Đọc, viết, hàng, so sánh, làm tròn số thập phân; viết số đo dưới dạng số thập phân. Tiếng Việt: kết từ.',
-   lv:[['Khái niệm số thập phân','🔣'],['Hàng của số thập phân','🏷️'],['So sánh số thập phân','⚖️'],['Làm tròn số thập phân','🎯'],['Số đo dạng số thập phân','📏'],['Ôn tập chặng 3','🏆']],
-   g:[['decRead','decWrite','fracToDec','decToFrac'],['decPlace','decHang','decEqual','decToFrac'],['decCompare','decMax','decSort','decEqual'],['decRound','decCompare'],['decUnitLen','decUnitMass','decUnitBack'],'*']},
-  {t:'Cộng, trừ, nhân số thập phân',s:'Cộng, trừ, nhân số thập phân; nhân nhẩm với 10; 100; 0,1; tính thuận tiện. Tiếng Việt: câu đơn, câu ghép.',
-   lv:[['Cộng số thập phân','➕'],['Trừ số thập phân','➖'],['Nhân với số tự nhiên','✖️'],['Nhân hai số thập phân','🔢'],['Tính thuận tiện · giải toán','🧠'],['Ôn tập chặng 4','🏆']],
-   g:[['decAdd','decAddMissing','decSum3'],['decSub','decAddMissing','decAddWp'],['decMulNat','decMul10','decMulWp'],['decMulDec','decMul01','decMul10'],['decMulProp','decDistrib','decAddWp','decMulWp'],'*']},
-  {t:'Chia số thập phân',s:'Chia số thập phân; chia nhẩm; biểu thức; trung bình cộng; toán lời văn. Tiếng Việt: nối các vế câu ghép.',
-   lv:[['Chia cho số tự nhiên','➗'],['Chia nhẩm · thương thập phân','💡'],['Chia cho số thập phân','🔢'],['Biểu thức · tìm thành phần','🧮'],['Trung bình cộng · lời văn','📊'],['Ôn tập chặng 5','🏆']],
-   g:[['decDivNat','decDiv10'],['decDiv10','natDivNat','decDiv01'],['natDivDec','decDivDec','decDiv01'],['decExpr','decFindX'],['average','decDivWp'],'*']},
-  {t:'Hình tam giác, hình thang, hình tròn',s:'Diện tích tam giác, hình thang; chu vi, diện tích hình tròn. Tiếng Việt: liên kết câu.',
-   lv:[['Hình tam giác','🔺'],['Hình thang','⏢'],['Chu vi hình tròn','⭕'],['Diện tích hình tròn','🟠'],['Giải toán hình học','📐'],['Ôn tập chặng 6','🏆']],
-   g:[['triArea','triRight','triBase','triKind'],['trapArea','trapH','trapWp'],['circC','circR','circParts','wheel'],['circS','circSd','circParts'],['geoMix','wheel','trapWp','triBase'],'*']},
-  {t:'Tỉ số phần trăm và thể tích',s:'Tỉ số phần trăm, biểu đồ hình quạt; thể tích, hình hộp chữ nhật, hình lập phương. Tiếng Việt: dấu câu, điệp từ.',
-   lv:[['Tỉ số phần trăm','💯'],['Giải toán phần trăm','🏦'],['Biểu đồ hình quạt tròn','🥧'],['Thể tích · đơn vị đo','🧊'],['Hình hộp chữ nhật, lập phương','📦'],['Ôn tập chặng 7','🏆']],
-   g:[['pctWrite','pctCalc','pctOfTwo'],['pctValue','pctFind','pctOfTwo','pctInterest'],['pieChart','pctValue'],['volConv','shapeCount','volCube'],['volBox','volCube','boxArea','cubeArea','tankWp'],'*']},
-  {t:'Thời gian, chuyển động đều · Tổng ôn',s:'Số đo thời gian, vận tốc, quãng đường, thời gian; thống kê, xác suất. Tiếng Việt: tổng ôn.',
-   lv:[['Số đo thời gian','⏰'],['Tính với số đo thời gian','🕒'],['Vận tốc','🏎️'],['Quãng đường · thời gian','🛣️'],['Thống kê · xác suất','🎲'],['Tổng ôn lên lớp 6','🎓']],
-   g:[['timeConv','timeWp'],['timeAdd','timeSub','timeMul','timeDiv','timeWp'],['speed','speedConv'],['distance','duration','meet'],['probab','statTable','average'],'*']}
+  {t:'Ôn tập và bổ sung',s:'Chủ đề 1 (Bài 1–9): số tự nhiên, phân số, phân số thập phân, hỗn số, ôn tập hình học và đo lường.',
+   lv:[['Ôn tập số tự nhiên và các phép tính','🔢'],['Ôn tập phân số','🍰'],['Phân số thập phân','🔟'],['Phép tính với phân số · cộng, trừ khác mẫu','➕'],['Hỗn số','🥧'],['Ôn tập hình học và đo lường','📐']],
+   g:[['readBigN','placeBig','roundBig','calcNat','exprNat','findX','divisible'],['simplify','equivFrac','compareFrac','sortFrac','fracOfQty'],['decFracWrite','toDecFrac','isDecFrac','equivFrac'],['addFrac','addFracSame','mulFrac','divFrac','mulFracNat','wpFrac'],['mixedToFrac','fracToMixed','wpFrac','fracOfQty'],['angleKind','lineRel','convLenMass','timeUnits','angleKind']]},
+  {t:'Số thập phân · Đơn vị đo diện tích',s:'Chủ đề 2–3 (Bài 10–18): khái niệm, so sánh, làm tròn số thập phân; số đo dạng số thập phân; km², ha, các đơn vị đo diện tích.',
+   lv:[['Khái niệm số thập phân','🔣'],['So sánh các số thập phân','⚖️'],['Viết số đo đại lượng dạng số thập phân','📏'],['Làm tròn số thập phân','🎯'],['Ki-lô-mét vuông. Héc-ta','🗺️'],['Các đơn vị đo diện tích · Luyện tập chung','🟩']],
+   g:[['decRead','decWrite','fracToDec','decToFrac','decPlace','decHang'],['decCompare','decMax','decSort','decEqual'],['decUnitLen','decUnitMass','decUnitBack'],['decRound','decCompare'],['kmHa','convArea'],['areaUnits','convArea','decUnitBack','decRound']]},
+  {t:'Các phép tính với số thập phân',s:'Chủ đề 4 (Bài 19–24): cộng, trừ, nhân, chia số thập phân; nhân, chia với 10; 100; 1 000;… và 0,1; 0,01; 0,001;…',
+   lv:[['Phép cộng số thập phân','➕'],['Phép trừ số thập phân','➖'],['Phép nhân số thập phân','✖️'],['Phép chia số thập phân','➗'],['Nhân, chia với 10; 100;… và 0,1; 0,01;…','💡'],['Luyện tập chung','🏆']],
+   g:[['decAdd','decSum3','decAddMissing'],['decSub','decAddMissing','decAddWp'],['decMulNat','decMulDec','decMulWp','decMulProp','decDistrib'],['decDivNat','natDivNat','natDivDec','decDivDec','decDivWp'],['decMul10','decDiv10','decMul01','decDiv01'],['decExpr','decFindX','average','decAddWp','decMulWp','decDivWp']]},
+  {t:'Một số hình phẳng · Ôn tập học kì 1',s:'Chủ đề 5–6 (Bài 25–35): hình tam giác, hình thang, đường tròn; chu vi, diện tích; ôn tập học kì 1.',
+   lv:[['Hình tam giác. Diện tích hình tam giác','🔺'],['Hình thang. Diện tích hình thang','⏢'],['Đường tròn. Chu vi hình tròn','⭕'],['Diện tích hình tròn · Thực hành','🟠'],['Ôn tập số thập phân và phép tính','🔢'],['Ôn tập hình học, đo lường học kì 1','🏆']],
+   g:[['triKind','triArea','triRight','triBase'],['trapArea','trapH','trapWp'],['circParts','circC','circR','wheel'],['circS','circSd','geoMix'],['decRead','decCompare','decRound','decAdd','decSub','decMulDec','decDivDec','decExpr'],['triArea','trapArea','circC','circS','convArea','decUnitLen','decUnitMass','geoMix']]},
+  {t:'Tỉ số và các bài toán liên quan',s:'Chủ đề 7 (Bài 36–44): tỉ số, tỉ số phần trăm, tỉ lệ bản đồ, tổng – tỉ, hiệu – tỉ, tìm giá trị phần trăm, máy tính cầm tay.',
+   lv:[['Tỉ số. Tỉ số phần trăm','➗'],['Tỉ lệ bản đồ và ứng dụng','🗺️'],['Tìm hai số khi biết tổng và tỉ số','🧩'],['Tìm hai số khi biết hiệu và tỉ số','⚖️'],['Tìm tỉ số phần trăm của hai số','💯'],['Giá trị phần trăm · Máy tính cầm tay','🧮']],
+   g:[['ratio','ratioFrac','pctWrite'],['mapScale','mapScale2'],['sumRatio','sumRatioAge'],['diffRatio','diffRatio2'],['pctOfTwo','pctCalc'],['pctValue','pctInterest','calcKeys','calcKeys']]},
+  {t:'Thể tích · Hình khối',s:'Chủ đề 8–9 (Bài 45–55): thể tích, cm³, dm³, m³; hình khai triển; diện tích xung quanh, toàn phần và thể tích hình hộp chữ nhật, hình lập phương.',
+   lv:[['Thể tích của một hình','🧊'],['Xăng-ti-mét khối. Đề-xi-mét khối','📦'],['Mét khối · Luyện tập','🏗️'],['Hình khai triển · Sxq, Stp hình hộp chữ nhật','📐'],['Sxq, Stp hình lập phương','🎲'],['Thể tích hình hộp chữ nhật, hình lập phương','🪣']],
+   g:[['cubeCount','shapeCount'],['volConv','volConv2'],['volConv2','volConv'],['netQ','boxArea'],['cubeArea','netQ'],['volBox','volCube','tankWp']]},
+  {t:'Số đo thời gian · Chuyển động đều',s:'Chủ đề 10 (Bài 56–62): đơn vị đo thời gian; cộng, trừ, nhân, chia số đo thời gian; vận tốc, quãng đường, thời gian.',
+   lv:[['Các đơn vị đo thời gian','⏰'],['Cộng, trừ số đo thời gian','🕒'],['Nhân, chia số đo thời gian','⏱️'],['Vận tốc của một chuyển động đều','🏎️'],['Quãng đường, thời gian','🛣️'],['Luyện tập chung chuyển động đều','🏆']],
+   g:[['timeConv','timeUnits'],['timeAdd','timeSub','timeWp'],['timeMul','timeDiv'],['speed','speedConv'],['distance','duration'],['speed','distance','duration','timeWp']]},
+  {t:'Thống kê, xác suất · Ôn tập cuối năm',s:'Chủ đề 11–12 (Bài 63–75): thu thập, phân loại số liệu; biểu đồ hình quạt tròn; tỉ số số lần lặp lại; ôn tập cuối năm.',
+   lv:[['Thu thập, phân loại, sắp xếp số liệu','📋'],['Biểu đồ hình quạt tròn','🥧'],['Tỉ số số lần lặp lại một sự kiện','🎲'],['Ôn tập số và phép tính','🔢'],['Ôn tập tỉ số, hình học, đo lường','📐'],['Ôn tập chung cuối năm','🎓']],
+   g:[['statTable','dataTally'],['pieChart'],['probab'],['readBigN','decCompare','addFrac','mulFrac','decMulDec','decDivDec','decExpr'],['pctValue','pctOfTwo','sumRatio','triArea','circS','volBox','convArea','timeConv'],['speed','distance','duration','probab','statTable','pieChart','decExpr','pctValue']]}
 ];
 function m5gen(spec){return Array.isArray(spec)?()=>M5[spec[0]](...spec.slice(1)):()=>M5[spec]();}
 function m5Lesson(w,d){const G=WEEKS5[w].g;if(G[d]==='*'){const all=G.slice(0,5).flat();return all.map(m5gen);}return G[d].map(m5gen);}
