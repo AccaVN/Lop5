@@ -76,7 +76,33 @@ router.get('/me/home', async (req, res) => {
     });
   } catch (e) {
     console.error('GET /student/me/home:', e);
-    res.status(500).json({ error: 'Không thể tải dữ liệu trang chủ' });
+    // Dự phòng: truy vấn gộp lỗi (vd. database thiếu cột/bảng) → lấy từng phần riêng, phần nào lỗi thì bỏ qua,
+    // để học sinh vẫn vào được app. Lỗi gốc trả kèm trong "detail" để dễ tìm nguyên nhân.
+    try {
+      const st = await pool.query('SELECT id, name, avatar, gender, join_code, total_points FROM students WHERE user_id=$1 LIMIT 1', [req.user.id]);
+      const row = st.rows[0];
+      if (!row) return res.status(404).json({ error: 'Không tìm thấy hồ sơ học sinh' });
+      const safe = async (sql, args, def) => { try { return (await pool.query(sql, args)).rows; } catch (err) { console.error('home fallback:', err.message); return def; } };
+      const progress = await safe(
+        `SELECT level_key, stars, GREATEST(best_stars, stars) AS best, points, GREATEST(best_points, points) AS bp FROM progress WHERE student_id=$1 ORDER BY level_key`,
+        [row.id], null)
+        || await safe('SELECT level_key, stars, stars AS best, 0 AS points, 0 AS bp FROM progress WHERE student_id=$1 ORDER BY level_key', [row.id], []);
+      const coins = (await safe('SELECT coins FROM student_rewards WHERE student_id=$1', [row.id], []))[0];
+      const speak = await safe('SELECT item_key, stars FROM speak_best WHERE student_id=$1', [row.id], []);
+      const today = (await safe(`SELECT seconds FROM daily_sessions WHERE student_id=$1 AND day=${VN_TODAY}`, [row.id], []))[0];
+      res.json({
+        student: { id: row.id, name: row.name, avatar: row.avatar, gender: row.gender, join_code: row.join_code, total_points: Number(row.total_points || 0) },
+        total_stars: progress.reduce((a, p) => a + (Number(p.stars) || 0), 0),
+        progress,
+        coins: Number((coins && coins.coins) || 0),
+        speak: Object.fromEntries(speak.map((x) => [x.item_key, x.stars])),
+        today_seconds: Number((today && today.seconds) || 0),
+        degraded: e.message,
+      });
+    } catch (e2) {
+      console.error('GET /student/me/home fallback:', e2);
+      res.status(500).json({ error: 'Không thể tải dữ liệu trang chủ', detail: String(e2.message || e.message || '').slice(0, 300) });
+    }
   }
 });
 

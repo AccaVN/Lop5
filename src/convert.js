@@ -27,4 +27,19 @@ async function parentToStudent(userId) {
   throw new Error('Không chuyển được tài khoản phụ huynh');
 }
 
-module.exports = { parentToStudent };
+// Tài khoản học sinh tạo thẳng bằng SQL (chỉ có dòng trong users, chưa có hồ sơ trong students)
+// → tự tạo hồ sơ, nếu không app không tải được trang chủ và quay lại màn hình đăng nhập.
+const PROFILE_SQL = `
+  INSERT INTO students (user_id, name, join_code)
+  SELECT id, LEFT(COALESCE(NULLIF(TRIM(display_name), ''), split_part(email, '@', 1)), 16),
+         UPPER(SUBSTR(MD5(random()::text || id::text || clock_timestamp()::text), 1, 8))
+  FROM users WHERE id = $1 AND role = 'student' AND NOT EXISTS (SELECT 1 FROM students WHERE user_id = $1)
+  ON CONFLICT (user_id) DO NOTHING`;
+
+async function ensureStudentProfile(userId) {
+  for (let i = 0; i < 5; i++) {
+    try { await pool.query(PROFILE_SQL, [userId]); return; } catch (e) { if (e.code !== '23505') throw e; }
+  }
+}
+
+module.exports = { parentToStudent, ensureStudentProfile };

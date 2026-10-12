@@ -1718,7 +1718,7 @@ async function apiCall(method,path,body,_retry){
   let data={};try{data=await res.json();}catch(e){}
   if(res.status===401&&usedTok&&path!=='/auth/login'&&!_retry){syncTok();if(TOKEN&&TOKEN!==usedTok)return apiCall(method,path,body,true);}
   if(res.status===401&&usedTok&&usedTok===TOKEN&&path!=='/auth/login'){const o=data.other;forceLogout(data.code==='TRIAL_EXPIRED'?data.error:data.code!=='SESSION_REPLACED'?'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.':o?`Tài khoản này vừa đăng nhập trên thiết bị khác (${deviceName(o.device)}, lúc ${fmtTime(o.at)}) nên thiết bị này đã bị đăng xuất.`:'Phiên đăng nhập đã kết thúc (do cập nhật ứng dụng, đã đăng xuất, hoặc quản trị viên đặt lại mật khẩu). Vui lòng đăng nhập lại.');}
-  if(!res.ok)throw new Error(data.error||'Có lỗi xảy ra, thử lại nhé.');
+  if(!res.ok)throw new Error((data.error||'Có lỗi xảy ra, thử lại nhé.')+(data.detail?' ('+data.detail+')':''));
   return data;
 }
 // Tên thiết bị dễ đọc từ User-Agent, ví dụ "Chrome · Android"
@@ -1797,7 +1797,8 @@ async function ensureRewardsData(){
 
 // Các bài English (0..47) đã đạt ≥1 sao → có sticker Xe cộ cùng số
 function enEarned(){const st=enStars().stars;const ks=new Set(Object.keys(st).map(Number).concat(Object.keys(S.pass||{}).filter(k=>/^en_\d+$/.test(k)).map(k=>+k.slice(3))));return [...ks].filter(i=>i<48&&passedK('en_'+i,st[i]));}
-async function hydrateStudentHome(){
+let HOME_ERR='';
+async function hydrateStudentHome(){HOME_ERR='';
   try{
     const data=await apiGet('/student/me/home');
     S.studentId=data.student.id;
@@ -1828,6 +1829,7 @@ async function hydrateStudentHome(){
     return true;
   }catch(e){
     /* Mất mạng: tiếp tục dùng cache cục bộ để giao diện vẫn mở ngay. */
+    HOME_ERR=e&&e.message||'';
     return false;
   }
 }
@@ -1881,7 +1883,9 @@ function renderAuthForm(role,mode){
           if(res.converted){const m=modal(`<div class="big-ic">🎒</div><h2>Tài khoản đã đổi thành tài khoản học sinh</h2><p>Học Vui không còn tài khoản phụ huynh. Tài khoản <b>${esc(email)}</b> giờ là tài khoản học sinh, đăng nhập bằng email và mật khẩu cũ.</p><p>Bố mẹ xem kết quả học của con ở mục <b>👪 Phụ huynh</b> ngay trên máy của con.</p><button class="btn btn-go" id="cvOk">Bắt đầu</button>`,true);m.querySelector('#cvOk').onclick=()=>{m.remove();renderOnboard(false);};}
           else renderOnboard(false);
         }else{
-          await hydrateStudentHome();
+          const ok=await hydrateStudentHome();
+          if(!ok&&!S.name){TOKEN='';ROLE='';localStorage.removeItem('hv_token');localStorage.removeItem('hv_role');
+            errEl.textContent=HOME_ERR||'Không tải được hồ sơ học sinh. Vui lòng thử lại hoặc liên hệ admin.';btn.disabled=false;btn.textContent=oldTxt;return;}
           boot();
         }
       }else renderAdminPortal();

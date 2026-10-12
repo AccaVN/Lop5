@@ -95,6 +95,8 @@ router.post('/login', async (req, res) => {
   if (user.role === 'parent') {
     converted = await require('../convert').parentToStudent(user.id);
     user.role = 'student';
+  } else if (user.role === 'student') {
+    await require('../convert').ensureStudentProfile(user.id);
   }
   if (user.role !== 'admin' && user.trial_expires_at && new Date(user.trial_expires_at) < new Date()) {
     return res.status(403).json({ error: TRIAL_MSG, code: 'TRIAL_EXPIRED' });

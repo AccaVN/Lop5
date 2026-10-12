@@ -33,6 +33,19 @@ const SCHEMA_SQL = `
     coins      INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+  CREATE TABLE IF NOT EXISTS skill_stats (
+    student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    skill_key  TEXT NOT NULL,
+    correct    INTEGER NOT NULL DEFAULT 0,
+    total      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (student_id, skill_key)
+  );
+  CREATE TABLE IF NOT EXISTS daily_sessions (
+    student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    day        DATE NOT NULL,
+    seconds    INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (student_id, day)
+  );
   ALTER TABLE student_rewards ADD COLUMN IF NOT EXISTS en_stickers JSONB NOT NULL DEFAULT '[]'::jsonb;
   ALTER TABLE students ADD COLUMN IF NOT EXISTS total_points INTEGER NOT NULL DEFAULT 0;
   -- 09/2026: giảm xu 5 lần (chạy đúng 1 lần nhờ cột coin_v)
@@ -133,6 +146,8 @@ const SCHEMA_CHECK_SQL = `
     AND col_description(to_regclass('progress'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('progress') AND attname = 'best_points' AND NOT attisdropped)) = 'score_v2'
     AND to_regclass('speak_best') IS NOT NULL
     AND to_regclass('login_attempts') IS NOT NULL
+    AND to_regclass('skill_stats') IS NOT NULL
+    AND to_regclass('daily_sessions') IS NOT NULL
     AND col_description(to_regclass('students'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('students') AND attname = 'user_id' AND NOT attisdropped)) = 'no_parent_v1'
     AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'parent')
     AS ok
