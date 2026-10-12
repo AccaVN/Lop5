@@ -113,9 +113,13 @@ router.put('/users/:id', async (req, res) => {
     }
     if (email) await client.query('UPDATE users SET email=$1 WHERE id=$2', [String(email).toLowerCase().trim(), id]);
     // Admin đặt lại mật khẩu → đăng xuất tài khoản đó khỏi thiết bị đang dùng (trừ khi admin tự sửa chính mình)
-    if (password) await client.query(
-      'UPDATE users SET password_hash=$1, session_id = CASE WHEN id=$3 THEN session_id ELSE NULL END WHERE id=$2',
-      [await hashPassword(String(password)), id, req.user.id]);
+    if (password) {
+      await client.query(
+        'UPDATE users SET password_hash=$1, session_id = CASE WHEN id=$3 THEN session_id ELSE NULL END WHERE id=$2',
+        [await hashPassword(String(password)), id, req.user.id]);
+      // Admin đặt lại mật khẩu → mở khóa đăng nhập (nếu tài khoản đang bị khóa do sai nhiều lần)
+      await client.query(`DELETE FROM login_attempts WHERE key = 'e:' || (SELECT email FROM users WHERE id=$1)`, [id]);
+    }
     if (role === 'student') {
       if (typeof name === 'string' && !name.trim()) throw Object.assign(new Error('Tên học sinh không được để trống'), { status: 400 });
       await client.query('UPDATE students SET name=COALESCE($1,name), gender=COALESCE($2,gender), avatar=COALESCE($3,avatar) WHERE user_id=$4',

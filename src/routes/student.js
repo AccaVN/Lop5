@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db');
 const { authMiddleware, requireRole } = require('../auth');
-const { saveAttempt, recalcTotal, studentDetail, toInt } = require('../score');
+const { saveAttempt, recalcTotal, studentDetail, toInt, saveSpeak } = require('../score');
 
 // Ngày học tính theo giờ Việt Nam (máy chủ Vercel/Neon chạy giờ UTC)
 const VN_TODAY = "(now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date";
@@ -31,6 +31,7 @@ router.get('/me/home', async (req, res) => {
         COALESCE(p.total_stars, 0)::int AS total_stars,
         COALESCE(p.progress, '[]'::json) AS progress,
         COALESCE(r.coins, 0)::int AS coins,
+        COALESCE((SELECT json_object_agg(b.item_key, b.stars) FROM speak_best b WHERE b.student_id = s.id), '{}'::json) AS speak,
         COALESCE(d.seconds, 0)::int AS today_seconds
       FROM students s
       LEFT JOIN LATERAL (
@@ -38,7 +39,7 @@ router.get('/me/home', async (req, res) => {
           COALESCE(SUM(pr.stars), 0)::int AS total_stars,
           COALESCE(
             json_agg(
-              json_build_object('level_key', pr.level_key, 'stars', pr.stars, 'best', GREATEST(pr.best_stars, pr.stars), 'points', pr.points)
+              json_build_object('level_key', pr.level_key, 'stars', pr.stars, 'best', GREATEST(pr.best_stars, pr.stars), 'points', pr.points, 'bp', GREATEST(pr.best_points, pr.points))
               ORDER BY pr.level_key
             ),
             '[]'::json
@@ -70,6 +71,7 @@ router.get('/me/home', async (req, res) => {
       total_stars: Number(row.total_stars || 0),
       progress: row.progress || [],
       coins: Number(row.coins || 0),
+      speak: row.speak || {},
       today_seconds: Number(row.today_seconds || 0),
     });
   } catch (e) {
@@ -151,13 +153,20 @@ router.put('/me/points', async (req, res) => {
   res.json({ ok: true, total_points: await recalcTotal(student.id) });
 });
 
-// Điểm luyện nói/từ vựng: chỉ cộng phần con đọc TỐT HƠN lần trước (client gửi phần chênh lệch).
+// (Bản cũ) Điểm luyện nói cộng theo phần chênh lệch — nay thay bằng POST /me/speak, API này không cộng nữa.
 router.post('/me/bonus', async (req, res) => {
   const student = await getOwnStudent(req.user.id);
   if (!student) return res.status(404).json({ error: 'Không tìm thấy hồ sơ học sinh' });
-  const pts = toInt(req.body.points, 0, 10);
-  if (pts > 0) await pool.query('UPDATE students SET bonus_points = bonus_points + $1 WHERE id=$2', [pts, student.id]);
   res.json({ ok: true, total_points: await recalcTotal(student.id) });
+});
+
+// Điểm luyện nói/từ vựng lưu theo TỪNG TỪ/CÂU trên máy chủ: chỉ cộng khi con đọc tốt hơn
+// kỷ lục của chính từ/câu đó (đổi sang máy khác cũng không nhận lại điểm).
+// Body: { items: { "<item_key>": sao } }
+router.post('/me/speak', async (req, res) => {
+  const student = await getOwnStudent(req.user.id);
+  if (!student) return res.status(404).json({ error: 'Không tìm thấy hồ sơ học sinh' });
+  res.json(await saveSpeak(student.id, (req.body && req.body.items) || {}));
 });
 
 // Nộp kết quả 1 lần làm bài/đề/tính nhẩm. Kết quả này THAY THẾ lần làm trước của cùng bài.

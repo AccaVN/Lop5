@@ -103,3 +103,22 @@ ALTER TABLE progress ADD COLUMN IF NOT EXISTS skills     JSONB;                 
 ALTER TABLE students ADD COLUMN IF NOT EXISTS bonus_points INTEGER NOT NULL DEFAULT 0; -- điểm luyện nói
 INSERT INTO app_settings (key, value) VALUES ('score_last_attempt_v1', 'true'::jsonb) ON CONFLICT (key) DO NOTHING;
 COMMENT ON COLUMN progress.best_stars IS 'score_last_attempt_v1';
+
+-- 10/2026 (v2): kỷ lục điểm từng bài (xu chỉ thưởng khi vượt kỷ lục), điểm luyện nói theo từng từ/câu,
+-- khóa đăng nhập khi sai mật khẩu nhiều lần
+ALTER TABLE progress ADD COLUMN IF NOT EXISTS best_points INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS speak_best (
+  student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  item_key   TEXT NOT NULL,              -- v.<unit>.<từ>.<t|w|s> (từ vựng) hoặc p.<bài>.<câu> (luyện nói)
+  stars      INTEGER NOT NULL DEFAULT 0, -- sao cao nhất (0–5); điểm = 2 × sao
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (student_id, item_key)
+);
+CREATE TABLE IF NOT EXISTS login_attempts (
+  key          TEXT PRIMARY KEY,          -- 'e:<email>' hoặc 'ip:<địa chỉ IP>'
+  fails        INTEGER NOT NULL DEFAULT 0,
+  locked_until TIMESTAMPTZ,
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+INSERT INTO app_settings (key, value) VALUES ('score_v2', 'true'::jsonb) ON CONFLICT (key) DO NOTHING;
+COMMENT ON COLUMN progress.best_points IS 'score_v2';

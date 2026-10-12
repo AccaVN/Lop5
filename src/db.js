@@ -69,6 +69,34 @@ const SCHEMA_SQL = `
     END IF;
   END $mig$;
   COMMENT ON COLUMN progress.best_stars IS 'score_last_attempt_v1';
+  -- 10/2026 (v2): kỷ lục điểm từng bài (xu chỉ thưởng khi vượt kỷ lục), điểm luyện nói lưu
+  -- trên máy chủ theo từng từ/câu (đổi máy không nhận lại điểm), khóa đăng nhập khi sai nhiều lần.
+  ALTER TABLE progress ADD COLUMN IF NOT EXISTS best_points INTEGER NOT NULL DEFAULT 0;
+  CREATE TABLE IF NOT EXISTS speak_best (
+    student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    item_key   TEXT NOT NULL,
+    stars      INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (student_id, item_key)
+  );
+  CREATE TABLE IF NOT EXISTS login_attempts (
+    key          TEXT PRIMARY KEY,
+    fails        INTEGER NOT NULL DEFAULT 0,
+    locked_until TIMESTAMPTZ,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  DO $mig2$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'score_v2') THEN
+      UPDATE progress SET best_points = GREATEST(best_points, points);
+      -- Điểm luyện nói cũ không biết thuộc từ nào → bỏ; máy của con sẽ gửi lại từng từ đã đọc.
+      UPDATE students SET bonus_points = 0;
+      UPDATE students s SET total_points =
+        COALESCE((SELECT SUM(p.points) FROM progress p WHERE p.student_id = s.id), 0)
+        + 2 * COALESCE((SELECT SUM(b.stars) FROM speak_best b WHERE b.student_id = s.id), 0);
+      INSERT INTO app_settings (key, value) VALUES ('score_v2', 'true'::jsonb) ON CONFLICT (key) DO NOTHING;
+    END IF;
+  END $mig2$;
+  COMMENT ON COLUMN progress.best_points IS 'score_v2';
 `;
 // Kiểm tra nhanh bằng catalog (chỉ đọc, không khóa bảng). Lệnh ALTER TABLE ... IF NOT EXISTS
 // vẫn lấy khóa ACCESS EXCLUSIVE dù cột đã có → mỗi lần Vercel cold start sẽ chặn/chờ các
@@ -86,6 +114,9 @@ const SCHEMA_CHECK_SQL = `
     AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('progress') AND attname = 'skills' AND NOT attisdropped)
     AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('students') AND attname = 'bonus_points' AND NOT attisdropped)
     AND col_description(to_regclass('progress'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('progress') AND attname = 'best_stars' AND NOT attisdropped)) = 'score_last_attempt_v1'
+    AND col_description(to_regclass('progress'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('progress') AND attname = 'best_points' AND NOT attisdropped)) = 'score_v2'
+    AND to_regclass('speak_best') IS NOT NULL
+    AND to_regclass('login_attempts') IS NOT NULL
     AS ok
 `;
 let schemaReady = null;

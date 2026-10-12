@@ -14,7 +14,9 @@ const RANK_SQL = `
          COALESCE(a.total_stars, 0)::int AS total_stars,
          COALESCE(a.completed_levels, 0)::int AS completed_levels
   FROM students s
+  JOIN users u ON u.id = s.user_id
   LEFT JOIN agg a ON a.student_id = s.id
+  WHERE u.trial_expires_at IS NULL   -- tài khoản dùng thử (kể cả đã hết hạn) không lên bảng xếp hạng
 `;
 const RANK_ORDER = `ORDER BY total_points DESC, total_stars DESC, completed_levels DESC, name`;
 

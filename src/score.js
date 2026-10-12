@@ -6,8 +6,9 @@ const pool = require('./db');
 //   progress.points     = điểm của lần làm gần nhất
 //   progress.best_stars = số sao cao nhất từng đạt — CHỈ dùng để giữ bài đã mở khóa
 //                         và sticker đã nhận, KHÔNG dùng để tính điểm/xếp hạng
-//   students.total_points = SUM(progress.points) + students.bonus_points
-//   (bonus_points: điểm luyện nói — chỉ cộng khi con đọc tốt hơn lần trước)
+//   progress.best_points = điểm cao nhất từng đạt — xu chỉ thưởng khi vượt kỷ lục này
+//   students.total_points = SUM(progress.points) + 2 × SUM(speak_best.stars) + bonus_points (cũ, = 0)
+//   speak_best: sao cao nhất của từng từ/câu luyện nói — lưu trên máy chủ nên đổi máy không nhận lại điểm
 // ============================================================
 
 const LEVEL_KEY_RE = /^[a-z]{2,8}_[a-z0-9_]{1,24}$|^speed$/;
@@ -30,7 +31,9 @@ function cleanSkills(raw) {
 // Tổng điểm luôn tính lại từ dữ liệu — client không thể tự đặt tổng điểm.
 const RECALC_SQL = `
   UPDATE students s
-  SET total_points = COALESCE((SELECT SUM(p.points) FROM progress p WHERE p.student_id = s.id), 0) + s.bonus_points
+  SET total_points = COALESCE((SELECT SUM(p.points) FROM progress p WHERE p.student_id = s.id), 0)
+    + 2 * COALESCE((SELECT SUM(b.stars) FROM speak_best b WHERE b.student_id = s.id), 0)
+    + s.bonus_points
   WHERE s.id = $1
   RETURNING total_points`;
 
@@ -53,13 +56,14 @@ async function saveAttempt(studentId, body) {
 
   const { rows } = await pool.query(
     `WITH old AS (
-       SELECT points, stars FROM progress WHERE student_id = $1 AND level_key = $2
+       SELECT points, stars, GREATEST(best_points, points) AS best_points FROM progress WHERE student_id = $1 AND level_key = $2
      ), up AS (
-       INSERT INTO progress (student_id, level_key, stars, best_stars, points, correct, total, attempts, skills, updated_at)
-       VALUES ($1, $2, $3, $3, $4, $5, $6, 1, $7::jsonb, now())
+       INSERT INTO progress (student_id, level_key, stars, best_stars, points, best_points, correct, total, attempts, skills, updated_at)
+       VALUES ($1, $2, $3, $3, $4, $4, $5, $6, 1, $7::jsonb, now())
        ON CONFLICT (student_id, level_key) DO UPDATE SET
          stars = $3,
          best_stars = GREATEST(progress.best_stars, progress.stars, $3),
+         best_points = GREATEST(progress.best_points, progress.points, $4),
          points = $4, correct = $5, total = $6,
          attempts = progress.attempts + 1,
          skills = $7::jsonb,
@@ -67,6 +71,7 @@ async function saveAttempt(studentId, body) {
        RETURNING best_stars, attempts
      )
      SELECT (SELECT points FROM old) AS prev_points, (SELECT stars FROM old) AS prev_stars,
+            (SELECT best_points FROM old) AS prev_best,
             up.best_stars, up.attempts FROM up`,
     [studentId, level_key, stars, points, correct, total, JSON.stringify(skills)]
   );
@@ -81,6 +86,8 @@ async function saveAttempt(studentId, body) {
     attempts: Number(r.attempts) || 1,
     prev_points: r.prev_points == null ? null : Number(r.prev_points),
     prev_stars: r.prev_stars == null ? null : Number(r.prev_stars),
+    prev_best: r.prev_best == null ? null : Number(r.prev_best),
+    new_record: r.prev_best == null || points > Number(r.prev_best),
     total_points,
   };
 }
@@ -138,4 +145,32 @@ function dayStr(d) {
   return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
 }
 
-module.exports = { saveAttempt, recalcTotal, studentDetail, mergeSkills, toInt };
+// Điểm luyện nói: items = { "v.3.2.w": 4, "p.time.0_1": 5, ... } (sao 0–5; từ vựng gõ đúng = 1)
+const SPEAK_KEY_RE = /^[vp]\.[A-Za-z0-9_]{1,12}\.[A-Za-z0-9_]{1,12}(\.[a-z]{1,2})?$/;
+async function saveSpeak(studentId, items) {
+  const keys = [], vals = [];
+  Object.keys(items || {}).slice(0, 500).forEach((k) => {
+    if (!SPEAK_KEY_RE.test(k)) return;
+    const v = toInt(items[k], 0, 5);
+    if (v > 0) { keys.push(k); vals.push(v); }
+  });
+  let gained = 0;
+  if (keys.length) {
+    const { rows } = await pool.query(
+      `WITH inp AS (SELECT * FROM unnest($2::text[], $3::int[]) AS t(item_key, stars)),
+       old AS (SELECT b.item_key, b.stars FROM speak_best b JOIN inp USING (item_key) WHERE b.student_id = $1),
+       up AS (
+         INSERT INTO speak_best (student_id, item_key, stars, updated_at)
+         SELECT $1, item_key, stars, now() FROM inp
+         ON CONFLICT (student_id, item_key) DO UPDATE SET stars = GREATEST(speak_best.stars, EXCLUDED.stars),
+           updated_at = CASE WHEN EXCLUDED.stars > speak_best.stars THEN now() ELSE speak_best.updated_at END
+         RETURNING item_key, stars)
+       SELECT COALESCE(SUM(up.stars - COALESCE(old.stars, 0)), 0)::int AS gained FROM up LEFT JOIN old USING (item_key)`,
+      [studentId, keys, vals]
+    );
+    gained = Number(rows[0].gained) || 0;
+  }
+  return { ok: true, gained_points: gained * 2, total_points: await recalcTotal(studentId) };
+}
+
+module.exports = { saveAttempt, recalcTotal, studentDetail, mergeSkills, toInt, saveSpeak };

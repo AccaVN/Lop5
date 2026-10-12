@@ -48,15 +48,47 @@ router.post('/register/student', (req, res) => createAccount(req, res, 'student'
 router.post('/register/parent', (req, res) => createAccount(req, res, 'parent'));
 router.post('/register', (req, res) => createAccount(req, res, req.body && req.body.role === 'parent' ? 'parent' : 'student'));
 
+// ---- Chống dò mật khẩu: sai 5 lần liên tiếp với 1 tài khoản → khóa 15 phút;
+// 1 địa chỉ IP sai 30 lần (nhiều tài khoản) → khóa IP đó 15 phút. Admin đặt lại mật khẩu thì mở khóa.
+const LOCK = { email: 5, ip: 30, minutes: 15 };
+async function lockedMinutes(keys) {
+  const { rows } = await pool.query(
+    `SELECT CEIL(EXTRACT(EPOCH FROM MAX(locked_until) - now()) / 60)::int AS m
+     FROM login_attempts WHERE key = ANY($1) AND locked_until > now()`, [keys]);
+  return rows[0] && rows[0].m > 0 ? rows[0].m : 0;
+}
+async function recordFail(key, max) {
+  const { rows } = await pool.query(
+    `INSERT INTO login_attempts (key, fails, updated_at) VALUES ($1, 1, now())
+     ON CONFLICT (key) DO UPDATE SET
+       fails = CASE WHEN login_attempts.updated_at < now() - make_interval(mins => $2)
+                      OR login_attempts.locked_until IS NOT NULL THEN 1 ELSE login_attempts.fails + 1 END,
+       locked_until = NULL, updated_at = now()
+     RETURNING fails`, [key, LOCK.minutes]);
+  const fails = rows[0].fails;
+  if (fails >= max) await pool.query(`UPDATE login_attempts SET locked_until = now() + make_interval(mins => $2) WHERE key = $1`, [key, LOCK.minutes]);
+  return fails;
+}
+const lockMsg = (m) => `Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau ${m} phút hoặc nhờ admin đặt lại mật khẩu.`;
+
 // Đăng nhập chung cho cả admin / phụ huynh / học sinh
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Thiếu email hoặc mật khẩu' });
-  const { rows } = await pool.query('SELECT * FROM users WHERE email=$1', [email.toLowerCase().trim()]);
+  const mail = String(email).toLowerCase().trim();
+  const reqIp = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim().slice(0, 60) || 'unknown';
+  const keys = ['e:' + mail, 'ip:' + reqIp];
+  const wait = await lockedMinutes(keys);
+  if (wait) return res.status(429).json({ error: lockMsg(wait), code: 'LOCKED' });
+  const { rows } = await pool.query('SELECT * FROM users WHERE email=$1', [mail]);
   const user = rows[0];
-  if (!user || !(await comparePassword(password, user.password_hash))) {
-    return res.status(401).json({ error: 'Sai email hoặc mật khẩu' });
+  if (!user || !(await comparePassword(String(password), user.password_hash))) {
+    const [fe] = await Promise.all([recordFail(keys[0], LOCK.email), recordFail(keys[1], LOCK.ip)]);
+    if (fe >= LOCK.email) return res.status(429).json({ error: lockMsg(LOCK.minutes), code: 'LOCKED' });
+    const left = LOCK.email - fe;
+    return res.status(401).json({ error: 'Sai email hoặc mật khẩu' + (left <= 2 ? ` (còn ${left} lần thử trước khi bị khóa ${LOCK.minutes} phút)` : '') });
   }
+  await pool.query('DELETE FROM login_attempts WHERE key = $1', [keys[0]]);
   if (user.role !== 'admin' && user.trial_expires_at && new Date(user.trial_expires_at) < new Date()) {
     return res.status(403).json({ error: TRIAL_MSG, code: 'TRIAL_EXPIRED' });
   }
