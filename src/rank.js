@@ -6,7 +6,7 @@ const RANK_SQL = `
   WITH agg AS (
     SELECT student_id,
            SUM(stars)::int AS total_stars,
-           COUNT(*) FILTER (WHERE stars > 0)::int AS completed_levels
+           COUNT(*) FILTER (WHERE GREATEST(best_stars, stars) > 0)::int AS completed_levels
     FROM progress
     GROUP BY student_id
   )
@@ -18,7 +18,7 @@ const RANK_SQL = `
 `;
 const RANK_ORDER = `ORDER BY total_points DESC, total_stars DESC, completed_levels DESC, name`;
 
-// Bảng xếp hạng cả lớp: điểm tích lũy → tổng sao → số bài đã hoàn thành → tên
+// Bảng xếp hạng cả lớp: điểm tích lũy (lần làm cuối mỗi bài) → tổng sao (lần cuối) → số bài đã hoàn thành → tên
 async function classRanking() {
   const { rows } = await pool.query(`${RANK_SQL} ${RANK_ORDER}`);
   return rows.map((r, i) => ({ ...r, rank: i + 1 }));

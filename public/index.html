@@ -194,6 +194,11 @@ img,svg{max-width:100%}
 .small-btn{flex:none;border:2px solid var(--line);background:var(--card);border-radius:12px;padding:4px 12px;font-weight:800;font-size:16px}
 .small-btn.danger{color:var(--berry);border-color:var(--berry)}
 .tip{background:var(--soft);border-radius:14px;padding:10px 14px;font-weight:600;font-size:17px}
+.rp-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:2px solid var(--soft)}
+.rp-n{font-weight:700;font-size:15px;line-height:1.3;min-width:0}.rp-n small{display:block;font-weight:600;color:var(--muted);font-size:13px;margin-top:2px}
+.rp-r{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end}.rp-r small{color:var(--muted);font-size:13px;font-weight:600}
+.rp-st{color:var(--sun);font-size:17px;letter-spacing:1px;white-space:nowrap}
+.rp-subj{margin:6px 0 16px;padding-bottom:6px;border-bottom:2px dashed var(--soft)}.rp-subj>.skill-top{font-size:18px}.rp-subj .skill{margin-left:10px}.rp-subj small{color:var(--muted);font-weight:600}
 
 /* Sticker */
 .st-week{margin-bottom:16px}
@@ -1660,7 +1665,7 @@ const shopOrder=()=>S.gift==='girl'?['princess','acc','pet','fun','space','hero'
 const AVAS=['🦊','🐼','🐯','🐰','🐸','🐧','🦁','🐨'];
 const SKILLS={en_read:'English: đọc hiểu',en_vocab:'English: từ vựng',en_listen:'English: nghe và phát âm',en_sent:'English: câu',so:'Số tự nhiên và phép tính',phanso:'Phân số, hỗn số',stp:'Số thập phân',tiso:'Tỉ số, tỉ số phần trăm',giaitoan:'Giải toán có lời văn',hinhhoc:'Hình học, thể tích',doluong:'Đo lường, thời gian, chuyển động',xacsuat:'Thống kê, xác suất',dochieu:'Đọc hiểu',chinhta:'Chính tả',tucau:'Từ và câu',daucau:'Dấu câu, viết hoa',doanvan:'Viết câu, viết đoạn'};
 const TOAN=['so','phanso','stp','tiso','giaitoan','hinhhoc','doluong','xacsuat','congtru','nhanchia'];
-const subjOf=s=>s.startsWith('en_')?{k:'en',n:'English'}:TOAN.includes(s)?{k:'toan',n:'Toán'}:s==='khampha'?{k:'kp',n:'Khám phá'}:{k:'tv',n:'Tiếng Việt'};
+const subjOf=s=>s.startsWith('en_')?{k:'en',n:'English'}:TOAN.includes(s)?{k:'toan',n:'Toán'}:{k:'tv',n:'Tiếng Việt'};
 const PRAISE=['Giỏi quá! 🎉','Chính xác! ⭐','Tuyệt vời! 🌟','Đúng rồi, siêu ghê! 🚀','Con làm tốt lắm! 👏'];
 const OOPS=['Chưa đúng rồi, cố lên nhé! 💪','Suýt đúng rồi! Xem lại nào 👀','Không sao, lần sau sẽ đúng! 🌈'];
 const PRAISE_EN=['Great job! 🎉','Excellent! ⭐','Well done! 🌟','Awesome! 🚀','Perfect! 👏','Super! 💯','You got it! 🙌'];
@@ -1669,9 +1674,15 @@ const isEnQ=()=>!!Q&&(Q.mode==='en'||Q.lang==='en');
 
 /* ============ LƯU TRỮ ============ */
 const KEY='lop5_hoc_vui_v1';
-const DEF={name:'',avatar:'🦊',coins:0,totalPoints:0,stars:{},stickers:[],streak:{last:'',count:0},stats:{},best:0,sound:true,unlockAll:false,days:{},voiceURI:'',voiceMode:'auto',voiceGender:'female',en:{stars:{}},autoRead:true,gift:'',shop:[],rank:[],studentId:null,_rewardsLoaded:false};
+const DEF={name:'',avatar:'🦊',coins:0,totalPoints:0,stars:{},stickers:[],streak:{last:'',count:0},stats:{},best:0,sound:true,unlockAll:false,days:{},voiceURI:'',voiceMode:'auto',voiceGender:'female',en:{stars:{}},autoRead:true,gift:'',shop:[],rank:[],studentId:null,_rewardsLoaded:false,pass:{},lastPts:{}};
 function load(){try{const r=localStorage.getItem(KEY);if(r)return Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(r));}catch(e){}return JSON.parse(JSON.stringify(DEF));}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+// Mỗi bài chỉ tính điểm LẦN LÀM CUỐI. Bài đã từng đạt ≥1 sao thì vẫn giữ mở khóa (S.pass) dù lần sau làm kém hơn.
+function passedK(k,st){return (st||0)>=1||!!(S.pass&&S.pass[k]);}
+function markPass(k,st){if(st>=1){S.pass=S.pass||{};S.pass[k]=true;}}
+// Ghi điểm lần làm này, thay cho điểm lần trước của cùng bài. Trả về điểm lần trước (null nếu chưa làm).
+function applyAttempt(k,pts){S.lastPts=S.lastPts||{};const had=Object.prototype.hasOwnProperty.call(S.lastPts,k);const prev=had?Number(S.lastPts[k])||0:null;S.lastPts[k]=pts;S.totalPoints=Math.max(0,(S.totalPoints||0)-(prev||0)+pts);return prev;}
+function attemptNote(prev,pts){return prev==null?'':`<p style="font-size:15px;color:var(--muted)">Lần trước bài này được ${prev} điểm. Chỉ tính điểm lần làm mới nhất${pts>prev?' — con đã tiến bộ! 🎉':pts<prev?', cố gắng lần sau nhé!':'.'}</p>`;}
 let S=load();
 if(S.coinV!==2){S.coins=Math.floor((Number(S.coins)||0)/5);S.coinV=2;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
@@ -1729,7 +1740,10 @@ function syncSkill(skill_key,correct,total){bgSync(()=>apiPost('/student/me/skil
 function syncSession(seconds){if(seconds>0)bgSync(()=>apiPost('/student/me/session',{seconds}));}
 function syncProfile(){bgSync(()=>apiPut('/student/me/profile',{name:S.name,avatar:S.avatar,gender:S.gift}));}
 function syncRewards(){S._rewardsLoaded=true;bgSync(()=>apiPut('/student/me/rewards',{stickers:S.stickers||[],shop:S.shop||[],coins:S.coins||0,en_stickers:S.enSt||[],coin_v:2}));}
-function syncPoints(){bgSync(()=>apiPut('/student/me/points',{total_points:Math.max(0,Math.floor(S.totalPoints||0))}));}
+function syncPoints(){bgSync(()=>apiPut('/student/me/points',{}).then(r=>{if(r&&r.total_points!=null){S.totalPoints=Number(r.total_points)||0;save();}}));}
+// Nộp kết quả 1 lần làm bài: máy chủ ghi đè kết quả lần trước và tính lại tổng điểm.
+function syncAttempt(a){bgSync(()=>apiPost('/student/me/attempt',a).then(r=>{if(r&&r.total_points!=null){S.totalPoints=Number(r.total_points)||0;S.lastPts=S.lastPts||{};S.lastPts[a.level_key]=r.points;if(r.best_stars>=1)markPass(a.level_key,r.best_stars);save();}}));}
+function syncBonus(pts){bgSync(()=>apiPost('/student/me/bonus',{points:pts}).then(r=>{if(r&&r.total_points!=null){S.totalPoints=Number(r.total_points)||0;save();}}));}
 let RANK_AT=0,rankLoading=null;
 function refreshStudentRank(){
   if(!TOKEN||ROLE!=='student')return Promise.resolve();
@@ -1768,7 +1782,7 @@ async function ensureRewardsData(){
 }
 
 // Các bài English (0..47) đã đạt ≥1 sao → có sticker Xe cộ cùng số
-function enEarned(){const st=enStars().stars;return Object.keys(st).map(Number).filter(i=>i<48&&(st[i]||0)>=1);}
+function enEarned(){const st=enStars().stars;const ks=new Set(Object.keys(st).map(Number).concat(Object.keys(S.pass||{}).filter(k=>/^en_\d+$/.test(k)).map(k=>+k.slice(3))));return [...ks].filter(i=>i<48&&passedK('en_'+i,st[i]));}
 async function hydrateStudentHome(){
   try{
     const data=await apiGet('/student/me/home');
@@ -1779,12 +1793,13 @@ async function hydrateStudentHome(){
     S.joinCode=data.student.join_code;
     S.totalPoints=Number(data.student.total_points)||0;
 
-    S.stars={};enStars().stars={};tvStars().stars={};
+    S.stars={};enStars().stars={};tvStars().stars={};S.pass={};S.lastPts={};exS().stars={};
     (data.progress||[]).forEach(p=>{
+      S.lastPts[p.level_key]=Number(p.points)||0;markPass(p.level_key,Number(p.best!=null?p.best:p.stars)||0);
       if(p.level_key.startsWith('main_'))S.stars[+p.level_key.slice(5)]=p.stars;
       else if(p.level_key.startsWith('en_'))enStars().stars[+p.level_key.slice(3)]=p.stars;
       else if(p.level_key.startsWith('tv_'))tvStars().stars[+p.level_key.slice(3)]=p.stars;
-      else if(p.level_key.startsWith('exam_')){const es=exS().stars;const k=p.level_key.slice(5);es[k]=Math.max(es[k]||0,p.stars);}
+      else if(p.level_key.startsWith('exam_')){exS().stars[p.level_key.slice(5)]=p.stars;}
     });
 
     const today=todayStr();
@@ -1887,21 +1902,64 @@ function selfAccountModal(opt){opt=opt||{};const m=modal(`<div class="big-ic">�
     if(nw||nw2){if(nw.length<4){err.textContent='Mật khẩu mới cần ít nhất 4 ký tự.';return;}if(nw!==nw2){err.textContent='Hai lần nhập mật khẩu mới chưa khớp.';return;}if(!cur){err.textContent='Nhập mật khẩu hiện tại nhé.';return;}body.current_password=cur;body.new_password=nw;}
     else if(!opt.withName){err.textContent='Nhập mật khẩu mới nhé.';return;}
     try{await apiPut('/auth/me',body);m.remove();toast(nw?'Đã đổi mật khẩu.':'Đã lưu.');opt.done&&opt.done(body);}catch(e){err.textContent=e.message;}};}
-function renderChildStatsHTML(d){
-  const st=d.student;
-  const mainDone=(d.progress||[]).filter(p=>p.level_key.startsWith('main_')&&p.stars>=1).length;
-  const enDone=(d.progress||[]).filter(p=>p.level_key.startsWith('en_')&&p.stars>=1).length;const tvDone=(d.progress||[]).filter(p=>p.level_key.startsWith('tv_')&&p.stars>=1).length;
-  const totalSt=(d.progress||[]).filter(p=>/^(main|en|tv)_/.test(p.level_key)).reduce((a,p)=>a+p.stars,0);const exDone=(d.progress||[]).filter(p=>p.level_key.startsWith('exam_')&&p.stars>=1).length;const spDone=(d.progress||[]).filter(p=>p.level_key.startsWith('spk_')&&p.stars>=1).length;
-  const byDay={};(d.sessions||[]).forEach(s=>{byDay[String(s.day).slice(0,10)]=s.seconds;});
-  const bars=[];for(let k=6;k>=0;k--){const ds=dayStr(-k);const dt=new Date();dt.setDate(dt.getDate()-k);bars.push({l:['CN','T2','T3','T4','T5','T6','T7'][dt.getDay()],m:Math.round((byDay[ds]||0)/60)});}
-  const mx=Math.max(10,...bars.map(b=>b.m));
-  const skillRows=Object.keys(SKILLS).map(k=>{const s=(d.skills||[]).find(x=>x.skill_key===k);if(!s||!s.total)return `<div class="skill"><div class="skill-top"><span>${SKILLS[k]}</span><span>Chưa có dữ liệu</span></div><div class="goal-bar"><i style="width:0"></i></div></div>`;const p=Math.round(s.correct/s.total*100);return `<div class="skill"><div class="skill-top"><span>${SKILLS[k]}</span><span>${p}% (${s.correct}/${s.total})</span></div><div class="goal-bar"><i class="${p<60?'low':p<80?'mid':''}" style="width:${p}%"></i></div></div>`;}).join('');
-  return `<div class="screen"><div class="page"><h1>${st.avatar||'🙂'} ${esc(st.name)}</h1>
-  <div class="stats"><div class="stat"><b>${mainDone}/48</b><small>bài Toán đã xong</small></div><div class="stat"><b>${tvDone}/48</b><small>bài Tiếng Việt đã xong</small></div><div class="stat"><b>${enDone}/${EN_N}</b><small>bài English đã xong</small></div><div class="stat"><b>${totalSt}/${(96+EN_N)*3}</b><small>sao đạt được</small></div><div class="stat"><b>🏅 ${Number(st.total_points)||0}</b><small>điểm tích lũy</small></div><div class="stat"><b>📝 ${exDone}/31</b><small>đề thi đã đạt</small></div><div class="stat"><b>🗣️ ${spDone}/17</b><small>bài luyện nói đã xong</small></div></div>
+/* ============ BÁO CÁO HỌC TẬP (phụ huynh, admin, Góc phụ huynh trên máy con) ============
+   Mọi số liệu tính theo LẦN LÀM GẦN NHẤT của từng bài. Số bài/đề lấy đúng theo chương trình của app này. */
+function courseTotals(){const t={main:48,tv:48,en:48,exam:0,spk:0};
+  try{t.main=WEEKS.length*6;}catch(e){}
+  try{t.tv=TV_UNITS.length*3;}catch(e){}
+  try{t.en=EN_N;}catch(e){}
+  try{t.exam=Object.keys(EXAM_SUBJ).reduce((a,k)=>a+EXAM_SUBJ[k].list().length,0);}catch(e){}
+  try{t.spk=SPK.length;}catch(e){}
+  t.stars=(t.main+t.tv+t.en)*3;return t;}
+function keySubj(k){return /^(main_|exam_toan_|speed$)/.test(k)?'toan':/^(tv_|exam_tv_)/.test(k)?'tv':'en';}
+const SUBJ_N={toan:'Toán',tv:'Tiếng Việt',en:'English'};
+function skillSubj(s){return s.startsWith('en_')?'en':TOAN.includes(s)?'toan':'tv';}
+function levelName(k){try{let m;
+  if((m=/^main_(\d+)$/.exec(k))){const i=+m[1],w=Math.floor(i/6),d=i%6;return `Toán · Chặng ${w+1}: ${WEEKS[w].t} · ${LEVEL_INFO[d].n}`;}
+  if((m=/^tv_(\d+)$/.exec(k))){const i=+m[1],u=Math.floor(i/3),U=TV_UNITS[u];return `Tiếng Việt · ${U.lab?U.lab+': ':''}${U.t} · ${TV_LV[i%3].n}`;}
+  if((m=/^en_(\d+)$/.exec(k))){const i=+m[1],u=Math.floor(i/3),U=EN_UNITS[u];return `English · ${U.lab||('Unit '+(u+1))}: ${U.t} · ${EN_LV[i%3].n}`;}
+  if((m=/^exam_([a-z]+)_(\d+)$/.exec(k))){const E=EXAM_SUBJ[m[1]];return `Luyện đề ${E.n} · ${E.list()[+m[2]].t}`;}
+  if((m=/^spk_(\d+)$/.exec(k))){const P=SPK[+m[1]];return `Luyện nói · ${P&&(P.t||P.title)||('Bài '+(+m[1]+1))}`;}
+  if(k==='speed')return 'Tính nhẩm 60 giây';}catch(e){}return k;}
+function starTxt(n,max){max=max||3;n=Math.max(0,Math.min(max,n||0));return '★'.repeat(n)+'☆'.repeat(max-n);}
+function pctBar(c,t){const p=t?Math.round(c/t*100):0;return `<div class="goal-bar"><i class="${p<60?'low':p<80?'mid':''}" style="width:${p}%"></i></div>`;}
+// d: {student, progress:[{level_key,stars,best_stars,points,correct,total,attempts,updated_at}], skills:[{skill_key,correct,total}], sessions:[{day,seconds}]}
+function reportBodyHTML(d){const T=courseTotals(),P=d.progress||[],st=d.student||{};
+  const best=p=>Math.max(Number(p.best_stars)||0,Number(p.stars)||0);
+  const cnt=re=>P.filter(p=>re.test(p.level_key)&&best(p)>=1).length;
+  const stars=P.filter(p=>/^(main|en|tv)_/.test(p.level_key)).reduce((a,p)=>a+(Number(p.stars)||0),0);
+  const exDone=P.filter(p=>/^exam_/.test(p.level_key)).length,spDone=cnt(/^spk_/);
+  const byDay={};(d.sessions||[]).forEach(s=>{byDay[String(s.day).slice(0,10)]=Number(s.seconds)||0;});
+  const bars=[];for(let k=6;k>=0;k--){const ds=dayStr(-k);const dt=new Date();dt.setDate(dt.getDate()-k);bars.push({l:k===0?'Nay':['CN','T2','T3','T4','T5','T6','T7'][dt.getDay()],m:Math.round((byDay[ds]||0)/60)});}
+  const mx=Math.max(10,...bars.map(b=>b.m)),wkMin=bars.reduce((a,b)=>a+b.m,0),wkDays=bars.filter(b=>b.m>0).length;
+  const last=P.reduce((a,p)=>p.updated_at&&(!a||new Date(p.updated_at)>new Date(a))?p.updated_at:a,null);
+  // Kỹ năng theo môn — chỉ hiện kỹ năng con đã làm
+  const sk=(d.skills||[]).filter(s=>Number(s.total)>0);
+  const subjCards=['toan','tv','en'].map(sj=>{const L=sk.filter(s=>skillSubj(s.skill_key)===sj).sort((a,b)=>a.correct/a.total-b.correct/b.total);if(!L.length)return '';
+    const c=L.reduce((a,s)=>a+Number(s.correct),0),t=L.reduce((a,s)=>a+Number(s.total),0);
+    return `<div class="rp-subj"><div class="skill-top"><span>${SUBJ_N[sj]}</span><span>${Math.round(c/t*100)}%</span></div>${pctBar(c,t)}${L.map(s=>{const p=Math.round(s.correct/s.total*100);return `<div class="skill"><div class="skill-top"><span>${esc(SKILLS[s.skill_key]||s.skill_key)}</span><span>${p}% <small>(${s.correct}/${s.total} câu)</small></span></div>${pctBar(s.correct,s.total)}</div>`;}).join('')}</div>`;}).join('');
+  const weakSk=sk.filter(s=>s.total>=5&&s.correct/s.total<.8).sort((a,b)=>a.correct/a.total-b.correct/b.total)[0];
+  const redo=P.filter(p=>p.level_key!=='speed'&&!/^spk_/.test(p.level_key)&&Number(p.total)>0&&(Number(p.stars)||0)<=1).sort((a,b)=>(a.stars-b.stars)||(new Date(b.updated_at)-new Date(a.updated_at))).slice(0,6);
+  const recent=P.filter(p=>p.updated_at).sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,10);
+  const row=p=>`<div class="rp-row"><div class="rp-n">${esc(levelName(p.level_key))}<small>${fmtTime(p.updated_at)}${Number(p.attempts)>1?` · đã làm ${p.attempts} lần`:''}</small></div><div class="rp-r">${/^spk_/.test(p.level_key)?`<span class="rp-st">${starTxt(p.stars,5)}</span>`:p.level_key==='speed'?`<b>${p.correct} phép</b>`:`<span class="rp-st">${starTxt(p.stars)}</span>`}${Number(p.total)>0&&p.level_key!=='speed'?`<small>${p.correct}/${p.total} câu đúng</small>`:''}${Number(p.points)>0?`<small>${p.points} điểm</small>`:''}</div></div>`;
+  return `${last?`<p class="lead" style="margin-top:-6px">Học gần nhất: <b>${fmtTime(last)}</b></p>`:''}
+  <div class="stats"><div class="stat"><b>🏅 ${Number(st.total_points)||0}</b><small>điểm tích lũy</small></div><div class="stat"><b>⭐ ${stars}/${T.stars}</b><small>sao (lần làm gần nhất)</small></div>
+  <div class="stat"><b>${cnt(/^main_/)}/${T.main}</b><small>bài Toán đã qua</small></div><div class="stat"><b>${cnt(/^tv_/)}/${T.tv}</b><small>bài Tiếng Việt đã qua</small></div>
+  <div class="stat"><b>${cnt(/^en_/)}/${T.en}</b><small>bài English đã qua</small></div><div class="stat"><b>📝 ${exDone}/${T.exam}</b><small>đề luyện đã làm</small></div>
+  ${T.spk?`<div class="stat"><b>🗣️ ${spDone}/${T.spk}</b><small>bài luyện nói đã xong</small></div>`:''}<div class="stat"><b>⏱️ ${wkMin} phút</b><small>học ${wkDays}/7 ngày qua</small></div></div>
+  <div class="tip" style="margin-bottom:14px">ℹ️ Sao, điểm và tỉ lệ đúng tính theo <b>lần làm gần nhất</b> của mỗi bài. Con làm lại bài nào thì kết quả cũ của bài đó được thay bằng kết quả mới.</div>
+  ${weakSk||redo.length?`<div class="card"><h2>🎯 Nên ôn thêm</h2>${weakSk?`<div class="tip">Phần <b>${esc(SKILLS[weakSk.skill_key]||weakSk.skill_key)}</b> (${SUBJ_N[skillSubj(weakSk.skill_key)]}) con mới đúng ${Math.round(weakSk.correct/weakSk.total*100)}%. Bố mẹ cho con làm lại các bài có phần này, mỗi ngày khoảng 10–15 phút.</div>`:''}${redo.length?`<p class="lead" style="margin:10px 0 0">Các bài lần gần nhất còn thấp (0–1 sao):</p>${redo.map(row).join('')}`:''}</div>`:''}
   <div class="card"><h2>Thời gian học 7 ngày qua (phút)</h2><div class="week-bars">${bars.map(b=>`<div class="wb"><small>${b.m}</small><i style="height:${Math.max(4,b.m/mx*80)}px"></i>${b.l}</div>`).join('')}</div></div>
-  <div class="card"><h2>Tỉ lệ làm đúng theo kỹ năng</h2>${skillRows}</div>
-  <button class="btn btn-soft" id="cBack">Quay lại</button></div></div>`;
-}
+  <div class="card"><h2>Tỉ lệ làm đúng theo môn và kỹ năng</h2>${subjCards||'<p>Con chưa làm bài nào.</p>'}</div>
+  <div class="card"><h2>Bài làm gần đây</h2>${recent.length?recent.map(row).join(''):'<p>Chưa có bài nào.</p>'}</div>`;}
+function renderChildStatsHTML(d){const st=d.student||{};
+  return `<div class="screen"><div class="page"><h1>${esc(st.avatar||'🙂')} ${esc(st.name||'')}</h1>${reportBodyHTML(d)}<button class="btn btn-soft" id="cBack">Quay lại</button></div></div>`;}
+// Báo cáo từ dữ liệu trên máy (khi con dùng không đăng nhập)
+function localReportData(){const P=[];const add=(pre,o)=>Object.keys(o||{}).forEach(i=>P.push({level_key:pre+i,stars:o[i],best_stars:passedK(pre+i,o[i])?Math.max(1,o[i]):o[i],points:(S.lastPts||{})[pre+i]||0}));
+  add('main_',S.stars);add('tv_',tvStars().stars);add('en_',enStars().stars);add('exam_',exS().stars);
+  const sessions=Object.keys(S.days||{}).map(k=>({day:k,seconds:S.days[k].sec||0}));
+  const skills=Object.keys(S.stats||{}).map(k=>({skill_key:k,correct:S.stats[k].c,total:S.stats[k].t}));
+  return {student:{name:S.name,avatar:S.avatar,total_points:S.totalPoints||0},progress:P,skills,sessions};}
 async function renderParentPortal(){Q=null;stopSpeed();
   app.innerHTML=`<div class="screen"><div class="page"><h1>Góc phụ huynh</h1><p class="lead">Đang tải danh sách con...</p></div></div>`;
   let list=[];
@@ -1994,13 +2052,13 @@ async function renderAdminStudentDetail(id){Q=null;
 }
 const enStars=()=>S.en||(S.en={stars:{}});
 const tvStars=()=>S.tv||(S.tv={stars:{}});
-const isUnlockedTv=i=>S.unlockAll||i===0||(tvStars().stars[i-1]||0)>=1;
-function currentTv(){for(let i=0;i<48;i++){if(isUnlockedTv(i)&&!(tvStars().stars[i]>=1))return i;}return 47;}
+const isUnlockedTv=i=>S.unlockAll||i===0||passedK('tv_'+(i-1),tvStars().stars[i-1]);
+function currentTv(){for(let i=0;i<48;i++){if(isUnlockedTv(i)&&!passedK('tv_'+i,tvStars().stars[i]))return i;}return 47;}
 const EN_N=EN_UNITS.length*3;
-const isUnlockedEn=i=>S.unlockAll||i===0||(enStars().stars[i-1]||0)>=1;
-function currentEn(){for(let i=0;i<EN_N;i++){if(isUnlockedEn(i)&&!(enStars().stars[i]>=1))return i;}return EN_N-1;}
-const isUnlocked=i=>S.unlockAll||i===0||(S.stars[i-1]||0)>=1;
-function currentLevel(){for(let i=0;i<48;i++){if(isUnlocked(i)&&!(S.stars[i]>=1))return i;}return 47;}
+const isUnlockedEn=i=>S.unlockAll||i===0||passedK('en_'+(i-1),enStars().stars[i-1]);
+function currentEn(){for(let i=0;i<EN_N;i++){if(isUnlockedEn(i)&&!passedK('en_'+i,enStars().stars[i]))return i;}return EN_N-1;}
+const isUnlocked=i=>S.unlockAll||i===0||passedK('main_'+(i-1),S.stars[i-1]);
+function currentLevel(){for(let i=0;i<48;i++){if(isUnlocked(i)&&!passedK('main_'+i,S.stars[i]))return i;}return 47;}
 const totalStars=()=>Object.values(S.stars).reduce((a,b)=>a+b,0)+Object.values((S.en||{}).stars||{}).reduce((a,b)=>a+b,0)+Object.values((S.tv||{}).stars||{}).reduce((a,b)=>a+b,0);
 const streakNow=()=>(S.streak.last===todayStr()||S.streak.last===dayStr(-1))?S.streak.count:0;
 function stat(skill,ok){const s=S.stats[skill]||(S.stats[skill]={c:0,t:0});s.t++;if(ok)s.c++;}
@@ -2189,7 +2247,7 @@ function renderHome(){
 function openLevel(i){
   if(!isUnlocked(i)){sfx.bad();toast('Hoàn thành bài trước để mở bài này nhé!');return;}
   sfx.tap();const w=Math.floor(i/6),d=i%6,li=LEVEL_INFO[d],st=S.stars[i]||0;
-  const LV=WEEKS[w].lv?WEEKS[w].lv[d]:[li.n,li.i];const m=modal(`<div class="big-ic">${LV[1]}</div><h2>${li.d}: ${LV[0]}</h2><p>Chặng ${w+1}: ${WEEKS[w].t}<br>15 câu Toán, trong đó có 3 câu ⭐ thử thách${st?`<br>Kết quả tốt nhất: ${'★'.repeat(st)}${'☆'.repeat(3-st)}`:''}</p><button class="btn btn-go" id="go">${st?'Chơi lại':'Bắt đầu'}</button><button class="btn btn-soft" id="cancel">Để sau</button>`);
+  const LV=WEEKS[w].lv?WEEKS[w].lv[d]:[li.n,li.i];const m=modal(`<div class="big-ic">${LV[1]}</div><h2>${li.d}: ${LV[0]}</h2><p>Chặng ${w+1}: ${WEEKS[w].t}<br>15 câu Toán, trong đó có 3 câu ⭐ thử thách${(S.lastPts||{})['main_'+i]!=null?`<br>Lần làm gần nhất: ${'★'.repeat(st)}${'☆'.repeat(3-st)} · ${S.lastPts['main_'+i]} điểm (làm lại sẽ thay điểm này)`:''}</p><button class="btn btn-go" id="go">${st||(S.lastPts||{})['main_'+i]!=null?'Làm lại':'Bắt đầu'}</button><button class="btn btn-soft" id="cancel">Để sau</button>`);
   m.querySelector('#go').onclick=()=>{m.remove();startLevel(i);};m.querySelector('#cancel').onclick=()=>m.remove();
 }
 
@@ -2259,18 +2317,17 @@ function confirmQuit(){const exSubj=Q&&Q.mode==='exam'?Q.subj:null;const back=ex
 function finish(){
   if(Q&&Q.mode==='exam')return finishExam();
   const isEn=Q.mode==='en',isTv=Q.mode==='tv';const n=Q.qs.length,nb=Math.max(1,n-Q.qs.filter(x=>x.hard).length),realC=Q.correct,bonus=Q.bonus||0,c=Math.min(nb,realC+bonus),r=c/nb,stars=r>=.9?3:r>=.7?2:r>=.5?1:0,i=Q.level;const store=isEn?enStars().stars:isTv?tvStars().stars:S.stars;const prev=store[i]||0;
-  const coins=Q.coins+(stars===3?4:0);const pointGain=(realC*10)+(bonus*10)+(stars===3?20:0);if(stars>prev)store[i]=stars;
+  const coins=Q.coins+(stars===3?4:0);const pointGain=(realC*10)+(bonus*10)+(stars===3?20:0);const lk=(isEn?'en_':isTv?'tv_':'main_')+i;store[i]=stars;markPass(lk,stars);const prevPts=applyAttempt(lk,pointGain);
   let newSt=null;if(!isEn&&!isTv&&stars>=1){const ri=rewardStickerIndex(i);if(!S.stickers.includes(ri)){S.stickers.push(ri);newSt=STICKERS[ri];}}
   if(isEn&&stars>=1&&i<48){S.enSt=S.enSt||[];if(!S.enSt.includes(i)){S.enSt.push(i);newSt=STICKERS_EN[i];}}
   const secs=Math.round((Date.now()-Q.start)/1000),skillDelta=Q.skillDelta||{};
-  S.coins+=coins;S.totalPoints=(S.totalPoints||0)+pointGain;logDay(secs,stars>=1);if(stars>=1)bumpStreak();save();syncRewards();syncPoints();
-  syncProgress((isEn?'en_':isTv?'tv_':'main_')+i,Math.max(stars,prev));
-  Object.keys(skillDelta).forEach(k=>syncSkill(k,skillDelta[k].c,skillDelta[k].t));
+  S.coins+=coins;logDay(secs,stars>=1);if(stars>=1)bumpStreak();save();syncRewards();
+  syncAttempt({level_key:lk,stars,points:pointGain,correct:realC,total:n,skills:skillDelta});
   syncSession(secs);
   const lv=i;Q=null;
   app.innerHTML=`<div class="result"><div class="res-owl" aria-hidden="true">${stars===3?'🥳':stars>=1?'🦉':'🤗'}</div><h1>${isEn?(stars===3?'Excellent!':stars>=1?'Well done!':'Keep trying!'):(stars===3?'Xuất sắc!':stars>=1?'Hoàn thành!':'Cố thêm chút nữa nhé!')}</h1>
   <div class="res-stars" aria-label="${stars} sao">${[1,2,3].map(k=>`<span class="${k<=stars?'on':''}">★</span>`).join('')}</div>
-  <p>Con làm đúng ${realC}/${n} câu${bonus?' + 1 điểm thưởng mini game 🎮':''}.</p><p>⭐ Điểm tích lũy: <b>+${pointGain}</b> (tổng ${S.totalPoints})</p>${stars===0?'<p>Cần đúng ít nhất một nửa số câu để mở bài tiếp theo.</p>':''}
+  <p>Con làm đúng ${realC}/${n} câu${bonus?' + 1 điểm thưởng mini game 🎮':''}.</p><p>⭐ Điểm bài này: <b>${pointGain}</b> · Tổng điểm: <b>${S.totalPoints}</b></p>${attemptNote(prevPts,pointGain)}${stars===0?'<p>Cần đúng ít nhất một nửa số câu để mở bài tiếp theo.</p>':''}
   <div class="rewards"><div class="reward"><span class="em">🪙</span>+${coins}<small>xu</small></div>${newSt?`<div class="reward">${stickerHTML(newSt,true)}${newSt.en?`<span style="font-size:15px;color:var(--muted)">${newSt.en}</span>`:''}<span style="font-size:16px;max-width:120px;line-height:1.2">${newSt.n}</span><small>nhân vật mới!</small></div>`:''}${stars>=1?`<div class="reward"><span class="em">🔥</span>${streakNow()}<small>ngày liên tiếp</small></div>`:''}</div>
   <div class="actions"><button class="btn btn-go" id="toMap">${isEn?'Về bản đồ English':isTv?'Về bản đồ Tiếng Việt':'Về bản đồ Toán'}</button><button class="btn btn-soft" id="again">Chơi lại bài này</button></div></div>`;
   $('#toMap').onclick=isEn?renderEnglish:isTv?renderTv:renderHome;$('#again').onclick=()=>isEn?startEn(lv):isTv?startTv(lv):startLevel(lv);
@@ -2368,8 +2425,8 @@ function startSpeed(){SP={score:0,end:Date.now()+60000,q:speedQ(),typed:''};app.
 function drawSpeed(){$('#spQ').innerHTML=`${esc(SP.q.t)} = <span class="slot${SP.typed?' filled':''}">${SP.typed||'?'}</span>`;$('#spScore').textContent=SP.score;}
 function speedKey(k){if(!SP)return;if(k==='B')SP.typed=SP.typed.slice(0,-1);else if(k==='C')SP.typed='';else SP.typed+=k;const a=String(SP.q.a);
   if(SP.typed===a){SP.score++;sfx.ok();SP.q=speedQ();SP.typed='';}else if(SP.typed.length>=a.length&&k!=='B'&&k!=='C'){sfx.bad();SP.typed='';const e=$('#spQ');e.classList.remove('flash-bad');void e.offsetWidth;e.classList.add('flash-bad');}else sfx.tap();drawSpeed();}
-function endSpeed(){const sc=SP.score;stopSpeed();const rec=sc>S.best;if(rec)S.best=sc;const coins=Math.round(sc*2/5);const pointGain=sc*5;S.coins+=coins;S.totalPoints=(S.totalPoints||0)+pointGain;logDay(60,false);save();syncSession(60);syncRewards();syncPoints();
-  app.innerHTML=`<div class="result"><div class="res-owl" aria-hidden="true">${rec?'🏅':'⚡'}</div><h1>${rec?'Kỷ lục mới!':'Hết giờ!'}</h1><p>Con làm đúng <b>${sc}</b> phép tính trong 60 giây.</p><div class="rewards"><div class="reward"><span class="em">🪙</span>+${coins}<small>xu</small></div><div class="reward"><span class="em">🏅</span>${S.best}<small>kỷ lục</small></div><div class="reward"><span class="em">⭐</span>+${pointGain}<small>điểm tích lũy</small></div></div><div class="actions"><button class="btn btn-go" id="spAgain">Chơi lại</button><button class="btn btn-soft" id="spMap">Về bản đồ</button></div></div>`;
+function endSpeed(){const sc=SP.score;stopSpeed();const rec=sc>S.best;if(rec)S.best=sc;const coins=Math.round(sc*2/5);const pointGain=sc*5;S.coins+=coins;const prevPts=applyAttempt('speed',pointGain);logDay(60,false);save();syncSession(60);syncRewards();syncAttempt({level_key:'speed',stars:0,points:pointGain,correct:sc,total:sc});
+  app.innerHTML=`<div class="result"><div class="res-owl" aria-hidden="true">${rec?'🏅':'⚡'}</div><h1>${rec?'Kỷ lục mới!':'Hết giờ!'}</h1><p>Con làm đúng <b>${sc}</b> phép tính trong 60 giây.</p><div class="rewards"><div class="reward"><span class="em">🪙</span>+${coins}<small>xu</small></div><div class="reward"><span class="em">🏅</span>${S.best}<small>kỷ lục</small></div><div class="reward"><span class="em">⭐</span>${pointGain}<small>điểm lượt này</small></div></div>${attemptNote(prevPts,pointGain)}<div class="actions"><button class="btn btn-go" id="spAgain">Chơi lại</button><button class="btn btn-soft" id="spMap">Về bản đồ</button></div></div>`;
   $('#spAgain').onclick=startSpeed;$('#spMap').onclick=renderHome;if(rec){sfx.win();confetti();}}
 
 /* ============ STICKER ============ */
@@ -2383,7 +2440,7 @@ function rewardStickerIndex(level){
 const THEME_ORDER={boy:[0,1,2,5,4,6,3,7],girl:[3,1,4,2,5,6,0,7],both:[0,1,2,3,4,5,6,7]};
 function themeOfWeek(w){return (THEME_ORDER[preferredGender()]||THEME_ORDER.both)[w];}
 // Bù sticker cho các bài Toán đã đạt sao (các em lỡ nhận trùng trước đây sẽ được nhận món mới)
-function mathEarned(){const st=S.stars||{};return Object.keys(st).map(Number).filter(i=>i>=0&&i<STICKERS.length&&st[i]>=1).map(rewardStickerIndex);}
+function mathEarned(){const st=S.stars||{};const ks=new Set(Object.keys(st).map(Number).concat(Object.keys(S.pass||{}).filter(k=>/^main_\d+$/.test(k)).map(k=>+k.slice(5))));return [...ks].filter(i=>i>=0&&i<STICKERS.length&&passedK('main_'+i,st[i])).map(rewardStickerIndex);}
 function rewardSticker(level){return STICKERS[rewardStickerIndex(level)];}
 function stickerPane(kind){if(kind!=='en'){const add=mathEarned().filter(x=>!S.stickers.includes(x));if(add.length){S.stickers.push(...add);save();}}const en=kind==='en';const SET=en?STICKERS_EN:STICKERS,GR=en?ST_GROUPS_EN:ST_GROUPS,own=en?(S.enSt||[]):S.stickers;
   let h=`<p class="lead">${en?`Con đã có ${own.length}/48 món trong bộ sưu tập. Mỗi bài English hoàn thành tặng một món mới, kèm tên tiếng Anh.`:`Con đã có ${own.length}/48 nhân vật theo giới tính và sở thích. Mỗi bài Toán hoàn thành tặng một nhân vật mới.`} Chạm vào để xem thật to!</p>`;
@@ -2531,7 +2588,7 @@ function classBoardHTML(list,opt){opt=opt||{};if(!list.length)return `<div class
   ${me&&opt.meCard!==false?`<div class="me-rank">Con đang đứng <b>thứ ${idx+1}</b> / ${list.length}${idx>0?` · cần thêm <b>${Math.max(1,(Number(list[idx-1].total_points)||0)-(Number(me.total_points)||0)+1)} điểm</b> để vượt bạn ${esc(list[idx-1].name)}`:' · Con đang dẫn đầu cả lớp! 🎉'}</div>`:''}
   ${opt.reload!==false?'<button class="btn btn-soft" id="rkReload">🔄 Cập nhật bảng xếp hạng</button>':''}</div>`;}
 function rankPane(){const list=(S.rank||[]).slice();let h=TOKEN&&ROLE==='student'?(!list.length&&rankLoading?`<div class="card empty"><div class="big-ic">⏳</div><h2>Đang tải bảng xếp hạng...</h2></div>`:classBoardHTML(list)):`<div class="card empty"><div class="big-ic">🏆</div><h2>Đăng nhập để xem xếp hạng</h2><p>Bảng xếp hạng cả lớp lấy điểm từ tài khoản của các bạn.</p></div>`;
-  h+=`<div class="card"><h2>⭐ Điểm tích lũy của con: ${Number(S.totalPoints)||0}</h2><p class="lead" style="margin:0">Mỗi câu đúng +10 điểm; thưởng mini game +10 điểm; đạt 3 sao +20 điểm. Tính nhẩm siêu tốc: +5 điểm cho mỗi phép đúng.</p></div>`;
+  h+=`<div class="card"><h2>⭐ Điểm tích lũy của con: ${Number(S.totalPoints)||0}</h2><p class="lead" style="margin:0">Mỗi câu đúng +10 điểm; thưởng mini game +10 điểm; đạt 3 sao +20 điểm. Tính nhẩm siêu tốc: +5 điểm cho mỗi phép đúng. <b>Mỗi bài chỉ tính điểm lần làm gần nhất</b>: làm lại tốt hơn thì điểm tăng, kém hơn thì điểm giảm.</p></div>`;
   return h;}
 function shopPane(){let h=`<div class="card shop-top"><h2>🪙 Con đang có ${S.coins} xu</h2><p class="lead" style="margin:0">Làm bài và thắng mini game để kiếm thêm xu, rồi đổi lấy những món con thích. Cửa hàng ưu tiên bộ sticker theo giới tính của con và vẫn có các món dành cho tất cả.</p></div>`;
   shopOrder().forEach(g=>{const items=SHOP.map((s,i)=>({s,i})).filter(x=>x.s.g===g&&shopEligible(x.s));const have=items.filter(x=>(S.shop||[]).includes(x.i)).length;
@@ -2570,17 +2627,12 @@ async function renderAchieve(tab,opt){opt=opt||{};Q=null;stopSpeed();stopVoice()
 function parentGate(){const a=rnd(6,9),b=rnd(6,9);const m=modal(`<div class="big-ic">👪</div><h2>Góc phụ huynh</h2><p>Để vào, bố mẹ nhập kết quả của ${a} × ${b}</p><input class="field" id="pg" type="number" inputmode="numeric" aria-label="Kết quả"><div style="height:14px"></div><button class="btn btn-go" id="pgOk">Vào</button><button class="btn btn-soft" id="pgNo">Quay lại</button>`);
   const f=m.querySelector('#pg');setTimeout(()=>f.focus(),50);const ok=()=>{if(Number(f.value)===a*b){m.remove();renderParent();}else{f.value='';toast('Chưa đúng, thử lại nhé.');}};
   m.querySelector('#pgOk').onclick=ok;f.addEventListener('keydown',e=>{if(e.key==='Enter')ok();});m.querySelector('#pgNo').onclick=()=>m.remove();}
+let PR_CACHE=null;
 function renderParent(){Q=null;stopSpeed();
-  const done=Object.values(S.stars).filter(x=>x>=1).length;
-  const bars=[];for(let k=6;k>=0;k--){const ds=dayStr(-k);const d=S.days[ds]||{sec:0};const dt=new Date();dt.setDate(dt.getDate()-k);bars.push({l:['CN','T2','T3','T4','T5','T6','T7'][dt.getDay()],m:Math.round(d.sec/60)});}
-  const mx=Math.max(10,...bars.map(b=>b.m));
-  let weak=null;Object.keys(SKILLS).forEach(k=>{const s=S.stats[k];if(s&&s.t>=5){const p=s.c/s.t;if(p<.8&&(!weak||p<weak.p))weak={k,p};}});
-  const skillRows=Object.keys(SKILLS).map(k=>{const s=S.stats[k];if(!s||!s.t)return `<div class="skill"><div class="skill-top"><span>${SKILLS[k]}</span><span>Chưa có dữ liệu</span></div><div class="goal-bar"><i style="width:0"></i></div></div>`;const p=Math.round(s.c/s.t*100);return `<div class="skill"><div class="skill-top"><span>${SKILLS[k]}</span><span>${p}% (${s.c}/${s.t})</span></div><div class="goal-bar"><i class="${p<60?'low':p<80?'mid':''}" style="width:${p}%"></i></div></div>`;}).join('');
-  app.innerHTML=`<div class="screen">${topbar()}<div class="page"><h1>Góc phụ huynh</h1><p class="lead">Theo dõi việc học của ${esc(S.name)}. Dữ liệu tiến độ, điểm tích lũy và phần thưởng được đồng bộ theo tài khoản khi con đăng nhập.</p>
-  <div class="stats"><div class="stat"><b>${done}/48</b><small>bài Toán đã xong</small></div><div class="stat"><b>${Object.values(tvStars().stars).filter(x=>x>=1).length}/48</b><small>bài Tiếng Việt đã xong</small></div><div class="stat"><b>${Object.values(enStars().stars).filter(x=>x>=1).length}/${EN_N}</b><small>bài English đã xong</small></div><div class="stat"><b>${totalStars()}/${(96+EN_N)*3}</b><small>sao đạt được</small></div><div class="stat"><b>🏅 ${S.totalPoints||0}</b><small>điểm tích lũy</small></div><div class="stat"><b>🔥 ${streakNow()}</b><small>ngày học liên tiếp</small></div><div class="stat"><b>🏅 ${S.best}</b><small>kỷ lục tính nhẩm 60 giây</small></div></div>
-  ${weak?`<div class="card"><h2>Gợi ý của cô</h2><div class="tip">Con đang cần luyện thêm phần <b>${SKILLS[weak.k]}</b> (đúng ${Math.round(weak.p*100)}%). Bố mẹ có thể cho con chơi lại các bài có phần này, mỗi ngày 10 phút.</div></div>`:''}
-  <div class="card"><h2>Thời gian học 7 ngày qua (phút)</h2><div class="week-bars">${bars.map(b=>`<div class="wb"><small>${b.m}</small><i style="height:${Math.max(4,b.m/mx*80)}px"></i>${b.l}</div>`).join('')}</div></div>
-  <div class="card"><h2>Tỉ lệ làm đúng theo kỹ năng</h2>${skillRows}</div>
+  const cached=TOKEN&&PR_CACHE&&Date.now()-PR_CACHE.at<60000?PR_CACHE.d:null;
+  app.innerHTML=`<div class="screen">${topbar()}<div class="page"><h1>Góc phụ huynh</h1><p class="lead">Theo dõi việc học của ${esc(S.name)}. ${TOKEN?'Số liệu lấy từ tài khoản của con, giống với khi bố mẹ xem trên máy của mình.':'Con đang dùng không đăng nhập nên số liệu chỉ có trên máy này.'}</p>
+  <div id="pReport">${TOKEN?(cached?reportBodyHTML(cached):'<div class="card"><p>Đang tải báo cáo...</p></div>'):reportBodyHTML(localReportData())}</div>
+  <div class="stats"><div class="stat"><b>🔥 ${streakNow()}</b><small>ngày học liên tiếp</small></div><div class="stat"><b>🧮 ${S.best}</b><small>kỷ lục tính nhẩm 60 giây</small></div></div>
   <div class="card"><h2>Cài đặt</h2>
    <div class="row col"><div>Giọng đọc<small>${esc(voiceStatus())}</small></div><div class="vg">${voicePickHTML()}</div></div>
    <div class="row"><div>Nguồn giọng đọc<small>Giọng chuẩn cần có mạng; nếu mất mạng sẽ tự dùng giọng của thiết bị</small></div><select class="small-btn sel" id="vMode" aria-label="Nguồn giọng đọc"><option value="auto"${!['device','app'].includes(S.voiceMode)?' selected':''}>Giọng chuẩn</option><option value="device"${S.voiceMode==='device'?' selected':''}>Của thiết bị</option><option value="app"${S.voiceMode==='app'?' selected':''}>Thu sẵn</option></select></div>
@@ -2592,8 +2644,9 @@ function renderParent(){Q=null;stopSpeed();
    ${TOKEN?`<div class="row"><div>Mã liên kết phụ huynh<small>Đưa mã này cho bố/mẹ để xem kết quả học của con</small></div><button class="small-btn" id="showCode">${esc(S.joinCode||'—')}</button></div>
    <div class="row"><div>Mật khẩu<small>Đổi mật khẩu đăng nhập của con</small></div><button class="small-btn" id="pwBtn">Đổi</button></div>
    <div class="row"><div>Tài khoản<small>Đang đăng nhập: ${esc(S.name)} (học sinh)</small></div><button class="small-btn danger" id="logoutBtn">Đăng xuất</button></div>`:''}
-   <div class="row"><div>Xóa toàn bộ tiến độ<small>Sao, xu, sticker và thống kê sẽ bị xóa</small></div><button class="small-btn danger" id="reset">Xóa</button></div>
+   ${TOKEN?'':`<div class="row"><div>Xóa toàn bộ tiến độ<small>Sao, xu, sticker và thống kê trên máy này sẽ bị xóa</small></div><button class="small-btn danger" id="reset">Xóa</button></div>`}
   </div></div></div>${tabbar('parent')}`;
+  if(TOKEN&&!cached)apiGet('/student/me/report').then(d=>{PR_CACHE={at:Date.now(),d};const el=$('#pReport');if(el)el.innerHTML=reportBodyHTML(d);}).catch(()=>{const el=$('#pReport');if(el)el.innerHTML=reportBodyHTML(localReportData());});
   bindVoicePick(app,()=>renderParent());
   $('#vMode').onchange=e=>{S.voiceMode=e.target.value;save();renderParent();testVoice();};
   if($('#vSel'))$('#vSel').onchange=e=>{S.voiceURI=e.target.value;save();pickVoices();renderParent();testVoice();};
@@ -2604,7 +2657,7 @@ function renderParent(){Q=null;stopSpeed();
   if($('#showCode'))$('#showCode').onclick=()=>{if(S.joinCode){if(navigator.clipboard)navigator.clipboard.writeText(S.joinCode).catch(()=>{});toast('Đã copy mã: '+S.joinCode);}else toast('Chưa có mã, đăng xuất rồi đăng nhập lại nhé.');};
   if($('#logoutBtn'))$('#logoutBtn').onclick=logout;
   if($('#pwBtn'))$('#pwBtn').onclick=()=>selfAccountModal({title:'Đổi mật khẩu'});
-  $('#reset').onclick=()=>{const m=modal(`<div class="big-ic">⚠️</div><h2>Xóa toàn bộ tiến độ?</h2><p>Không thể hoàn tác thao tác này.</p><button class="btn btn-bad" id="rsYes">Xóa tiến độ</button><button class="btn btn-soft" id="rsNo">Giữ lại</button>`);m.querySelector('#rsNo').onclick=()=>m.remove();m.querySelector('#rsYes').onclick=()=>{const nm=S.name,av=S.avatar,vg=S.voiceGender;S=JSON.parse(JSON.stringify(DEF));S.name=nm;S.avatar=av;S.voiceGender=vg;save();m.remove();toast('Đã xóa tiến độ.');renderParent();};};
+  if($('#reset'))$('#reset').onclick=()=>{const m=modal(`<div class="big-ic">⚠️</div><h2>Xóa toàn bộ tiến độ?</h2><p>Không thể hoàn tác thao tác này.</p><button class="btn btn-bad" id="rsYes">Xóa tiến độ</button><button class="btn btn-soft" id="rsNo">Giữ lại</button>`);m.querySelector('#rsNo').onclick=()=>m.remove();m.querySelector('#rsYes').onclick=()=>{const nm=S.name,av=S.avatar,vg=S.voiceGender;S=JSON.parse(JSON.stringify(DEF));S.name=nm;S.avatar=av;S.voiceGender=vg;save();m.remove();toast('Đã xóa tiến độ.');renderParent();};};
 }
 
 /* ============ KHỞI ĐẦU ============ */
@@ -2837,7 +2890,7 @@ let playEl=null;function playUrl(u){try{if(playEl)playEl.pause();playEl=new Audi
 document.addEventListener('click',e=>{const b=e.target.closest('[data-play]');if(b){e.stopPropagation();playUrl(b.dataset.play);}},true);
 function pushHist(key,res){if(!res.url&&res.noScore)return;const L=REC_HIST.get(key)||[];L.unshift({url:res.url,stars:res.noScore?0:res.stars,heard:res.heard||'',at:new Date()});REC_HIST.set(key,L.slice(0,6));}
 function histModal(key,title){const L=REC_HIST.get(key)||[];modal(`<h2>🎙️ Record history</h2><p>${esc(title)}</p>${L.length?`<div class="hist">${L.map(x=>`<div class="hist-row"><span>${x.at.getHours()}:${pad2(x.at.getMinutes())}</span>${x.stars?starsHTML(x.stars):'<small>chưa chấm</small>'}${x.url?`<button class="say-btn" data-play="${x.url}">▶</button>`:''}</div>`).join('')}</div>`:'<p>Con chưa ghi âm lần nào.</p>'}<button class="btn btn-soft" onclick="this.closest('.modal').remove()">Close</button>`);}
-function addSpeakPoints(delta){if(delta<=0)return;S.totalPoints=(S.totalPoints||0)+delta*2;S._cacc=(S._cacc||0)+delta;const c=Math.floor(S._cacc/5);S._cacc-=c*5;S.coins=(S.coins||0)+c;save();syncPoints();if(c)syncRewards();}
+function addSpeakPoints(delta){if(delta<=0)return;S.totalPoints=(S.totalPoints||0)+delta*2;syncBonus(delta*2);S._cacc=(S._cacc||0)+delta;const c=Math.floor(S._cacc/5);S._cacc-=c*5;S.coins=(S.coins||0)+c;save();if(c)syncRewards();}
 
 /* ---------- TỪ VỰNG (như thẻ Từ vựng iSmart: nghe – gõ lại – ghi âm chấm sao) ---------- */
 const vocS=u=>{S.voc=S.voc||{};return S.voc[u]||(S.voc[u]={});};
@@ -3093,14 +3146,14 @@ function renderExams(subj){Q=null;stopSpeed();stopVoice();const E=EXAM_SUBJ[subj
 function startExam(subj,k){const qs=EXAM_SUBJ[subj].build(k);Q={mode:'exam',subj,level:k,qs,i:0,correct:0,coins:0,start:Date.now(),gamePlayed:true,lang:subj==='en'||subj==='cam'?'en':'vi'};renderQ();}
 function finishExam(){const n=Q.qs.length,c=Q.correct,subj=Q.subj,k=Q.level,key=subj+'_'+k;const score=Math.round(c/n*20)/2;const r=c/n,stars=r>=.9?3:r>=.7?2:r>=.5?1:0;
   const secs=Math.round((Date.now()-Q.start)/1000),mins=secs/60;const tb=mins<=5?15:mins<=10?10:mins<=15?5:mins<=20?2:0;const timeBonus=stars>=1?tb:0;
-  const st=exS().stars,best=exS().best||(exS().best={});const prev=st[key]||0;if(stars>prev)st[key]=stars;if(best[key]==null||score>best[key])best[key]=score;
-  const pointGain=c*10+timeBonus+(stars===3?20:0);const coins=Q.coins+(stars===3?4:0);S.coins+=coins;S.totalPoints=(S.totalPoints||0)+pointGain;logDay(secs,stars>=1);if(stars>=1)bumpStreak();save();syncRewards();syncPoints();
-  syncProgress('exam_'+key,Math.max(stars,prev));Object.keys(Q.skillDelta||{}).forEach(s=>syncSkill(s,Q.skillDelta[s].c,Q.skillDelta[s].t));syncSession(secs);
+  const st=exS().stars,best=exS().best||(exS().best={});st[key]=stars;best[key]=score;const lk='exam_'+key;markPass(lk,stars);
+  const pointGain=c*10+timeBonus+(stars===3?20:0);const coins=Q.coins+(stars===3?4:0);S.coins+=coins;const prevPts=applyAttempt(lk,pointGain);logDay(secs,stars>=1);if(stars>=1)bumpStreak();save();syncRewards();
+  syncAttempt({level_key:lk,stars,points:pointGain,correct:c,total:n,skills:Q.skillDelta||{}});syncSession(secs);
   const en=subj==='en'||subj==='cam';const secs3=Q.secs||{};Q=null;const E=EXAM_SUBJ[subj];
   app.innerHTML=`<div class="result"><div class="res-owl" aria-hidden="true">${stars===3?'🥳':stars>=1?'🦉':'🤗'}</div><h1>${en?(stars===3?'Excellent!':stars>=1?'Well done!':'Keep trying!'):(stars===3?'Xuất sắc!':stars>=1?'Hoàn thành đề!':'Cố thêm chút nữa nhé!')}</h1>
   <div class="res-stars" aria-label="${stars} sao">${[1,2,3].map(x=>`<span class="${x<=stars?'on':''}">★</span>`).join('')}</div>
   <div class="exam-score"><b>${String(score).replace('.',',')}</b><small>/10 điểm</small></div>${subj==='cam'?`<div class="cam-res">${['L','R','S'].filter(x=>secs3[x]).map(x=>`<div class="cam-row"><span>${CAM_SEC[x]}</span>${shieldsHTML(camShields(secs3[x]))}<small>${secs3[x].c}/${secs3[x].t}</small></div>`).join('')}<small>Khiên quy đổi tham khảo, không phải điểm chính thức.</small></div>`:''}
-  <p>Con làm đúng ${c}/${n} câu trong ${Math.floor(secs/60)} phút ${secs%60} giây.</p>${timeBonus?`<p>⚡ Thưởng làm nhanh: <b>+${timeBonus}</b> điểm</p>`:''}<p>⭐ Điểm tích lũy: <b>+${pointGain}</b> (tổng ${S.totalPoints})</p>
+  <p>Con làm đúng ${c}/${n} câu trong ${Math.floor(secs/60)} phút ${secs%60} giây.</p>${timeBonus?`<p>⚡ Thưởng làm nhanh: <b>+${timeBonus}</b> điểm</p>`:''}<p>⭐ Điểm đề này: <b>${pointGain}</b> · Tổng điểm: <b>${S.totalPoints}</b></p>${attemptNote(prevPts,pointGain)}
   <div class="rewards"><div class="reward"><span class="em">🪙</span>+${coins}<small>xu</small></div></div>
   <div class="actions"><button class="btn btn-go" id="exList">Về danh sách đề ${esc(E.n)}</button><button class="btn btn-soft" id="exAgain">Làm lại đề này</button></div></div>`;
   $('#exList').onclick=()=>renderExams(subj);$('#exAgain').onclick=()=>startExam(subj,k);if(stars>=1){sfx.win();confetti();}}

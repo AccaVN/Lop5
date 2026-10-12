@@ -92,3 +92,14 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 -- 09/2026: thang xu mới (giảm 5 lần). DB tạo mới dùng luôn coin_v = 2.
 ALTER TABLE student_rewards ADD COLUMN IF NOT EXISTS coin_v INTEGER NOT NULL DEFAULT 2;
+
+-- 10/2026: mỗi bài chỉ tính điểm LẦN LÀM CUỐI (xem src/score.js)
+ALTER TABLE progress ADD COLUMN IF NOT EXISTS best_stars INTEGER NOT NULL DEFAULT 0; -- sao cao nhất (giữ mở khóa bài, sticker)
+ALTER TABLE progress ADD COLUMN IF NOT EXISTS points     INTEGER NOT NULL DEFAULT 0; -- điểm lần làm cuối
+ALTER TABLE progress ADD COLUMN IF NOT EXISTS correct    INTEGER NOT NULL DEFAULT 0; -- số câu đúng lần cuối
+ALTER TABLE progress ADD COLUMN IF NOT EXISTS total      INTEGER NOT NULL DEFAULT 0; -- số câu lần cuối
+ALTER TABLE progress ADD COLUMN IF NOT EXISTS attempts   INTEGER NOT NULL DEFAULT 0; -- số lần đã làm
+ALTER TABLE progress ADD COLUMN IF NOT EXISTS skills     JSONB;                      -- đúng/sai theo kỹ năng của lần cuối
+ALTER TABLE students ADD COLUMN IF NOT EXISTS bonus_points INTEGER NOT NULL DEFAULT 0; -- điểm luyện nói
+INSERT INTO app_settings (key, value) VALUES ('score_last_attempt_v1', 'true'::jsonb) ON CONFLICT (key) DO NOTHING;
+COMMENT ON COLUMN progress.best_stars IS 'score_last_attempt_v1';

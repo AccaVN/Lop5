@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db');
 const { authMiddleware, requireRole, hashPassword } = require('../auth');
+const { studentDetail } = require('../score');
 
 router.use(authMiddleware, requireRole('admin'));
 
@@ -9,7 +10,7 @@ router.get('/students', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT s.id, s.name, s.avatar, s.gender, s.join_code, u.email, s.created_at, s.total_points,
            COALESCE(SUM(p.stars), 0)::int AS total_stars,
-           COUNT(p.level_key) FILTER (WHERE p.stars > 0)::int AS completed_levels
+           COUNT(p.level_key) FILTER (WHERE GREATEST(p.best_stars, p.stars) > 0)::int AS completed_levels
     FROM students s
     JOIN users u ON u.id = s.user_id
     LEFT JOIN progress p ON p.student_id = s.id
@@ -21,16 +22,13 @@ router.get('/students', async (req, res) => {
 
 router.get('/students/:id', async (req, res) => {
   const id = req.params.id;
-  const [student, progress, skills, sessions, parents, rewards] = await Promise.all([
-    pool.query('SELECT s.*, u.email FROM students s JOIN users u ON u.id = s.user_id WHERE s.id=$1', [id]),
-    pool.query('SELECT level_key, stars FROM progress WHERE student_id=$1 ORDER BY level_key', [id]),
-    pool.query('SELECT skill_key, correct, total FROM skill_stats WHERE student_id=$1', [id]),
-    pool.query('SELECT day, seconds FROM daily_sessions WHERE student_id=$1 ORDER BY day DESC LIMIT 30', [id]),
+  const [d, parents, rewards] = await Promise.all([
+    studentDetail(id, true),
     pool.query(`SELECT u.id, u.email, u.display_name FROM users u JOIN parent_student ps ON ps.parent_user_id = u.id WHERE ps.student_id=$1`, [id]),
     pool.query('SELECT stickers, shop, coins, en_stickers FROM student_rewards WHERE student_id=$1', [id]),
   ]);
-  if (!student.rows[0]) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
-  res.json({ student: student.rows[0], progress: progress.rows, skills: skills.rows, sessions: sessions.rows, parents: parents.rows, rewards: rewards.rows[0] || {stickers: [], shop: [], coins: 0, en_stickers: []} });
+  if (!d) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
+  res.json({ ...d, parents: parents.rows, rewards: rewards.rows[0] || {stickers: [], shop: [], coins: 0, en_stickers: []} });
 });
 
 router.get('/parents', async (req, res) => {

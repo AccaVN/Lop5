@@ -2,6 +2,7 @@ const router = require('express').Router();
 const pool = require('../db');
 const { authMiddleware, requireRole } = require('../auth');
 const { classRanking } = require('../rank');
+const { studentDetail } = require('../score');
 
 router.use(authMiddleware, requireRole('parent'));
 
@@ -10,7 +11,7 @@ router.use(authMiddleware, requireRole('parent'));
 router.post('/me/link', async (req, res) => {
   const { join_code } = req.body;
   if (!join_code) return res.status(400).json({ error: 'Thiếu mã học sinh' });
-  const { rows } = await pool.query('SELECT * FROM students WHERE join_code=$1', [join_code.toUpperCase().trim()]);
+  const { rows } = await pool.query('SELECT id, name, avatar FROM students WHERE join_code=$1', [String(join_code).toUpperCase().trim()]);
   const student = rows[0];
   if (!student) return res.status(404).json({ error: 'Mã học sinh không đúng' });
   await pool.query(
@@ -29,7 +30,9 @@ router.delete('/me/link/:studentId', async (req, res) => {
 // Danh sách các con đã liên kết với tài khoản phụ huynh này
 router.get('/me/students', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT s.* FROM students s JOIN parent_student ps ON ps.student_id = s.id
+    `SELECT s.id, s.name, s.avatar, s.gender, s.total_points,
+            (SELECT MAX(p.updated_at) FROM progress p WHERE p.student_id = s.id) AS last_active
+     FROM students s JOIN parent_student ps ON ps.student_id = s.id
      WHERE ps.parent_user_id = $1 ORDER BY s.name`,
     [req.user.id]
   );
@@ -45,13 +48,12 @@ router.get('/me/students/:id', async (req, res) => {
   );
   if (link.rowCount === 0) return res.status(403).json({ error: 'Bạn chưa liên kết với học sinh này' });
 
-  const [student, progress, skills, sessions] = await Promise.all([
-    pool.query('SELECT * FROM students WHERE id=$1', [studentId]),
-    pool.query('SELECT level_key, stars FROM progress WHERE student_id=$1', [studentId]),
-    pool.query('SELECT skill_key, correct, total FROM skill_stats WHERE student_id=$1', [studentId]),
-    pool.query('SELECT day, seconds FROM daily_sessions WHERE student_id=$1 ORDER BY day DESC LIMIT 30', [studentId]),
-  ]);
-  res.json({ student: student.rows[0], progress: progress.rows, skills: skills.rows, sessions: sessions.rows });
+  // progress: kết quả LẦN LÀM CUỐI của từng bài (sao, điểm, số câu đúng, số lần làm)
+  // skills: tỉ lệ đúng theo kỹ năng, tính từ lần làm cuối của từng bài
+  const d = await studentDetail(studentId);
+  if (!d) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
+  res.set('Cache-Control', 'private, no-cache');
+  res.json(d);
 });
 
 // Bảng xếp hạng cả lớp — đánh dấu các con của phụ huynh này

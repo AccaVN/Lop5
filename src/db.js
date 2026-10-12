@@ -44,6 +44,31 @@ const SCHEMA_SQL = `
     value      JSONB NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+  -- 10/2026: mỗi bài chỉ tính điểm LẦN LÀM CUỐI (xem src/score.js)
+  ALTER TABLE progress ADD COLUMN IF NOT EXISTS best_stars INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE progress ADD COLUMN IF NOT EXISTS points     INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE progress ADD COLUMN IF NOT EXISTS correct    INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE progress ADD COLUMN IF NOT EXISTS total      INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE progress ADD COLUMN IF NOT EXISTS attempts   INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE progress ADD COLUMN IF NOT EXISTS skills     JSONB;
+  ALTER TABLE students ADD COLUMN IF NOT EXISTS bonus_points INTEGER NOT NULL DEFAULT 0;
+  -- Quy đổi dữ liệu cũ đúng 1 lần: điểm cũ cộng dồn mọi lần làm lại → ước lượng điểm
+  -- 1 lần làm theo số sao (3★ = 160, 2★ = 120, 1★ = 90). Bài làm lại sẽ ghi điểm chính xác.
+  DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'score_last_attempt_v1') THEN
+      UPDATE progress SET best_stars = GREATEST(best_stars, stars),
+        points = CASE WHEN level_key ~ '^(main|tv|en|exam)_' THEN
+                   CASE stars WHEN 3 THEN 160 WHEN 2 THEN 120 WHEN 1 THEN 90 ELSE 0 END
+                 ELSE 0 END,
+        attempts = GREATEST(attempts, 1)
+      WHERE attempts = 0;
+      UPDATE students s SET total_points =
+        COALESCE((SELECT SUM(p.points) FROM progress p WHERE p.student_id = s.id), 0) + s.bonus_points;
+      INSERT INTO app_settings (key, value) VALUES ('score_last_attempt_v1', 'true'::jsonb)
+        ON CONFLICT (key) DO NOTHING;
+    END IF;
+  END $mig$;
+  COMMENT ON COLUMN progress.best_stars IS 'score_last_attempt_v1';
 `;
 // Kiểm tra nhanh bằng catalog (chỉ đọc, không khóa bảng). Lệnh ALTER TABLE ... IF NOT EXISTS
 // vẫn lấy khóa ACCESS EXCLUSIVE dù cột đã có → mỗi lần Vercel cold start sẽ chặn/chờ các
@@ -58,6 +83,9 @@ const SCHEMA_CHECK_SQL = `
     AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('students') AND attname = 'total_points' AND NOT attisdropped)
     AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('student_rewards') AND attname = 'coin_v' AND NOT attisdropped)
     AND to_regclass('app_settings') IS NOT NULL
+    AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('progress') AND attname = 'skills' AND NOT attisdropped)
+    AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('students') AND attname = 'bonus_points' AND NOT attisdropped)
+    AND col_description(to_regclass('progress'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('progress') AND attname = 'best_stars' AND NOT attisdropped)) = 'score_last_attempt_v1'
     AS ok
 `;
 let schemaReady = null;
