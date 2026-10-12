@@ -22,23 +22,14 @@ router.get('/students', async (req, res) => {
 
 router.get('/students/:id', async (req, res) => {
   const id = req.params.id;
-  const [d, parents, rewards] = await Promise.all([
+  const [d, rewards] = await Promise.all([
     studentDetail(id, true),
-    pool.query(`SELECT u.id, u.email, u.display_name FROM users u JOIN parent_student ps ON ps.parent_user_id = u.id WHERE ps.student_id=$1`, [id]),
     pool.query('SELECT stickers, shop, coins, en_stickers FROM student_rewards WHERE student_id=$1', [id]),
   ]);
   if (!d) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
-  res.json({ ...d, parents: parents.rows, rewards: rewards.rows[0] || {stickers: [], shop: [], coins: 0, en_stickers: []} });
+  res.json({ ...d, rewards: rewards.rows[0] || {stickers: [], shop: [], coins: 0, en_stickers: []} });
 });
 
-router.get('/parents', async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT u.id, u.email, u.display_name, u.created_at, COUNT(ps.student_id)::int AS so_con
-    FROM users u LEFT JOIN parent_student ps ON ps.parent_user_id = u.id
-    WHERE u.role = 'parent' GROUP BY u.id ORDER BY u.email
-  `);
-  res.json({ parents: rows });
-});
 
 // Quản lý tài khoản: admin được thêm/sửa/xóa học sinh và phụ huynh.
 router.get('/users', async (req, res) => {
@@ -62,7 +53,8 @@ function parseTrialDays(v) {
 
 router.post('/users', async (req, res) => {
   const { email, password, role, name, gender, avatar, trial_days } = req.body;
-  if (!email || !password || !['student','parent','admin'].includes(role)) return res.status(400).json({ error: 'Email, mật khẩu và loại tài khoản là bắt buộc' });
+  if (role === 'parent') return res.status(400).json({ error: 'Không còn tài khoản phụ huynh. Hãy tạo tài khoản học sinh.' });
+  if (!email || !password || !['student','admin'].includes(role)) return res.status(400).json({ error: 'Email, mật khẩu và loại tài khoản là bắt buộc' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

@@ -45,8 +45,9 @@ async function createAccount(req, res, role) {
   } finally { client.release(); }
 }
 router.post('/register/student', (req, res) => createAccount(req, res, 'student'));
-router.post('/register/parent', (req, res) => createAccount(req, res, 'parent'));
-router.post('/register', (req, res) => createAccount(req, res, req.body && req.body.role === 'parent' ? 'parent' : 'student'));
+// Không còn đăng ký tài khoản phụ huynh (10/2026) — mọi đăng ký đều là học sinh
+router.post('/register/parent', (req, res) => res.status(410).json({ error: 'Không còn tài khoản phụ huynh. Bố mẹ xem kết quả ở mục "Phụ huynh" trên máy của con.' }));
+router.post('/register', (req, res) => createAccount(req, res, 'student'));
 
 // ---- Chống dò mật khẩu: sai 5 lần liên tiếp với 1 tài khoản → khóa 15 phút;
 // 1 địa chỉ IP sai 30 lần (nhiều tài khoản) → khóa IP đó 15 phút. Admin đặt lại mật khẩu thì mở khóa.
@@ -89,6 +90,12 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Sai email hoặc mật khẩu' + (left <= 2 ? ` (còn ${left} lần thử trước khi bị khóa ${LOCK.minutes} phút)` : '') });
   }
   await pool.query('DELETE FROM login_attempts WHERE key = $1', [keys[0]]);
+  // Tài khoản phụ huynh cũ → chuyển thành tài khoản học sinh ngay khi đăng nhập
+  let converted = null;
+  if (user.role === 'parent') {
+    converted = await require('../convert').parentToStudent(user.id);
+    user.role = 'student';
+  }
   if (user.role !== 'admin' && user.trial_expires_at && new Date(user.trial_expires_at) < new Date()) {
     return res.status(403).json({ error: TRIAL_MSG, code: 'TRIAL_EXPIRED' });
   }
@@ -99,7 +106,7 @@ router.post('/login', async (req, res) => {
   await pool.query(
     'UPDATE users SET session_id=$1, last_login_at=now(), last_login_ip=$2, last_login_device=$3 WHERE id=$4',
     [sid, ip || null, device || null, user.id]);
-  res.json({ user: { id: user.id, email: user.email, role: user.role, display_name: user.display_name || null, trial_expires_at: user.trial_expires_at || null }, token: signToken(user, sid) });
+  res.json({ user: { id: user.id, email: user.email, role: user.role, display_name: user.display_name || null, trial_expires_at: user.trial_expires_at || null }, token: signToken(user, sid), ...(converted ? { student: converted, converted: true } : {}) });
 });
 
 // Đăng xuất: hủy phiên hiện tại trên máy chủ

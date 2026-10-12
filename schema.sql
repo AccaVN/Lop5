@@ -122,3 +122,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 INSERT INTO app_settings (key, value) VALUES ('score_v2', 'true'::jsonb) ON CONFLICT (key) DO NOTHING;
 COMMENT ON COLUMN progress.best_points IS 'score_v2';
+
+-- 10/2026: BỎ tài khoản phụ huynh. Role 'parent' và bảng parent_student chỉ còn để tương thích dữ liệu cũ;
+-- tài khoản phụ huynh cũ được src/db.js tự chuyển thành tài khoản học sinh.
+COMMENT ON COLUMN students.user_id IS 'no_parent_v1';

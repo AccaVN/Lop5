@@ -16,7 +16,8 @@ app.use('/api', async (req, res, next) => {
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/student', require('./routes/student'));
-app.use('/api/parent', require('./routes/parent'));
+// /api/parent: đã bỏ tài khoản phụ huynh (10/2026)
+app.use('/api/parent', (req, res) => res.status(410).json({ error: 'Không còn tài khoản phụ huynh. Vui lòng đăng nhập lại.' }));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/tts', require('./routes/tts').router);
 

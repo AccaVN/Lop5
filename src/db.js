@@ -97,6 +97,22 @@ const SCHEMA_SQL = `
     END IF;
   END $mig2$;
   COMMENT ON COLUMN progress.best_points IS 'score_v2';
+  -- 10/2026: bỏ tài khoản phụ huynh → chuyển toàn bộ tài khoản phụ huynh thành tài khoản học sinh
+  DO $mig3$ DECLARE r RECORD; BEGIN
+    FOR r IN SELECT id, COALESCE(NULLIF(TRIM(display_name), ''), split_part(email, '@', 1)) AS nm FROM users WHERE role = 'parent' LOOP
+      UPDATE users SET role = 'student' WHERE id = r.id;
+      DELETE FROM parent_student WHERE parent_user_id = r.id;
+      LOOP
+        BEGIN
+          INSERT INTO students (user_id, name, join_code)
+          VALUES (r.id, LEFT(r.nm, 16), UPPER(SUBSTR(MD5(random()::text || r.id::text || clock_timestamp()::text), 1, 8)))
+          ON CONFLICT (user_id) DO NOTHING;
+          EXIT;
+        EXCEPTION WHEN unique_violation THEN END;
+      END LOOP;
+    END LOOP;
+  END $mig3$;
+  COMMENT ON COLUMN students.user_id IS 'no_parent_v1';
 `;
 // Kiểm tra nhanh bằng catalog (chỉ đọc, không khóa bảng). Lệnh ALTER TABLE ... IF NOT EXISTS
 // vẫn lấy khóa ACCESS EXCLUSIVE dù cột đã có → mỗi lần Vercel cold start sẽ chặn/chờ các
@@ -117,6 +133,8 @@ const SCHEMA_CHECK_SQL = `
     AND col_description(to_regclass('progress'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('progress') AND attname = 'best_points' AND NOT attisdropped)) = 'score_v2'
     AND to_regclass('speak_best') IS NOT NULL
     AND to_regclass('login_attempts') IS NOT NULL
+    AND col_description(to_regclass('students'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('students') AND attname = 'user_id' AND NOT attisdropped)) = 'no_parent_v1'
+    AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'parent')
     AS ok
 `;
 let schemaReady = null;

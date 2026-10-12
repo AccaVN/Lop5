@@ -1844,21 +1844,9 @@ async function refreshHomeInBackground(){
 }
 
 function logout(){if(TOKEN){const t=TOKEN;fetch(API_BASE+'/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+t}}).catch(()=>{});}TOKEN='';ROLE='';localStorage.removeItem('hv_token');localStorage.removeItem('hv_role');renderRoleGate();}
-function showJoinCodeModal(code,onClose){
-  const m=modal(`<div class="big-ic">👪</div><h2>Mã liên kết phụ huynh</h2><p>Đưa mã này cho bố/mẹ để liên kết theo dõi kết quả học của con. Cả bố và mẹ đều dùng được chung mã này.</p><div style="font-size:28px;font-weight:800;letter-spacing:3px;text-align:center;padding:14px;background:var(--soft);border-radius:12px;margin:10px 0">${esc(code)}</div><button class="btn btn-go" id="jcOk">Đã lưu, bắt đầu học!</button>`,true);
-  m.querySelector('#jcOk').onclick=()=>{m.remove();onClose&&onClose();};
-}
 function renderRoleGate(){Q=null;renderAuthForm('any','login');}
-function renderRegisterPicker(){Q=null;
-  app.innerHTML=`<div class="screen"><div class="onboard"><div class="owl" aria-hidden="true">🦉</div><h1>Đăng ký tài khoản</h1><p>Bạn đăng ký cho ai nhỉ?</p>
-  <button class="btn btn-go" id="rgStudent">👦 Học sinh</button>
-  <button class="btn btn-soft" id="rgParent">👪 Phụ huynh</button>
-  <button class="btn btn-soft" id="rgBack">Đã có tài khoản? Đăng nhập</button>
-  </div></div>`;
-  $('#rgStudent').onclick=()=>renderAuthForm('student','register');
-  $('#rgParent').onclick=()=>renderAuthForm('parent','register');
-  $('#rgBack').onclick=renderRoleGate;
-}
+// Không còn tài khoản phụ huynh (10/2026): đăng ký chỉ dành cho học sinh
+function renderRegisterPicker(){Q=null;renderAuthForm('student','register');}
 function renderAuthForm(role,mode){
   if(role==='any')mode='login';
   const titles={any:'Học Vui Lớp 5',student:'Học sinh',parent:'Phụ huynh'};
@@ -1869,9 +1857,9 @@ function renderAuthForm(role,mode){
   ${mode==='register'&&role==='student'?`<label class="label" style="margin-top:14px" for="afName">Tên của con</label><input class="field" id="afName" maxlength="16" placeholder="Ví dụ: Bin">`:''}
   <div id="afErr" style="color:var(--berry-d);font-weight:700;min-height:20px;margin-top:10px"></div>
   <button class="btn btn-go" id="afGo">${mode==='register'?'Tạo tài khoản':'Đăng nhập'}</button>
-  ${role==='any'?`<button class="btn btn-soft" id="afSwitch">Chưa có tài khoản? Đăng ký</button>`:`<button class="btn btn-soft" id="afBack">Quay lại</button>`}
+  ${role==='any'?`<button class="btn btn-soft" id="afSwitch">Chưa có tài khoản? Đăng ký</button>`:`<button class="btn btn-soft" id="afBack">Đã có tài khoản? Đăng nhập</button>`}
   </div></div>`;
-  if(role==='any')$('#afSwitch').onclick=renderRegisterPicker;else $('#afBack').onclick=renderRegisterPicker;
+  if(role==='any')$('#afSwitch').onclick=renderRegisterPicker;else $('#afBack').onclick=renderRoleGate;
   $('#afGo').onclick=async()=>{
     const email=$('#afEmail').value.trim(),pass=$('#afPass').value,errEl=$('#afErr');errEl.textContent='';
     if(!email||!pass){errEl.textContent='Nhập đủ email và mật khẩu nhé.';return;}
@@ -1879,13 +1867,9 @@ function renderAuthForm(role,mode){
     try{
       let res;
       if(mode==='register'){
-        if(role==='student'){
-          const name=$('#afName').value.trim();
-          if(!name){errEl.textContent='Nhập tên của con nhé.';btn.disabled=false;btn.textContent=oldTxt;return;}
-          res=await apiPost('/auth/register/student',{email,password:pass,name});
-        }else{
-          res=await apiPost('/auth/register/parent',{email,password:pass});
-        }
+        const name=$('#afName').value.trim();
+        if(!name){errEl.textContent='Nhập tên của con nhé.';btn.disabled=false;btn.textContent=oldTxt;return;}
+        res=await apiPost('/auth/register/student',{email,password:pass,name});
       }else{
         res=await apiPost('/auth/login',{email,password:pass});
       }
@@ -1894,13 +1878,13 @@ function renderAuthForm(role,mode){
       if(ROLE==='student'){
         if(res.student){
           S.studentId=res.student.id;S.name=res.student.name;S.avatar=res.student.avatar||S.avatar;S.joinCode=res.student.join_code;save();
-          showJoinCodeModal(res.student.join_code,()=>renderOnboard(false));
+          if(res.converted){const m=modal(`<div class="big-ic">🎒</div><h2>Tài khoản đã đổi thành tài khoản học sinh</h2><p>Học Vui không còn tài khoản phụ huynh. Tài khoản <b>${esc(email)}</b> giờ là tài khoản học sinh, đăng nhập bằng email và mật khẩu cũ.</p><p>Bố mẹ xem kết quả học của con ở mục <b>👪 Phụ huynh</b> ngay trên máy của con.</p><button class="btn btn-go" id="cvOk">Bắt đầu</button>`,true);m.querySelector('#cvOk').onclick=()=>{m.remove();renderOnboard(false);};}
+          else renderOnboard(false);
         }else{
           await hydrateStudentHome();
           boot();
         }
-      }else if(ROLE==='parent')renderParentPortal();
-      else renderAdminPortal();
+      }else renderAdminPortal();
     }catch(e){errEl.textContent=e.message;btn.disabled=false;btn.textContent=oldTxt;}
   };
 }
@@ -1976,34 +1960,10 @@ function localReportData(){const P=[];const add=(pre,o)=>Object.keys(o||{}).forE
   const sessions=Object.keys(S.days||{}).map(k=>({day:k,seconds:S.days[k].sec||0}));
   const skills=Object.keys(S.stats||{}).map(k=>({skill_key:k,correct:S.stats[k].c,total:S.stats[k].t}));
   return {student:{name:S.name,avatar:S.avatar,total_points:S.totalPoints||0},progress:P,skills,sessions};}
-async function renderParentPortal(){Q=null;stopSpeed();
-  app.innerHTML=`<div class="screen"><div class="page"><h1>Góc phụ huynh</h1><p class="lead">Đang tải danh sách con...</p></div></div>`;
-  let list=[];
-  try{const r=await apiGet('/parent/me/students');list=r.students||[];}
-  catch(e){app.innerHTML=`<div class="screen"><div class="page"><h1>Góc phụ huynh</h1><p class="lead">${esc(e.message)}</p><button class="btn btn-soft" id="pRetry">Thử lại</button></div></div>`;$('#pRetry').onclick=renderParentPortal;return;}
-  app.innerHTML=`<div class="screen"><div class="page"><h1>Góc phụ huynh</h1>
-  <div class="card"><h2>Các con của bạn</h2>${list.length?list.map(s=>`<div class="row"><div>${s.avatar||'🙂'} ${esc(s.name)}</div><button class="small-btn" data-sid="${s.id}">Xem</button></div>`).join(''):'<p>Chưa liên kết con nào. Nhập mã của con ở dưới nhé.</p>'}</div>
-  <div class="card"><h2>Liên kết thêm con</h2><p class="lead" style="margin:0 0 8px">Nhập mã 8 ký tự con thấy trong mục "Phụ huynh" trên máy của con.</p><input class="field" id="pJoin" maxlength="8" placeholder="VD: A1B2C3D4"><div style="height:10px"></div><button class="btn btn-go" id="pJoinGo">Liên kết</button><div id="pJoinErr" style="color:var(--berry-d);font-weight:700;margin-top:6px"></div></div>
-  <button class="btn btn-go" id="pRank">🏆 Bảng xếp hạng cả lớp</button><button class="btn btn-soft" id="pAcc">🔐 Đổi tên / mật khẩu</button><button class="btn btn-soft" id="pLogout">Đăng xuất</button></div></div>`;
-  app.querySelectorAll('[data-sid]').forEach(b=>b.onclick=()=>renderParentStudentDetail(b.dataset.sid));
-  $('#pRank').onclick=renderParentRank;
-  $('#pAcc').onclick=async()=>{let me={};try{me=(await apiGet('/auth/me')).user||{};}catch(e){}selfAccountModal({withName:true,name:me.display_name||''});};
-  $('#pJoinGo').onclick=async()=>{const code=$('#pJoin').value.trim(),err=$('#pJoinErr');err.textContent='';if(!code){err.textContent='Nhập mã trước nhé.';return;}try{await apiPost('/parent/me/link',{join_code:code});renderParentPortal();}catch(e){err.textContent=e.message;}};
-  $('#pLogout').onclick=logout;
-}
-async function renderParentRank(){Q=null;app.innerHTML=`<div class="screen"><div class="page"><h1>Bảng xếp hạng</h1><p class="lead">Đang tải...</p></div></div>`;
-  let list=[];try{list=(await apiGet('/parent/me/rank')).students||[];}catch(e){toast(e.message);}
-  app.innerHTML=`<div class="screen"><div class="page"><h1>Bảng xếp hạng</h1>${classBoardHTML(list,{meCard:false}).replace(/\(con\)/g,'(con của bạn)')}<button class="btn btn-soft" id="prBack">Quay lại</button></div></div>`;
-  if($('#rkReload'))$('#rkReload').onclick=renderParentRank;$('#prBack').onclick=renderParentPortal;}
-async function renderParentStudentDetail(id){Q=null;
-  app.innerHTML=`<div class="screen"><div class="page"><h1>Đang tải...</h1></div></div>`;
-  let d;try{d=await apiGet('/parent/me/students/'+id);}catch(e){app.innerHTML=`<div class="screen"><div class="page"><h1>Có lỗi</h1><p>${esc(e.message)}</p><button class="btn btn-soft" id="bk">Quay lại</button></div></div>`;$('#bk').onclick=renderParentPortal;return;}
-  app.innerHTML=renderChildStatsHTML(d);$('#cBack').onclick=renderParentPortal;
-}
 async function renderAdminPortal(tab){Q=null;stopSpeed();tab=tab||'rank';
   app.innerHTML=`<div class="screen"><div class="page"><h1>Quản trị</h1><p class="lead">Quản lý tài khoản và so sánh thành tích của toàn bộ học viên.</p><div class="card"><p>Đang tải dữ liệu...</p></div></div></div>`;
-  let students=[],parents=[],users=[];
-  try{const [r1,r2,r3]=await Promise.all([apiGet('/admin/students'),apiGet('/admin/parents'),apiGet('/admin/users')]);students=r1.students||[];parents=r2.parents||[];users=r3.users||[];}
+  let students=[],users=[];
+  try{const [r1,r3]=await Promise.all([apiGet('/admin/students'),apiGet('/admin/users')]);students=r1.students||[];users=r3.users||[];}
   catch(e){app.innerHTML=`<div class="screen"><div class="page"><h1>Quản trị</h1><p>${esc(e.message)}</p><button class="btn btn-soft" id="aLogout">Đăng xuất</button></div></div>`;$('#aLogout').onclick=logout;return;}
   const rank=students.slice().sort((a,b)=>b.total_points-a.total_points||b.total_stars-a.total_stars||b.completed_levels-a.completed_levels||String(a.name).localeCompare(String(b.name),'vi'));
   const ROLE_VI={admin:'Quản trị',parent:'Phụ huynh',student:'Học sinh'},ROLE_IC={admin:'🛠️',parent:'👪',student:'🙂'};
@@ -2014,7 +1974,7 @@ async function renderAdminPortal(tab){Q=null;stopSpeed();tab=tab||'rank';
   function renderRank(){body.innerHTML=classBoardHTML(rank.map(x=>({...x,me:false})),{meCard:false,reload:false}).replace('🏆 Bảng xếp hạng cả lớp','🏆 Bảng xếp hạng cả lớp (admin)')+`<div class="card"><h2>Chi tiết từng bạn</h2>${rank.length?`<ol class="rank admin">${rank.map((st,i)=>`<li><span class="rk">${i+1}</span><span class="ra">${st.avatar||'🙂'}</span><span class="rn">${esc(st.name)}<small>${esc(st.email)}</small></span><span class="rs">🏅 ${st.total_points||0} <small>⭐ ${st.total_stars} · ${st.completed_levels||0} bài</small></span><span class="acts"><button class="small-btn" data-sid="${st.id}">Xem</button></span></li>`).join('')}</ol>`:'<p>Chưa có học viên.</p>'}</div>`;body.querySelectorAll('[data-sid]').forEach(x=>x.onclick=()=>renderAdminStudentDetail(x.dataset.sid));}
   const isTrial=u=>u.role!=='admin'&&!!u.trial_expires_at;
   const trialInfo=u=>{if(u.role==='admin'||!u.trial_expires_at)return '✅ Tài khoản chính thức';const d=Math.ceil((new Date(u.trial_expires_at)-new Date())/864e5);return d>0?`⏳ Dùng thử · còn ${d} ngày (hết hạn ${fmtTime(u.trial_expires_at)})`:'⌛ Hết hạn dùng thử — đang bị khóa, bấm "Chuyển chính thức" để mở lại';};
-  function renderUsers(){body.innerHTML=`<div class="card"><h2>➕ Thêm tài khoản</h2><div class="two"><select class="field" id="nuRole"><option value="student">Học sinh</option><option value="parent">Phụ huynh</option><option value="admin">Quản trị (admin)</option></select><input class="field" id="nuEmail" placeholder="Email"></div><div class="two"><input class="field" id="nuPass" type="password" placeholder="Mật khẩu (ít nhất 4 ký tự)"><input class="field" id="nuName" placeholder="Tên (bắt buộc với học sinh)"></div><div class="two"><select class="field" id="nuGender"><option value="both">Cả hai</option><option value="boy">Bạn nam</option><option value="girl">Bạn nữ</option></select><input class="field" id="nuAvatar" placeholder="Avatar, ví dụ 🦊"></div><input class="field" id="nuTrial" type="number" min="1" max="3650" placeholder="Số ngày dùng thử (bỏ trống = tài khoản chính thức)"><button class="btn btn-go" id="nuCreate">Tạo tài khoản</button></div>
+  function renderUsers(){body.innerHTML=`<div class="card"><h2>➕ Thêm tài khoản</h2><div class="two"><select class="field" id="nuRole"><option value="student">Học sinh</option><option value="admin">Quản trị (admin)</option></select><input class="field" id="nuEmail" placeholder="Email"></div><div class="two"><input class="field" id="nuPass" type="password" placeholder="Mật khẩu (ít nhất 4 ký tự)"><input class="field" id="nuName" placeholder="Tên (bắt buộc với học sinh)"></div><div class="two"><select class="field" id="nuGender"><option value="both">Cả hai</option><option value="boy">Bạn nam</option><option value="girl">Bạn nữ</option></select><input class="field" id="nuAvatar" placeholder="Avatar, ví dụ 🦊"></div><input class="field" id="nuTrial" type="number" min="1" max="3650" placeholder="Số ngày dùng thử (bỏ trống = tài khoản chính thức)"><button class="btn btn-go" id="nuCreate">Tạo tài khoản</button></div>
   <div class="card"><h2>👤 Tất cả tài khoản (${users.length})</h2><p class="lead" style="margin:0 0 6px">Bấm <b>Sửa</b> để đổi tên, email hoặc đặt mật khẩu mới cho bất kỳ tài khoản nào (kể cả admin).</p>${users.map(u=>`<div class="row"><div>${u.role==='student'?(u.avatar||'🙂'):ROLE_IC[u.role]} ${esc(u.name||'(chưa đặt tên)')}<small>${esc(u.email)} · ${ROLE_VI[u.role]||u.role}</small><small>${trialInfo(u)}</small><small>${u.online?'🟢 Đang đăng nhập':'⚪ Không đăng nhập'}${u.last_login_at?` · Lần cuối: ${esc(deviceName(u.last_login_device))} · ${esc(fmtTime(u.last_login_at))}${u.last_login_ip?' · IP '+esc(u.last_login_ip):''}`:''}</small></div><div class="acts">${isTrial(u)?`<button class="small-btn" data-official="${u.id}">Chuyển chính thức</button><button class="small-btn" data-trial="${u.id}">Đổi hạn dùng thử</button>`:(u.role!=='admin'?`<button class="small-btn" data-trial="${u.id}">Chuyển dùng thử</button>`:'')}<button class="small-btn" data-edit-user="${u.id}">Sửa</button>${u.role==='admin'&&users.filter(x=>x.role==='admin').length<2?'':`<button class="small-btn danger" data-del-user="${u.id}">Xóa</button>`}</div></div>`).join('')||'<p>Chưa có tài khoản.</p>'}</div>`;
     $('#nuCreate').onclick=async()=>{const role=$('#nuRole').value,email=$('#nuEmail').value.trim(),password=$('#nuPass').value,name=$('#nuName').value.trim();if(!email||!password||(role==='student'&&!name)){toast('Hãy nhập đủ thông tin bắt buộc.');return;}try{await apiPost('/admin/users',{email,password,role,name,gender:$('#nuGender').value,avatar:$('#nuAvatar').value.trim()||'🦊',trial_days:role==='admin'?null:($('#nuTrial').value||null)});toast('Đã tạo tài khoản.');renderAdminPortal('users');}catch(e){toast(e.message);}};
     body.querySelectorAll('[data-trial]').forEach(btn=>btn.onclick=()=>{const u=users.find(x=>String(x.id)===btn.dataset.trial);
@@ -2053,7 +2013,7 @@ async function renderAdminPortal(tab){Q=null;stopSpeed();tab=tab||'rank';
     $('#vSave').onclick=async()=>{const pickR=n=>{const r=body.querySelector(`input[name="${n}"]:checked`);return r?r.value:undefined;};
       const c={female:{vi:pickR('v_female_vi'),en:pickR('v_female_en')},male:{vi:pickR('v_male_vi'),en:pickR('v_male_en')},rate:Number($('#vRate').value)};
       try{const r=await apiPut('/admin/settings/voices',c);TTS.cfg=r.config;try{localStorage.setItem('hv_tts_cfg',JSON.stringify(r.config));}catch(e){}toast('Đã lưu giọng chuẩn cho cả lớp.');}catch(e){toast(e.message);}};}
-  function renderInfo(){body.innerHTML=`<div class="card"><h2>📊 Tổng quan</h2><div class="stats"><div class="stat"><b>${students.length}</b><small>học sinh</small></div><div class="stat"><b>${parents.length}</b><small>phụ huynh</small></div><div class="stat"><b>${rank.reduce((a,x)=>a+(x.total_points||0),0)}</b><small>tổng điểm tích lũy</small></div><div class="stat"><b>${rank.reduce((a,x)=>a+x.total_stars,0)}</b><small>tổng sao toàn lớp</small></div><div class="stat"><b>${rank.reduce((a,x)=>a+(x.completed_levels||0),0)}</b><small>lượt bài hoàn thành</small></div></div></div>`;}
+  function renderInfo(){body.innerHTML=`<div class="card"><h2>📊 Tổng quan</h2><div class="stats"><div class="stat"><b>${students.length}</b><small>học sinh</small></div><div class="stat"><b>${rank.reduce((a,x)=>a+(x.total_points||0),0)}</b><small>tổng điểm tích lũy</small></div><div class="stat"><b>${rank.reduce((a,x)=>a+x.total_stars,0)}</b><small>tổng sao toàn lớp</small></div><div class="stat"><b>${rank.reduce((a,x)=>a+(x.completed_levels||0),0)}</b><small>lượt bài hoàn thành</small></div></div></div>`;}
   const show=k=>{tab=k;app.querySelectorAll('[data-atab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.atab===k));({rank:renderRank,users:renderUsers,voice:renderVoice,info:renderInfo}[k]||renderRank)();};
   app.querySelectorAll('[data-atab]').forEach(b=>b.onclick=()=>show(b.dataset.atab));
   const meU=users.find(u=>u.role==='admin'&&TOKEN&&(()=>{try{return JSON.parse(atob(TOKEN.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).id===u.id;}catch(e){return false;}})());
@@ -2063,7 +2023,7 @@ async function renderAdminPortal(tab){Q=null;stopSpeed();tab=tab||'rank';
 async function renderAdminStudentDetail(id){Q=null;
   app.innerHTML=`<div class="screen"><div class="page"><h1>Đang tải...</h1></div></div>`;
   let d;try{d=await apiGet('/admin/students/'+id);}catch(e){app.innerHTML=`<div class="screen"><div class="page"><h1>Lỗi</h1><p>${esc(e.message)}</p><button class="btn btn-soft" id="bk">Quay lại</button></div></div>`;$('#bk').onclick=renderAdminPortal;return;}
-  app.innerHTML=renderChildStatsHTML(d)+`<p style="text-align:center;color:var(--muted);font-size:14px;margin-top:-10px">Phụ huynh đã liên kết: ${(d.parents||[]).map(p=>esc(p.email)).join(', ')||'chưa có'}</p>`;
+  app.innerHTML=renderChildStatsHTML(d);
   $('#cBack').onclick=renderAdminPortal;
 }
 const enStars=()=>S.en||(S.en={stars:{}});
@@ -2658,8 +2618,7 @@ function renderParent(){Q=null;stopSpeed();
    <div class="row"><div>Âm thanh<small>Tiếng hiệu ứng khi làm bài</small></div><button class="switch" role="switch" aria-checked="${S.sound}" aria-label="Âm thanh" id="swSound"></button></div>
    <div class="row"><div>Mở khóa tất cả bài<small>Dùng khi con đang học giữa năm và muốn chọn bài theo tuần học trên lớp</small></div><button class="switch" role="switch" aria-checked="${S.unlockAll}" aria-label="Mở khóa tất cả bài" id="swUnlock"></button></div>
    <div class="row"><div>Tên và nhân vật<small>${S.avatar} ${esc(S.name)}</small></div><button class="small-btn" id="rename">Đổi</button></div>
-   ${TOKEN?`<div class="row"><div>Mã liên kết phụ huynh<small>Đưa mã này cho bố/mẹ để xem kết quả học của con</small></div><button class="small-btn" id="showCode">${esc(S.joinCode||'—')}</button></div>
-   <div class="row"><div>Mật khẩu<small>Đổi mật khẩu đăng nhập của con</small></div><button class="small-btn" id="pwBtn">Đổi</button></div>
+   ${TOKEN?`   <div class="row"><div>Mật khẩu<small>Đổi mật khẩu đăng nhập của con</small></div><button class="small-btn" id="pwBtn">Đổi</button></div>
    <div class="row"><div>Tài khoản<small>Đang đăng nhập: ${esc(S.name)} (học sinh)</small></div><button class="small-btn danger" id="logoutBtn">Đăng xuất</button></div>`:''}
    ${TOKEN?'':`<div class="row"><div>Xóa toàn bộ tiến độ<small>Sao, xu, sticker và thống kê trên máy này sẽ bị xóa</small></div><button class="small-btn danger" id="reset">Xóa</button></div>`}
   </div></div></div>${tabbar('parent')}`;
@@ -2671,7 +2630,6 @@ function renderParent(){Q=null;stopSpeed();
   $('#swSound').onclick=()=>{S.sound=!S.sound;save();renderParent();};
   $('#swUnlock').onclick=()=>{S.unlockAll=!S.unlockAll;save();renderParent();};
   $('#rename').onclick=()=>renderOnboard(true);
-  if($('#showCode'))$('#showCode').onclick=()=>{if(S.joinCode){if(navigator.clipboard)navigator.clipboard.writeText(S.joinCode).catch(()=>{});toast('Đã copy mã: '+S.joinCode);}else toast('Chưa có mã, đăng xuất rồi đăng nhập lại nhé.');};
   if($('#logoutBtn'))$('#logoutBtn').onclick=logout;
   if($('#pwBtn'))$('#pwBtn').onclick=()=>selfAccountModal({title:'Đổi mật khẩu'});
   if($('#reset'))$('#reset').onclick=()=>{const m=modal(`<div class="big-ic">⚠️</div><h2>Xóa toàn bộ tiến độ?</h2><p>Không thể hoàn tác thao tác này.</p><button class="btn btn-bad" id="rsYes">Xóa tiến độ</button><button class="btn btn-soft" id="rsNo">Giữ lại</button>`);m.querySelector('#rsNo').onclick=()=>m.remove();m.querySelector('#rsYes').onclick=()=>{const nm=S.name,av=S.avatar,vg=S.voiceGender;S=JSON.parse(JSON.stringify(DEF));S.name=nm;S.avatar=av;S.voiceGender=vg;save();m.remove();toast('Đã xóa tiến độ.');renderParent();};};
@@ -2710,7 +2668,8 @@ document.addEventListener('keydown',e=>{if(document.querySelector('.modal')||G)r
 async function boot(){
   if(!TOKEN||!ROLE){renderRoleGate();return;}
   if(ROLE==='admin'){renderAdminPortal();return;}
-  if(ROLE==='parent'){renderParentPortal();return;}
+  // Máy còn lưu vai trò phụ huynh cũ → máy chủ đã chuyển tài khoản thành học sinh
+  if(ROLE==='parent'){ROLE='student';try{localStorage.setItem('hv_role','student');}catch(e){}S.name='';save();}
 
   // Hiển thị ngay từ cache; Neon chỉ đồng bộ dữ liệu trang chủ ở background.
   if(S.name){

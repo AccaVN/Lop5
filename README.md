@@ -1,6 +1,6 @@
 # Học Vui Lớp 5 — 1 repo, 1 project Vercel (Neon)
 
-Bản lớp 5 của app Học Vui, dựng từ khung **Học Vui Lớp 3** (giữ nguyên toàn bộ tính năng: tài khoản học sinh/phụ huynh/admin,
+Bản lớp 5 của app Học Vui, dựng từ khung **Học Vui Lớp 3** (giữ nguyên toàn bộ tính năng: tài khoản học sinh/admin,
 đăng nhập 1 thiết bị, giọng đọc, sticker, cửa hàng, bảng xếp hạng, luyện đề, luyện nói, mini game…), nội dung viết mới
 theo SGK lớp 5 bộ **Kết nối tri thức với cuộc sống** (Toán 5, Tiếng Việt 5) và **Tiếng Anh 5 Global Success**. Xem mục *Nội dung lớp 5* ở cuối file.
 
@@ -81,30 +81,27 @@ DATABASE_URL="postgres://..." node scripts/create-admin.js admin@cafe.vn mat_kha
 ## 5. Luồng nghiệp vụ
 
 - **Học sinh** tự đăng ký (`/api/auth/register/student`) → hệ thống tạo hồ sơ `students`
-  kèm `join_code` (mã 8 ký tự, hiện cho phụ huynh xem trong "Góc phụ huynh" trên app).
-- **Phụ huynh** đăng ký (`/api/auth/register/parent`) rồi gọi `/api/parent/me/link`
-  với `join_code` của con để liên kết. Ba và mẹ dùng **chung 1 mã** → cả 2 tài khoản
-  đều liên kết được với cùng 1 học sinh (bảng `parent_student` là nhiều-nhiều).
-- **Phụ huynh** chỉ xem được con đã liên kết (kiểm tra qua bảng `parent_student` ở mọi
-  route `/api/parent/me/students/:id`) — không xem được con của phụ huynh khác.
-- **Admin** xem được toàn bộ học sinh và phụ huynh qua `/api/admin/*`.
+  kèm `join_code` (mã nội bộ, không còn dùng để liên kết phụ huynh).
+- **Không còn tài khoản phụ huynh (10/2026).** Bố mẹ xem kết quả của con ở mục **👪 Phụ huynh** trên máy của con
+  (có phép nhân để trẻ không tự vào). Tài khoản phụ huynh cũ được tự chuyển thành tài khoản học sinh
+  (giữ email, mật khẩu); đăng ký và admin chỉ tạo được tài khoản học sinh/admin.
+- **Admin** xem được toàn bộ học sinh qua `/api/admin/*`.
 
 ## 6. API tóm tắt
 
 | Method | Endpoint | Ai gọi | Mô tả |
 |---|---|---|---|
-| POST | `/api/auth/register/parent` | công khai | Đăng ký phụ huynh |
 | POST | `/api/auth/register/student` | công khai | Đăng ký học sinh (trả về `join_code`) |
 | POST | `/api/auth/login` | công khai | Đăng nhập, trả JWT |
 | GET | `/api/auth/me` | đã đăng nhập | Thông tin token hiện tại |
 | GET | `/api/student/me` | học sinh | Toàn bộ tiến độ/kỹ năng/phiên học của bản thân |
 | PUT | `/api/student/me/profile` | học sinh | Cập nhật tên/nhân vật/giới tính |
-| PUT | `/api/student/me/progress` | học sinh | Lưu số sao 1 bài `{level_key, stars}` |
+| POST | `/api/student/me/attempt` | học sinh | Nộp kết quả 1 lần làm bài — thay kết quả lần trước (chỉ tính lần cuối) |
+| POST | `/api/student/me/speak` | học sinh | Lưu sao luyện nói từng từ/câu (chỉ cộng khi tốt hơn) |
+| GET | `/api/student/me/report` | học sinh | Báo cáo học tập (mục Phụ huynh trên máy của con) |
+| PUT | `/api/student/me/progress` | học sinh | (Cũ) Lưu số sao 1 bài `{level_key, stars}` |
 | POST | `/api/student/me/skill` | học sinh | Cộng dồn đúng/sai theo kỹ năng |
 | POST | `/api/student/me/session` | học sinh | Cộng dồn thời gian học trong ngày (giây) |
-| POST | `/api/parent/me/link` | phụ huynh | Liên kết con bằng `join_code` |
-| GET | `/api/parent/me/students` | phụ huynh | Danh sách con đã liên kết |
-| GET | `/api/parent/me/students/:id` | phụ huynh | Chi tiết tiến độ 1 con (chỉ con đã liên kết) |
 | GET | `/api/admin/students` | admin | Toàn bộ học sinh + tổng sao |
 | GET | `/api/admin/students/:id` | admin | Chi tiết 1 học sinh + danh sách phụ huynh |
 | GET | `/api/admin/parents` | admin | Toàn bộ phụ huynh + số con |
