@@ -24,7 +24,7 @@ const SCHEMA_SQL = `
   ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_ip TEXT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_device TEXT;
-  -- Hạn dùng thử của tài khoản tự đăng ký (3 ngày). NULL = tài khoản chính thức.
+  -- Hạn dùng thử của tài khoản tự đăng ký (5 ngày). NULL = tài khoản chính thức.
   ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMPTZ;
   CREATE TABLE IF NOT EXISTS student_rewards (
     student_id INTEGER PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,

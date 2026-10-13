@@ -19,7 +19,7 @@ async function createAccount(req, res, role) {
     const ip = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim().slice(0, 60);
     const device = String(req.headers['user-agent'] || '').slice(0, 300);
     const { rows } = await client.query(
-      'INSERT INTO users(email,password_hash,role,session_id,last_login_at,last_login_ip,last_login_device,trial_expires_at) VALUES($1,$2,$3,$4,now(),$5,$6,now() + interval \'3 days\') RETURNING id,email,role,display_name,trial_expires_at',
+      'INSERT INTO users(email,password_hash,role,session_id,last_login_at,last_login_ip,last_login_device,trial_expires_at) VALUES($1,$2,$3,$4,now(),$5,$6,now() + interval \'5 days\') RETURNING id,email,role,display_name,trial_expires_at',
       [mail, hash, role, sid, ip || null, device || null]);
     const user = rows[0];
     let student = null;

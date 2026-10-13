@@ -15,7 +15,7 @@ CREATE TABLE users (
   last_login_at     TIMESTAMPTZ,       -- lần đăng nhập gần nhất
   last_login_ip     TEXT,
   last_login_device TEXT,              -- User-Agent của thiết bị đăng nhập gần nhất
-  trial_expires_at  TIMESTAMPTZ,       -- hạn dùng thử 3 ngày (tự đăng ký); NULL = chính thức
+  trial_expires_at  TIMESTAMPTZ,       -- hạn dùng thử 5 ngày (tự đăng ký); NULL = chính thức
   role          user_role NOT NULL,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

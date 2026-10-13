@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('./db');
 
 const SECRET = process.env.JWT_SECRET;
-const TRIAL_MSG = 'Tài khoản dùng thử đã hết 3 ngày. Liên hệ admin để được hỗ trợ chuyển sang tài khoản chính thức. Admin: email nguyenanhlac93@gmail.com · SĐT/Zalo 0901.01.09.93';
+const TRIAL_MSG = 'Tài khoản dùng thử đã hết 5 ngày. Liên hệ admin để được hỗ trợ chuyển sang tài khoản chính thức. Admin: email nguyenanhlac93@gmail.com · SĐT/Zalo 0901.01.09.93';
 
 function hashPassword(pw) {
   return bcrypt.hash(pw, 10);
