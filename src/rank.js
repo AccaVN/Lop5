@@ -16,7 +16,7 @@ const RANK_SQL = `
   FROM students s
   JOIN users u ON u.id = s.user_id
   LEFT JOIN agg a ON a.student_id = s.id
-  WHERE u.trial_expires_at IS NULL   -- tài khoản dùng thử (kể cả đã hết hạn) không lên bảng xếp hạng
+  -- tài khoản dùng thử cũng được xếp hạng cùng cả lớp
 `;
 const RANK_ORDER = `ORDER BY total_points DESC, total_stars DESC, completed_levels DESC, name`;
 
