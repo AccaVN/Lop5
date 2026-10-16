@@ -101,8 +101,9 @@ router.post('/login', async (req, res) => {
   if (user.role !== 'admin' && user.trial_expires_at && new Date(user.trial_expires_at) < new Date()) {
     return res.status(403).json({ error: TRIAL_MSG, code: 'TRIAL_EXPIRED' });
   }
-  // Tạo phiên mới → thiết bị đang đăng nhập trước đó (nếu có) bị đá ra ở request kế tiếp
-  const sid = newSessionId();
+  // Học sinh: tạo phiên mới → thiết bị đang đăng nhập trước đó (nếu có) bị đá ra ở request kế tiếp.
+  // Admin: được đăng nhập nhiều máy cùng lúc → dùng lại phiên hiện có (chỉ tạo mới nếu chưa có).
+  const sid = (user.role === 'admin' && user.session_id) ? user.session_id : newSessionId();
   const ip = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim().slice(0, 60);
   const device = String(req.headers['user-agent'] || '').slice(0, 300);
   await pool.query(
@@ -113,6 +114,8 @@ router.post('/login', async (req, res) => {
 
 // Đăng xuất: hủy phiên hiện tại trên máy chủ
 router.post('/logout', authMiddleware, async (req, res) => {
+  // Admin đăng xuất 1 máy không làm văng các máy admin khác
+  if (req.user.role === 'admin') return res.json({ ok: true });
   await pool.query('UPDATE users SET session_id=NULL WHERE id=$1 AND session_id=$2', [req.user.id, req.user.sid]);
   res.json({ ok: true });
 });
