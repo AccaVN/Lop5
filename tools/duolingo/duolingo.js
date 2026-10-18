@@ -26,6 +26,8 @@ const CSS=`
 :root[data-theme="dark"]{--dln:#37464F;--dln-d:#2B3A43;--dgr:#7C8A93;--dok-bg:#202F36;--dok-tx:#89E219;--dbad-bg:#2B2124;--dbad-tx:#FF7878;--dsel-bg:#1B3A4B;--dsel-tx:#49C0F8;--dcard:var(--card)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--dln:#37464F;--dln-d:#2B3A43;--dgr:#7C8A93;--dok-bg:#202F36;--dok-tx:#89E219;--dbad-bg:#2B2124;--dbad-tx:#FF7878;--dsel-bg:#1B3A4B;--dsel-tx:#49C0F8;--dcard:var(--card)}}
 
+/* chạm nhanh 2 lần không phóng to màn hình (vẫn cho phép chụm 2 ngón để zoom) */
+html,body,button{touch-action:manipulation}
 /* nút bấm */
 .btn{border-radius:16px;font-weight:800;font-size:17px;letter-spacing:.8px;text-transform:uppercase;padding:14px 18px;box-shadow:0 4px 0 var(--cd,var(--db-d))}
 .btn:active{transform:translateY(4px);box-shadow:0 0 0 var(--cd,var(--db-d))}
@@ -99,9 +101,17 @@ const CSS=`
 @keyframes duoshake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 
 /* gõ lại */
-.duo-input{width:100%;font:inherit;font-size:24px;font-weight:700;padding:16px;border:2px solid var(--dln);border-radius:16px;background:var(--dcard);color:var(--ink);outline:none;min-height:120px;resize:none}
-.duo-input:focus{border-color:var(--db);background:var(--dsel-bg)}
-.duo-input:read-only{opacity:.8}
+.duo-type{display:flex;align-items:center;flex-wrap:wrap;min-height:84px;padding:14px 16px;border:2px solid var(--dln);border-bottom-width:4px;border-radius:16px;background:var(--dcard);color:var(--ink);font-size:28px;font-weight:800;line-height:1.3;word-break:break-all;white-space:pre-wrap}
+.duo-type .ph{color:var(--dgr);font-size:19px;font-weight:700}
+.duo-type .caret{display:inline-block;width:3px;height:1.1em;margin-left:2px;background:var(--db);animation:duocaret 1s steps(1) infinite}
+.duo-type.off .caret{display:none}
+@keyframes duocaret{50%{opacity:0}}
+.duo-kb{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.duo-kb .kr{display:flex;justify-content:center;gap:5px}
+.duo-kb button{flex:1 1 0;max-width:40px;height:46px;padding:0;border:2px solid var(--dln);border-bottom-width:4px;border-radius:10px;background:var(--dcard);color:var(--ink);font-weight:800;font-size:20px;text-transform:uppercase}
+.duo-kb button:active{transform:translateY(2px);border-bottom-width:2px}
+.duo-kb button.wide{max-width:none;flex:2 1 0}
+.duo-kb button.sp{max-width:none;flex:5 1 0;font-size:15px}
 
 /* xếp câu từ các từ cho sẵn */
 .duo-line{min-height:116px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;padding:6px 0;margin-bottom:22px;background-image:linear-gradient(var(--dln) 2px,transparent 2px);background-size:100% 56px;background-position:0 52px}
@@ -215,13 +225,35 @@ function renderMatch(q){
   });
 }
 function renderText(q){
-  const ans=$('#ans');
-  ans.innerHTML=`<textarea class="duo-input" id="tin" rows="2" lang="en" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="${EN()?'Type in English…':'Gõ bằng tiếng Anh…'}" aria-label="Câu trả lời"></textarea>`;
-  const inp=$('#tin');
-  inp.addEventListener('input',()=>{Q.typed=inp.value;const c=$('#check');if(c)c.disabled=!norm(inp.value);});
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();const c=$('#check');if(c&&!c.disabled&&!Q.locked)check();}});
-  setTimeout(()=>{if(Q&&Q.qs[Q.i]===q&&!Q.locked&&inp.isConnected)inp.focus({preventScroll:true});},500);
+  const ans=$('#ans'),pw=$('#padwrap');
+  const en=EN(),ph=en?'Type in English':'Gõ bằng tiếng Anh';
+  Q.typed='';
+  ans.innerHTML=`<div class="duo-type" id="tbox" aria-live="polite"><span class="ph">${ph}</span><i class="caret"></i></div>`;
+  const btn=k=>`<button type="button" data-k="${k}"${k==="'"?' aria-label="Dấu nháy"':''}>${k}</button>`;
+  const hasDigit=/\d/.test(q.answer);
+  pw.innerHTML=`<div class="duo-kb">${hasDigit?`<div class="kr">${'1234567890'.split('').map(btn).join('')}</div>`:''}
+    <div class="kr">${'qwertyuiop'.split('').map(btn).join('')}</div>
+    <div class="kr">${'asdfghjkl'.split('').map(btn).join('')}</div>
+    <div class="kr">${'zxcvbnm'.split('').map(btn).join('')}<button type="button" class="wide" data-k="B" aria-label="Xóa một chữ">⌫</button></div>
+    <div class="kr"><button type="button" data-k="'" aria-label="Dấu nháy">'</button><button type="button" class="sp" data-k=" ">${en?'space':'dấu cách'}</button><button type="button" data-k="-" aria-label="Gạch nối">-</button></div></div>`;
+  const draw=()=>{const box=$('#tbox');if(!box)return;box.innerHTML=(Q.typed?esc(Q.typed).replace(/ /g,'&nbsp;'):`<span class="ph">${ph}</span>`)+'<i class="caret"></i>';
+    const c=$('#check');if(c)c.disabled=!norm(Q.typed);};
+  const key=k=>{
+    if(Q.locked||Q.qs[Q.i]!==q)return;
+    if(k==='B')Q.typed=Q.typed.slice(0,-1);
+    else if(Q.typed.length<40)Q.typed+=(Q.typed===''&&k===' ')?'':k;
+    draw();
+  };
+  Q.tkey=key;
+  pw.querySelectorAll('button').forEach(b=>b.onclick=()=>{sfx.tap();key(b.dataset.k);});
 }
+/* bàn phím máy tính: gõ chữ/số, Backspace; Enter do bộ xử lý phím gốc của app lo */
+document.addEventListener('keydown',e=>{
+  if(!Q||!Q.tkey||Q.locked||!Q.qs||!Q.qs[Q.i]||Q.qs[Q.i].type!=='text'||document.querySelector('.modal'))return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==='Backspace'){e.preventDefault();Q.tkey('B');}
+  else if(e.key.length===1&&/[\p{L}\p{N}' \-]/u.test(e.key)){e.preventDefault();Q.tkey(e.key.toLowerCase());}
+});
 function renderBank(q){
   const ans=$('#ans');Q.placed=[];
   ans.innerHTML=`<div class="duo-line" id="dline"></div><div class="duo-pool" id="dpool"></div>`;
@@ -265,8 +297,7 @@ function decorate(){
   const head=quiz.querySelector('.qhead');
   if(Q.review&&head){const t=document.createElement('div');t.className='duo-rvtag';t.textContent=EN()?'Practice mistakes':'Ôn lại câu sai';head.parentNode.insertBefore(t,head);}
   const bs=$('#bubSay');if(bs&&q)bs.onclick=()=>q.bubbleLang==='en'?sayEn(q.bubble):sayVi(q.bubble);
-  if(q&&q.type==='text')quiz.querySelector('.qfoot').style.paddingTop='14px';
-}
+  }
 const _renderQ=renderQ;
 renderQ=function(){_renderQ.apply(this,arguments);try{decorate();}catch(e){}};
 
@@ -281,7 +312,7 @@ check=function(){
   if(CUSTOM[q.type]){
     const ok=customOk(q),t=q.type;q.type='mc';Q.sel=ok?q.answer:'\u0000';
     try{_check.apply(this,arguments);}finally{q.type=t;}
-    const ti=$('#tin');if(ti)ti.readOnly=true;
+    const tb=$('#tbox');if(tb)tb.classList.add('off');
   }else _check.apply(this,arguments);
   const sh=$('#sheet'),bad=!!sh&&sh.classList.contains('bad');
   if(rv){   /* vòng ôn lại không tính điểm, xu, thống kê */
