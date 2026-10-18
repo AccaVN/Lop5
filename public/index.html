@@ -2048,7 +2048,7 @@ function logDay(sec,done){const t=todayStr();const d=S.days[t]||(S.days[t]={n:0,
 /* ============ ÂM THANH & GIỌNG ĐỌC ============ */
 let actx=null;
 function tone(f,dur,type='sine',vol=.15,delay=0){if(!S.sound)return;
-  const go=()=>{try{acx();if(!actx)return;const t=actx.currentTime+delay;const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+dur+.02);}catch(e){}};
+  const go=()=>{try{acx();if(!actx||(IS_IOS&&actx.state!=='running'))return;const t=actx.currentTime+delay;const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+dur+.02);}catch(e){}};
   /* Đã mở khóa âm thanh rồi thì phát SAU khi màn hình vẽ xong, để lần chạm hiện phản hồi ngay (iPhone tạo node âm thanh khá chậm). */
   if(actx&&actx.state==='running'&&!document.hidden&&window.requestAnimationFrame)requestAnimationFrame(()=>setTimeout(go,0));else go();}
 const sfx={tap:()=>tone(620,.05,'triangle',.07),ok:()=>{tone(660,.12,'sine',.18);tone(880,.2,'sine',.18,.1);},bad:()=>{tone(240,.18,'triangle',.14);tone(190,.25,'triangle',.12,.12);},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.22,'sine',.16,i*.12)),coin:()=>{tone(988,.08,'square',.05);tone(1319,.12,'square',.05,.07);}};
@@ -2119,9 +2119,12 @@ function iosAudioUnlock(gesture){if(!IS_IOS||AUDIO_REC||document.hidden)return;s
     if(Date.now()-unlockAt<15000)return;
     unlockTm=setTimeout(()=>{if(window.requestAnimationFrame)requestAnimationFrame(()=>setTimeout(play,0));else play();},400);}catch(e){}}
 function iosAudioPause(){try{if(unlockEl&&!unlockEl.paused)unlockEl.pause();}catch(e){}}
-if(IS_IOS){['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{spElUnlock();iosAudioUnlock(true);try{if(actx&&actx.state!=='running')actx.resume();}catch(e){}},true));
+if(IS_IOS){['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{spElUnlock();iosAudioUnlock(true);ctxResume();},true));
   document.addEventListener('visibilitychange',()=>{if(document.hidden)iosAudioPause();});}
-function acx(){iosAudioUnlock();try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended'||actx.state==='interrupted')actx.resume();}catch(e){}return actx;}
+/* iPhone: actx.resume() chạy đồng bộ ~0,9 giây khi âm thanh bị hệ thống tạm dừng (đo bằng ?debug=1) → mỗi lần chạm đều đứng.
+   Chỉ gọi tối đa 1 lần/6 giây; lúc âm thanh chưa chạy thì bỏ qua tiếng hiệu ứng thay vì làm đứng màn hình. */
+let ctxResAt=0;function ctxResume(){try{if(!actx||actx.state==='running'||actx.state==='closed')return;if(IS_IOS){const n=Date.now();if(n-ctxResAt<6000)return;ctxResAt=n;}actx.resume();}catch(e){}}
+function acx(){iosAudioUnlock();try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();ctxResume();}catch(e){}return actx;}
 const bufCache=new Map();let playTok=0,curSrc=null;
 function b64buf(b){const s=atob(b);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer;}
 async function decodeClip(k){await ensureClips();if(bufCache.has(k))return bufCache.get(k);const p=new Promise((res,rej)=>{const c=clips().get(k);acx().decodeAudioData(typeof c==='string'?b64buf(c):c.slice(0),res,rej);});bufCache.set(k,p);p.catch(()=>bufCache.delete(k));return p;}
@@ -2205,7 +2208,7 @@ async function speak(segs,o){o=o||{};segs=(segs||[]).filter(x=>x&&cleanSpeech(x[
   stopVoice();const tok=playTok;const m=S.voiceMode;
   const order=m==='device'?['device','cloud','app']:m==='app'?['app','cloud','device']:['cloud','device','app'];
   for(const k of order){if(tok!==playTok)return false;
-    if(k==='cloud'&&(o.force||Date.now()>=TTS.downUntil)&&navigator.onLine!==false){try{await loadTtsCfg();await playCloud(segs,tok,o.gender,!o.force&&!o.gender&&order.indexOf('device')>order.indexOf('cloud')&&deviceCan(segs)?3500:0);return true;}catch(e){if(tok!==playTok)return false;if(!e||!e.slow)TTS.downUntil=Date.now()+60000;}}
+    if(k==='cloud'&&(o.force||Date.now()>=TTS.downUntil)&&navigator.onLine!==false){try{await loadTtsCfg();await playCloud(segs,tok,o.gender,!o.force&&!o.gender&&order.indexOf('device')>order.indexOf('cloud')&&!IS_IOS&&deviceCan(segs)?3500:0);return true;}catch(e){if(tok!==playTok)return false;if(!e||!e.slow)TTS.downUntil=Date.now()+60000;}}
     if(k==='device'&&deviceCan(segs)){deviceSpeak(segs);return true;}
     if(k==='app'){await ensureClips();const keys=o.keys||segs.map(([l,t])=>l==='en'?'en:'+t:t);if(hasClips(keys)){playKeys(keys);return true;}}}
   if(!o.silent){if(navigator.onLine===false)toast('Mất mạng nên chưa đọc được. Con kiểm tra kết nối nhé!');else voiceHelp();}

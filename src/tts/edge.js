@@ -3,6 +3,7 @@
 //  2) Không có key: dùng dịch vụ "Read Aloud" của trình duyệt Microsoft Edge (miễn phí, cùng giọng HoaiMy/NamMinh).
 const crypto = require('crypto');
 const WebSocket = require('ws');
+const { secMsGecV2 } = require('./gec2');
 
 const TRUSTED_CLIENT_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
 const CHROMIUM_FULL_VERSION = '143.0.3650.75';
@@ -14,11 +15,9 @@ let clockSkew = 0; // giây, tự chỉnh nếu đồng hồ máy chủ lệch
 function escapeXml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
+// 10/2026: Microsoft chỉ nhận mã v2 (mã v1 = SHA-256 thường bị từ chối → giọng chuẩn lỗi 502). Xem gec2.js.
 function secMsGec() {
-  let ticks = Date.now() / 1000 + clockSkew + WIN_EPOCH;
-  ticks -= ticks % 300;
-  ticks *= 1e7;
-  return crypto.createHash('sha256').update(`${ticks.toFixed(0)}${TRUSTED_CLIENT_TOKEN}`, 'ascii').digest('hex').toUpperCase();
+  return secMsGecV2(Date.now() / 1000 + clockSkew, TRUSTED_CLIENT_TOKEN);
 }
 const uuid = () => crypto.randomUUID().replace(/-/g, '');
 const jsDate = () => new Date().toUTCString().replace(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/, (m, d, dd, mo, y, t) => `${d} ${mo} ${dd} ${y} ${t} GMT+0000 (Coordinated Universal Time)`);
@@ -31,7 +30,7 @@ function ssml(voice, text, ratePct) {
 
 function edgeOnce(voice, text, ratePct, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const url = `${WSS_URL}&ConnectionId=${uuid()}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=1-${CHROMIUM_FULL_VERSION}`;
+    const url = `${WSS_URL}&ConnectionId=${uuid()}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=2-${CHROMIUM_FULL_VERSION}`;
     const ws = new WebSocket(url, {
       headers: {
         Pragma: 'no-cache',
