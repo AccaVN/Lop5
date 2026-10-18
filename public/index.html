@@ -2093,12 +2093,21 @@ let AUDIO_REC=false,unlockEl=null,silentSrc=null;
 function silentWavUrl(){if(silentSrc)return silentSrc;const n=2205,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i));};
   w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,11025,true);v.setUint32(28,11025,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);for(let i=0;i<n;i++)v.setUint8(44+i,128);
   silentSrc=URL.createObjectURL(new Blob([b],{type:'audio/wav'}));return silentSrc;}
-function setAudioSession(t){try{if(navigator.audioSession&&navigator.audioSession.type!==t)navigator.audioSession.type=t;}catch(e){}}
-function iosAudioUnlock(){if(!IS_IOS||AUDIO_REC||document.hidden)return;setAudioSession('playback');
+let sessType=null;
+function setAudioSession(t){try{if(navigator.audioSession&&sessType!==t){sessType=t;if(navigator.audioSession.type!==t)navigator.audioSession.type=t;}}catch(e){}}
+/* Đo trên iPhone thật: unlockEl.play() đứng ~0,8s mỗi lần, và iOS hay tự dừng <audio> im lặng khi đang đọc giọng chuẩn,
+   nên trước đây gần như lần chạm nào cũng bị đứng. Nay: máy có navigator.audioSession (iOS 17+) thì chỉ cần đặt 'playback';
+   máy cũ chỉ phát đồng bộ ở lần chạm đầu tiên, các lần sau phát lại sau khi màn hình vẽ xong và tối đa 1 lần/15 giây. */
+let unlockTried=false,unlockAt=0,unlockTm=0;
+function iosAudioUnlock(gesture){if(!IS_IOS||AUDIO_REC||document.hidden)return;setAudioSession('playback');if(navigator.audioSession)return;
   try{if(!unlockEl){unlockEl=document.createElement('audio');unlockEl.setAttribute('playsinline','');unlockEl.setAttribute('webkit-playsinline','');unlockEl.setAttribute('x-webkit-airplay','deny');unlockEl.preload='auto';unlockEl.loop=true;unlockEl.disableRemotePlayback=true;unlockEl.src=silentWavUrl();}
-    if(unlockEl.paused){const q=unlockEl.play();if(q&&q.catch)q.catch(()=>{});}}catch(e){}}
+    if(!unlockEl.paused||unlockTm)return;
+    const play=()=>{unlockTm=0;if(AUDIO_REC||document.hidden||!unlockEl.paused)return;unlockAt=Date.now();const q=unlockEl.play();if(q&&q.catch)q.catch(()=>{});};
+    if(!unlockTried){if(gesture){unlockTried=true;play();}return;}
+    if(Date.now()-unlockAt<15000)return;
+    unlockTm=setTimeout(()=>{if(window.requestAnimationFrame)requestAnimationFrame(()=>setTimeout(play,0));else play();},400);}catch(e){}}
 function iosAudioPause(){try{if(unlockEl&&!unlockEl.paused)unlockEl.pause();}catch(e){}}
-if(IS_IOS){['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{iosAudioUnlock();try{if(actx&&actx.state!=='running')actx.resume();}catch(e){}},true));
+if(IS_IOS){['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{iosAudioUnlock(true);try{if(actx&&actx.state!=='running')actx.resume();}catch(e){}},true));
   document.addEventListener('visibilitychange',()=>{if(document.hidden)iosAudioPause();});}
 function acx(){iosAudioUnlock();try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended'||actx.state==='interrupted')actx.resume();}catch(e){}return actx;}
 const bufCache=new Map();let playTok=0,curSrc=null;
