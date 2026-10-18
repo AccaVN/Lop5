@@ -3207,6 +3207,8 @@ const CSS=`
 :root[data-theme="dark"]{--dln:#37464F;--dln-d:#2B3A43;--dgr:#7C8A93;--dok-bg:#202F36;--dok-tx:#89E219;--dbad-bg:#2B2124;--dbad-tx:#FF7878;--dsel-bg:#1B3A4B;--dsel-tx:#49C0F8;--dcard:var(--card)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--dln:#37464F;--dln-d:#2B3A43;--dgr:#7C8A93;--dok-bg:#202F36;--dok-tx:#89E219;--dbad-bg:#2B2124;--dbad-tx:#FF7878;--dsel-bg:#1B3A4B;--dsel-tx:#49C0F8;--dcard:var(--card)}}
 
+/* chạm nhanh 2 lần không phóng to màn hình (vẫn cho phép chụm 2 ngón để zoom) */
+html,body,button{touch-action:manipulation}
 /* nút bấm */
 .btn{border-radius:16px;font-weight:800;font-size:17px;letter-spacing:.8px;text-transform:uppercase;padding:14px 18px;box-shadow:0 4px 0 var(--cd,var(--db-d))}
 .btn:active{transform:translateY(4px);box-shadow:0 0 0 var(--cd,var(--db-d))}
