@@ -2688,7 +2688,8 @@ async function boot(){
 }
 // voice-data.json ~8MB: tải khi trình duyệt rảnh, không chặn/giành băng thông với API lúc mở app.
 // (Khi cần đọc sớm hơn, playKeys/decodeClip tự gọi ensureClips.)
-if(document.readyState==='complete')whenIdle(ensureClips,5000);else window.addEventListener('load',()=>whenIdle(ensureClips,5000),{once:true});
+/* Chỉ tải sẵn file giọng đọc thu sẵn khi con chọn giọng "trong app"; còn lại chỉ tải khi giọng online lỗi (speak() tự gọi ensureClips). */
+if(S.voiceMode==='app'){if(document.readyState==='complete')whenIdle(ensureClips,5000);else window.addEventListener('load',()=>whenIdle(ensureClips,5000),{once:true});}
 /* ================= NÂNG CẤP 09/2026 ================= */
 /* ============ LUYỆN ĐỀ THI: TOÁN (theo ma trận đề cuối HK2 lớp 5) ============ */
 const fmtN=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
