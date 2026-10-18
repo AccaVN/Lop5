@@ -2047,7 +2047,10 @@ function logDay(sec,done){const t=todayStr();const d=S.days[t]||(S.days[t]={n:0,
 
 /* ============ ÂM THANH & GIỌNG ĐỌC ============ */
 let actx=null;
-function tone(f,dur,type='sine',vol=.15,delay=0){if(!S.sound)return;try{acx();if(!actx)return;const t=actx.currentTime+delay;const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+dur+.02);}catch(e){}}
+function tone(f,dur,type='sine',vol=.15,delay=0){if(!S.sound)return;
+  const go=()=>{try{acx();if(!actx)return;const t=actx.currentTime+delay;const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+dur+.02);}catch(e){}};
+  /* Đã mở khóa âm thanh rồi thì phát SAU khi màn hình vẽ xong, để lần chạm hiện phản hồi ngay (iPhone tạo node âm thanh khá chậm). */
+  if(actx&&actx.state==='running'&&!document.hidden&&window.requestAnimationFrame)requestAnimationFrame(()=>setTimeout(go,0));else go();}
 const sfx={tap:()=>tone(620,.05,'triangle',.07),ok:()=>{tone(660,.12,'sine',.18);tone(880,.2,'sine',.18,.1);},bad:()=>{tone(240,.18,'triangle',.14);tone(190,.25,'triangle',.12,.12);},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.22,'sine',.16,i*.12)),coin:()=>{tone(988,.08,'square',.05);tone(1319,.12,'square',.05,.07);}};
 /* Giọng đọc: CHỈ dùng giọng tiếng Việt, không bao giờ đọc bằng giọng tiếng Anh */
 const UA=navigator.userAgent||'';
@@ -2067,7 +2070,19 @@ let CLIPS_LOADING=null;
 function ensureClips(){
   if(CLIPS)return Promise.resolve(CLIPS);
   if(CLIPS_LOADING)return CLIPS_LOADING;
-  CLIPS_LOADING=fetch('./voice-data.json').then(r=>r.ok?r.json():{}).then(d=>{CLIPS=new Map();Object.keys(d).forEach(k=>CLIPS.set(k,d[k]));return CLIPS;}).catch(()=>{CLIPS=new Map();return CLIPS;});
+  // Đọc + giải mã 8MB JSON/base64 trong Web Worker để không làm đơ luồng chính (iPhone chạm bị trễ). Không có Worker thì làm như cũ.
+  const mainThread=()=>fetch('./voice-data.json').then(r=>r.ok?r.json():{}).then(d=>{CLIPS=new Map();Object.keys(d).forEach(k=>CLIPS.set(k,d[k]));return CLIPS;}).catch(()=>{CLIPS=new Map();return CLIPS;});
+  CLIPS_LOADING=new Promise(res=>{
+    let w=null,url=null;
+    const done=m=>{try{if(w)w.terminate();}catch(e){}try{if(url)URL.revokeObjectURL(url);}catch(e){}res(m);};
+    try{
+      url=URL.createObjectURL(new Blob(['self.onmessage=async e=>{try{const r=await fetch(e.data);if(!r.ok)throw 0;const d=await r.json(),o={},t=[];for(const k in d){const s=atob(d[k]),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);o[k]=u.buffer;t.push(u.buffer);}self.postMessage(o,t);}catch(x){self.postMessage(null);}};'],{type:'text/javascript'}));
+      w=new Worker(url);
+      w.onmessage=e=>{if(e.data){CLIPS=new Map(Object.entries(e.data));done(CLIPS);}else{if(w){w.terminate();w=null;}mainThread().then(done);}};
+      w.onerror=()=>{if(w){w.terminate();w=null;}mainThread().then(done);};
+      w.postMessage(new URL('./voice-data.json',location.href).href);
+    }catch(e){mainThread().then(done);}
+  });
   return CLIPS_LOADING;
 }
 function clips(){return CLIPS||new Map();}
@@ -2088,8 +2103,8 @@ if(IS_IOS){['touchend','click','keydown'].forEach(ev=>document.addEventListener(
 function acx(){iosAudioUnlock();try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended'||actx.state==='interrupted')actx.resume();}catch(e){}return actx;}
 const bufCache=new Map();let playTok=0,curSrc=null;
 function b64buf(b){const s=atob(b);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer;}
-async function decodeClip(k){await ensureClips();if(bufCache.has(k))return bufCache.get(k);const p=new Promise((res,rej)=>{acx().decodeAudioData(b64buf(clips().get(k)),res,rej);});bufCache.set(k,p);p.catch(()=>bufCache.delete(k));return p;}
-function stopVoice(){playTok++;try{if(curSrc)curSrc.stop();}catch(e){}curSrc=null;try{if(HAS_TTS)speechSynthesis.cancel();}catch(e){}}
+async function decodeClip(k){await ensureClips();if(bufCache.has(k))return bufCache.get(k);const p=new Promise((res,rej)=>{const c=clips().get(k);acx().decodeAudioData(typeof c==='string'?b64buf(c):c.slice(0),res,rej);});bufCache.set(k,p);p.catch(()=>bufCache.delete(k));return p;}
+function stopVoice(){playTok++;try{if(curSrc)curSrc.stop();}catch(e){}curSrc=null;try{if(HAS_TTS&&(speechSynthesis.speaking||speechSynthesis.pending))speechSynthesis.cancel();}catch(e){}}
 async function playKeys(keys){await ensureClips();stopVoice();const tok=playTok;const ctx=acx();if(!ctx)return;for(const k of keys){if(!clips().has(k))continue;let buf;try{buf=await decodeClip(k);}catch(e){continue;}if(tok!==playTok)return;await new Promise(r=>{const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);curSrc=s;s.onended=r;try{s.start();}catch(e){r();}});if(tok!==playTok)return;await new Promise(r=>setTimeout(r,300));}}
 const hasClips=keys=>keys.some(k=>clips().has(k));
 /* ============ GIỌNG ĐỌC CHUẨN (máy chủ: 1 giọng nữ + 1 giọng nam do admin chọn) ============
@@ -2252,7 +2267,7 @@ function renderQ(){
   if(q.say||q.auto)$('#sayW').onclick=()=>speakQ(q);
   const newP=q.passage&&Q._pTitle!==q.passage.title;if(q.passage)Q._pTitle=q.passage.title;
   if(S.autoRead!==false||q.say||q.auto)setTimeout(()=>{if(Q&&Q.qs[Q.i]===q&&!Q.locked)speakQ(q,true,newP);},450);
-  [Q.qs[Q.i+1],Q.qs[Q.i+2]].forEach(n=>{if(n)ttsPrefetch(qSegs(n));});
+  {const cq=Q;setTimeout(()=>{if(Q!==cq||cq.qs[cq.i]!==q)return;[cq.qs[cq.i+1],cq.qs[cq.i+2]].forEach(n=>{if(n)ttsPrefetch(qSegs(n));});},900);}
   if(!q.voice&&voiceMode()==='none')app.querySelectorAll('#speakQ,#sayW,#sayP').forEach(b=>b.classList.add('muted'));
   $('#check').onclick=check;renderAnswer(q);
 }
