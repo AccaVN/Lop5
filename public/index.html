@@ -2060,7 +2060,7 @@ const IN_APP=/; wv\)|Zalo|FBAN|FBAV|FB_IAB|Instagram|Line\/|Messenger/i.test(UA)
 const HAS_TTS=typeof window.speechSynthesis!=='undefined'&&typeof window.SpeechSynthesisUtterance!=='undefined';
 const V={vi:[],cur:null,loaded:false};
 const isVi=v=>/^vi([-_]|$)/i.test(v.lang||'')||/vietnam|việt/i.test(v.name||'');
-function pickVoices(){if(!HAS_TTS)return;let all=[];try{all=speechSynthesis.getVoices()||[];}catch(e){}if(all.length)V.loaded=true;
+function pickVoices(){if(!HAS_TTS)return;let all=[];try{all=speechSynthesis.getVoices()||[];}catch(e){}if(all.length){V.loaded=true;V.all=all;}
   const rank=v=>/natural|neural|online|enhanced|premium/i.test(v.name)?2:/google/i.test(v.name)?1:0;
   V.vi=all.filter(isVi).sort((a,b)=>rank(b)-rank(a));V.cur=V.vi.find(v=>v.voiceURI===S.voiceURI)||V.vi[0]||null;}
 if(HAS_TTS){pickVoices();try{speechSynthesis.addEventListener('voiceschanged',pickVoices);}catch(e){try{speechSynthesis.onvoiceschanged=pickVoices;}catch(_){}}let vt=0;const vIv=setInterval(()=>{pickVoices();if(++vt>25||V.vi.length)clearInterval(vIv);},300);}
@@ -2104,7 +2104,8 @@ function acx(){iosAudioUnlock();try{actx=actx||new(window.AudioContext||window.w
 const bufCache=new Map();let playTok=0,curSrc=null;
 function b64buf(b){const s=atob(b);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer;}
 async function decodeClip(k){await ensureClips();if(bufCache.has(k))return bufCache.get(k);const p=new Promise((res,rej)=>{const c=clips().get(k);acx().decodeAudioData(typeof c==='string'?b64buf(c):c.slice(0),res,rej);});bufCache.set(k,p);p.catch(()=>bufCache.delete(k));return p;}
-function stopVoice(){playTok++;try{if(curSrc)curSrc.stop();}catch(e){}curSrc=null;try{if(HAS_TTS&&(speechSynthesis.speaking||speechSynthesis.pending))speechSynthesis.cancel();}catch(e){}}
+/* iOS: speechSynthesis.cancel() chạy đồng bộ và chậm; khi tự đọc đang chạy mà con chạm thì để màn hình đổi trước rồi mới dừng giọng. */
+let devSeq=0;function stopVoice(){playTok++;try{if(curSrc)curSrc.stop();}catch(e){}curSrc=null;try{if(HAS_TTS&&(speechSynthesis.speaking||speechSynthesis.pending)){const t=playTok,d=devSeq;const go=()=>{if(t!==playTok||d!==devSeq)return;try{speechSynthesis.cancel();}catch(e){}};if(window.requestAnimationFrame&&!document.hidden)requestAnimationFrame(()=>setTimeout(go,0));else go();}}catch(e){}}
 async function playKeys(keys){await ensureClips();stopVoice();const tok=playTok;const ctx=acx();if(!ctx)return;for(const k of keys){if(!clips().has(k))continue;let buf;try{buf=await decodeClip(k);}catch(e){continue;}if(tok!==playTok)return;await new Promise(r=>{const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);curSrc=s;s.onended=r;try{s.start();}catch(e){r();}});if(tok!==playTok)return;await new Promise(r=>setTimeout(r,300));}}
 const hasClips=keys=>keys.some(k=>clips().has(k));
 /* ============ GIỌNG ĐỌC CHUẨN (máy chủ: 1 giọng nữ + 1 giọng nam do admin chọn) ============
@@ -2149,10 +2150,11 @@ async function playCloud(segs,tok,gender){const plan=segPlan(segs,gender);if(!pl
     if(i>0)await new Promise(r=>setTimeout(r,plan[i].gap));if(tok!==playTok)return;
     await new Promise(r=>{const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);curSrc=s;s.onended=r;try{s.start();}catch(e){r();}});if(tok!==playTok)return;}}
 /* Giọng của thiết bị (Web Speech) */
-let enVoice=null;function pickEn(){try{const a=speechSynthesis.getVoices()||[];const en=a.filter(v=>/^en[-_]/i.test(v.lang));const male=/male|guy|david|daniel|alex|fred|christopher|eric|ryan/i,fem=/female|jenny|aria|samantha|zira|karen|ana|sonia|susan/i;const want=ttsGender()==='male'?male:fem;enVoice=en.find(v=>/^en[-_]US/i.test(v.lang)&&want.test(v.name))||en.find(v=>want.test(v.name))||en.find(v=>/^en[-_]US/i.test(v.lang))||en[0]||null;}catch(e){}}
+/* getVoices() trên iPhone trả về hàng trăm giọng và khá chậm: dùng lại danh sách đã lấy ở pickVoices(), chỉ chọn lại khi danh sách hoặc giới tính đổi. */
+let enVoice=null,enKey='';function pickEn(){try{const a=V.all&&V.all.length?V.all:(speechSynthesis.getVoices()||[]);const key=ttsGender()+'|'+a.length;if(key===enKey&&a.length)return;enKey=key;const en=a.filter(v=>/^en[-_]/i.test(v.lang));const male=/male|guy|david|daniel|alex|fred|christopher|eric|ryan/i,fem=/female|jenny|aria|samantha|zira|karen|ana|sonia|susan/i;const want=ttsGender()==='male'?male:fem;enVoice=en.find(v=>/^en[-_]US/i.test(v.lang)&&want.test(v.name))||en.find(v=>want.test(v.name))||en.find(v=>/^en[-_]US/i.test(v.lang))||en[0]||null;}catch(e){}}
 function deviceVi(){if(S.voiceURI){const v=V.vi.find(x=>x.voiceURI===S.voiceURI);if(v)return v;}const want=ttsGender()==='male'?/namminh|nam minh|male|\bnam\b/i:/hoaimy|hoài my|linh|female|\bnữ\b|an\b/i;return V.vi.find(v=>want.test(v.name))||V.cur;}
 function deviceCan(segs){if(!HAS_TTS)return false;pickEn();return segs.some(([l])=>l==='en'?!!enVoice:!!deviceVi());}
-function deviceSpeak(segs){try{speechSynthesis.cancel();}catch(e){}pickEn();const vi=deviceVi();
+function deviceSpeak(segs){devSeq++;try{if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();}catch(e){}pickEn();const vi=deviceVi();
   setTimeout(()=>{segs.forEach(([l,t])=>{const v=l==='en'?enVoice:vi;if(!v)return;const parts=cleanSpeech(t).match(/[^.!?…]+[.!?…]*/g)||[cleanSpeech(t)];parts.forEach(p=>{p=p.trim();if(!p)return;const u=new SpeechSynthesisUtterance(p);u.voice=v;u.lang=v.lang;u.rate=l==='en'?.8:.85;try{speechSynthesis.speak(u);}catch(e){}});});},60);}
 function voiceMode(){const m=S.voiceMode;if(m==='device')return HAS_TTS&&V.cur?'device':'cloud';if(m==='app')return clips().size>0?'app':'cloud';return 'cloud';}
 // Đọc một danh sách đoạn [['vi','...'],['en','...']]. keys: khóa giọng thu sẵn (dự phòng).
