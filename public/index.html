@@ -2152,10 +2152,11 @@ function ttsDecode(url){if(ttsDec.has(url))return ttsDec.get(url);const ctx=acx(
 // Gộp các đoạn liền nhau cùng ngôn ngữ, rồi tách thành các đoạn ngắn
 function segPlan(segs,gender){const m=[];segs.forEach(([l,t])=>{t=cleanSpeech(t);if(!t)return;l=l==='en'?'en':'vi';const last=m[m.length-1];if(last&&last[0]===l)last[1]+=(/[.!?:;]$/.test(last[1])?' ':'. ')+t;else m.push([l,t]);});
   const rate=Number(ttsCfg().rate)||0;const plan=[];m.forEach(([l,t],si)=>ttsChunks(t).forEach((c,ci)=>plan.push({url:ttsUrl(ttsVoice(l,gender),c,l==='en'?Math.min(rate,-5)-5:rate),gap:ci===0&&si>0?260:120})));return plan;}
-function ttsPrefetch(segs){if(!segs||!segs.length||S.voiceMode==='device'||S.voiceMode==='app'||Date.now()<TTS.downUntil)return;try{segPlan(segs).slice(0,6).forEach(p=>ttsFetch(p.url).catch(()=>{}));}catch(e){}}
-async function playCloud(segs,tok,gender){const plan=segPlan(segs,gender);if(!plan.length)return;const ctx=acx();if(!ctx)throw new Error('no audio');
+/* Tải sẵn: phải chuẩn hoá giống hệt speak() (đơn vị, phép tính…), nếu không đường dẫn khác nhau → tải sẵn vô ích và câu đó đọc chậm. */
+function ttsPrefetch(segs){if(!segs||!segs.length||S.voiceMode==='device'||S.voiceMode==='app'||Date.now()<TTS.downUntil)return;try{segs=segs.filter(x=>x&&cleanSpeech(x[1])).map(([l,t])=>[l,l==='en'?t:viSpeech(t)]);segPlan(segs).slice(0,6).forEach(p=>ttsFetch(p.url).catch(()=>{}));}catch(e){}}
+async function playCloud(segs,tok,gender,slowMs){const plan=segPlan(segs,gender);if(!plan.length)return;const ctx=acx();if(!ctx)throw new Error('no audio');
   const bufs=plan.map(p=>ttsDecode(p.url));bufs.forEach(b=>b.catch(()=>{}));
-  for(let i=0;i<plan.length;i++){let buf;try{buf=await bufs[i];}catch(e){if(i===0)throw e;return;}if(tok!==playTok)return;
+  for(let i=0;i<plan.length;i++){let buf;try{buf=await (i===0&&slowMs?Promise.race([bufs[0],new Promise((_,rj)=>setTimeout(()=>rj(Object.assign(new Error('slow'),{slow:true})),slowMs))]):bufs[i]);}catch(e){if(i===0)throw e;return;}if(tok!==playTok)return;
     if(i>0)await new Promise(r=>setTimeout(r,plan[i].gap));if(tok!==playTok)return;
     await new Promise(r=>{const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);curSrc=s;s.onended=r;try{s.start();}catch(e){r();}});if(tok!==playTok)return;}}
 /* Giọng của thiết bị (Web Speech) */
@@ -2192,7 +2193,7 @@ async function speak(segs,o){o=o||{};segs=(segs||[]).filter(x=>x&&cleanSpeech(x[
   stopVoice();const tok=playTok;const m=S.voiceMode;
   const order=m==='device'?['device','cloud','app']:m==='app'?['app','cloud','device']:['cloud','device','app'];
   for(const k of order){if(tok!==playTok)return false;
-    if(k==='cloud'&&(o.force||Date.now()>=TTS.downUntil)&&navigator.onLine!==false){try{await loadTtsCfg();await playCloud(segs,tok,o.gender);return true;}catch(e){if(tok!==playTok)return false;TTS.downUntil=Date.now()+60000;}}
+    if(k==='cloud'&&(o.force||Date.now()>=TTS.downUntil)&&navigator.onLine!==false){try{await loadTtsCfg();await playCloud(segs,tok,o.gender,!o.force&&!o.gender&&order.indexOf('device')>order.indexOf('cloud')&&deviceCan(segs)?3500:0);return true;}catch(e){if(tok!==playTok)return false;if(!e||!e.slow)TTS.downUntil=Date.now()+60000;}}
     if(k==='device'&&deviceCan(segs)){deviceSpeak(segs);return true;}
     if(k==='app'){await ensureClips();const keys=o.keys||segs.map(([l,t])=>l==='en'?'en:'+t:t);if(hasClips(keys)){playKeys(keys);return true;}}}
   if(!o.silent){if(navigator.onLine===false)toast('Mất mạng nên chưa đọc được. Con kiểm tra kết nối nhé!');else voiceHelp();}
@@ -2278,7 +2279,8 @@ function renderQ(){
   if(q.say||q.auto)$('#sayW').onclick=()=>speakQ(q);
   const newP=q.passage&&Q._pTitle!==q.passage.title;if(q.passage)Q._pTitle=q.passage.title;
   if(S.autoRead!==false||q.say||q.auto)setTimeout(()=>{if(Q&&Q.qs[Q.i]===q&&!Q.locked)speakQ(q,true,newP);},450);
-  {const cq=Q;setTimeout(()=>{if(Q!==cq||cq.qs[cq.i]!==q)return;[cq.qs[cq.i+1],cq.qs[cq.i+2]].forEach(n=>{if(n)ttsPrefetch(qSegs(n));});},900);}
+  if(S.autoRead!==false||q.say||q.auto)ttsPrefetch(newP&&q.passage?passSegs(q.passage).concat(qSegs(q)):qSegs(q));
+  {const cq=Q;setTimeout(()=>{if(Q!==cq||cq.qs[cq.i]!==q)return;[cq.qs[cq.i+1],cq.qs[cq.i+2]].forEach(n=>{if(n)ttsPrefetch(qSegs(n));});},120);}
   if(!q.voice&&voiceMode()==='none')app.querySelectorAll('#speakQ,#sayW,#sayP').forEach(b=>b.classList.add('muted'));
   $('#check').onclick=check;renderAnswer(q);
 }
@@ -2846,23 +2848,24 @@ function stopRec(){if(REC.active)REC.active.stop();}
 /* Ghi âm + nhận dạng. cb({stars,heard,url,noScore,error}) */
 async function recordAndScore(target,cb,btn){
   if(REC.active){REC.active.stop();return;}
-  stopVoice();let stream=null,mr=null,chunks=[],srDone=!SR_API,mrDone=true,finished=false,timer=null,silTimer=null,srErr='',fatal=false,userStop=false,srRunning=false,restarts=0,heardAt=0;
+  stopVoice();let stream=null,mr=null,chunks=[],srDone=!SR_API,mrDone=true,finished=false,timer=null,silTimer=null,srErr='',fatal=false,userStop=false,srRunning=false,restarts=0,heardAt=0,srRetry=false,srRetried=false,dropRec=false,micErr='';
   const segs=[];let sess=[];// segs: các đoạn đã chốt (qua nhiều lần khởi động lại); sess: đoạn của lần nghe hiện tại
   const t0=Date.now(),maxMs=Math.min(20000,6000+String(target).length*160);
   AUDIO_REC=true;iosAudioPause();setAudioSession('play-and-record');
+  const relMic=()=>{try{stream&&stream.getTracks().forEach(t=>t.stop());}catch(e){}stream=null;};
   const finish=()=>{if(finished||!srDone||!mrDone)return;finished=true;clearTimeout(timer);clearTimeout(silTimer);REC.active=null;if(btn)btn.classList.remove('rec-on');
-    try{stream&&stream.getTracks().forEach(t=>t.stop());}catch(e){}
+    relMic();
     AUDIO_REC=false;setTimeout(()=>{if(!AUDIO_REC){setAudioSession(IS_IOS?'playback':'auto');}},300);
-    const url=chunks.length?URL.createObjectURL(new Blob(chunks,{type:(mr&&mr.mimeType)||'audio/webm'})):null;
+    const url=chunks.length&&!dropRec?URL.createObjectURL(new Blob(chunks,{type:(mr&&mr.mimeType)||'audio/webm'})):null;
     const alts=srCandidates(segs.concat(sess));
-    if(!SR_API||(srErr&&!alts.length&&srErr!=='no-speech'&&srErr!=='aborted')){cb({noScore:true,url,error:srErr});return;}
+    if(!SR_API||(srErr&&!alts.length&&srErr!=='no-speech'&&srErr!=='aborted')){cb({noScore:true,url,error:srErr||micErr});return;}
     const r=scoreSpeech(target,alts);cb({...r,url});};
   const endAll=()=>{srDone=true;if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(_){mrDone=true;}}finish();};
   const stopAll=()=>{userStop=true;clearTimeout(silTimer);if(srRunning){try{sr.stop();}catch(e){srRunning=false;endAll();}}else endAll();};
   const wantRecord=typeof MediaRecorder!=='undefined'&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&!(SR_API&&recSeq);
-  if(wantRecord){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});const mt=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'].find(x=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x));mr=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);mrDone=false;mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};mr.onstop=()=>{mrDone=true;finish();};mr.start();}
-    catch(e){if(!SR_API){AUDIO_REC=false;toast('Con cần cho phép dùng micro để ghi âm nhé!');return;}stream=null;mr=null;mrDone=true;}}
-  else if(!SR_API){AUDIO_REC=false;toast('Thiết bị này chưa hỗ trợ ghi âm. Con mở bằng Chrome nhé!');return;}
+  if(wantRecord){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});const mt=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'].find(x=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x));mr=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);mrDone=false;mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};mr.onstop=()=>{mrDone=true;finish();};mr.onerror=()=>{mrDone=true;dropRec=true;finish();};mr.start();}
+    catch(e){micErr=e&&e.name==='NotAllowedError'?'not-allowed':'audio-capture';relMic();if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast(micErr==='not-allowed'?'Con cần cho phép dùng micro để ghi âm nhé!':'Không mở được micro. Con tắt ứng dụng khác đang dùng micro rồi thử lại nhé!');return;}mr=null;mrDone=true;}}
+  else if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast('Thiết bị này chưa hỗ trợ ghi âm. Con mở bằng Chrome nhé!');return;}
   let sr=null;
   /* Nghe liên tục: không dừng khi con ngắt hơi giữa câu (vd. “I'm Robert. … I go to work…”).
      Chỉ dừng khi: con bấm dừng, đã đọc đủ câu, im lặng ~3 giây sau khi đã nói, hoặc hết giờ. */
@@ -2872,14 +2875,21 @@ async function recordAndScore(target,cb,btn){
       sess=cur;if(!cur.length)return;heardAt=Date.now();if(srErr==='no-speech')srErr='';clearTimeout(silTimer);
       if(covered()){silTimer=setTimeout(stopAll,700);return;}
       silTimer=setTimeout(stopAll,3000);};
-    sr.onerror=e=>{const er=e.error||'error';if(er==='no-speech'||er==='aborted'){if(!srErr)srErr=er;return;}srErr=er;
+    sr.onerror=e=>{const er=e.error||'error';if(er==='no-speech'||er==='aborted'){if(!srErr)srErr=er;return;}
+      /* Android (và vài máy khác): nhận dạng giọng nói KHÔNG dùng chung micro với máy ghi âm → báo 'audio-capture' ngay khi bắt đầu.
+         Trước đây cả lượt ghi âm bị dừng ngay (con thấy “lỗi”). Nay: nhường micro cho phần chấm điểm và nghe lại ngay trong lượt này;
+         các lần sau chỉ dùng nhận dạng (không ghi âm song song). */
+      if(er==='audio-capture'&&mr&&!srRetried&&!heardAt){srRetried=true;srRetry=true;dropRec=true;try{if(mr.state!=='inactive')mr.stop();}catch(_){mrDone=true;}relMic();recSeq=true;try{localStorage.setItem('hv_rec_seq','1');}catch(_){}return;}
+      srErr=er;
       if(er==='not-allowed'||er==='service-not-allowed'||er==='audio-capture'||er==='language-not-supported'||er==='network')fatal=true;
-      if((er==='audio-capture'||er==='not-allowed')&&mr){recSeq=true;try{localStorage.setItem('hv_rec_seq','1');}catch(_){}}
       if(er==='not-allowed'&&!mr)toast('Con cần cho phép dùng micro để ghi âm nhé!');};
     sr.onend=()=>{srRunning=false;if(sess.length){segs.push(...sess);sess=[];}
+      if(srRetry){srRetry=false;setTimeout(()=>{if(userStop||finished){endAll();return;}try{sr.start();srRunning=true;}catch(e){srErr='audio-capture';endAll();}},250);return;}
       const left=maxMs-(Date.now()-t0);
       // Một số máy (Android, iPhone) tự tắt nhận dạng khi con ngừng một chút → bật lại để nghe tiếp phần còn lại.
       if(!userStop&&!fatal&&!finished&&left>1200&&restarts<8&&!covered()&&!(heardAt&&Date.now()-heardAt>3000)){restarts++;try{sr.start();srRunning=true;return;}catch(e){}}
+      // Không chấm điểm được (mất mạng, máy chưa cho phép nhận dạng…) nhưng máy ghi âm vẫn chạy → để con đọc hết câu rồi tự bấm dừng.
+      if(fatal&&!userStop&&!finished&&mr&&mr.state==='recording'){srDone=true;toast('Con đọc xong thì bấm 🎤 lần nữa để dừng nhé!');return;}
       endAll();};
     try{sr.start();srRunning=true;}catch(e){srRunning=false;srDone=true;srErr='start';}};
   if(SR_API)startSR();
@@ -2890,7 +2900,8 @@ async function recordAndScore(target,cb,btn){
 function starsHTML(n,max=5){return `<span class="stars5" aria-label="${n} sao">${'★'.repeat(n)}<i>${'★'.repeat(Math.max(0,max-n))}</i></span>`;}
 const SPK_PRAISE=['Excellent!','Great job!','Well done!','Good try!','Try again!','Try again!'];
 function praiseFor(s){return s>=5?'Excellent! 🌟':s>=4?'Great job! ⭐':s>=3?'Well done! 👍':s>=2?'Good try! 💪':'Try again! 🔁';}
-function recResultHTML(res,target){if(res.noScore)return `<div class="rec-res"><b>🎙️ Đã ghi âm.</b> <small>${res.error==='network'?'Chưa kết nối được máy chấm điểm (cần có mạng).':'Thiết bị này chưa chấm điểm tự động được — con bấm ▶ nghe lại giọng mình và so với giọng mẫu nhé. Mở bằng Chrome để được chấm sao.'}</small>${res.url?`<button class="say-btn" data-play="${res.url}">▶ Nghe lại</button>`:''}</div>`;
+const recWhy=e=>e==='network'?'Chưa kết nối được máy chấm điểm (cần có mạng).':e==='not-allowed'||e==='service-not-allowed'?'Máy chưa cho phép dùng micro / nhận dạng giọng nói nên chưa chấm sao được. Bố mẹ bấm biểu tượng 🔒 cạnh địa chỉ trang → cho phép Micro rồi thử lại nhé.':e==='audio-capture'?'Không mở được micro (có thể ứng dụng khác như Zalo, ghi âm… đang dùng micro). Con tắt ứng dụng đó rồi thử lại nhé.':'';
+function recResultHTML(res,target){if(res.noScore&&!res.url&&recWhy(res.error))return `<div class="rec-res"><b>🎙️ Chưa ghi âm được.</b> <small>${recWhy(res.error)}</small></div>`;if(res.noScore)return `<div class="rec-res"><b>🎙️ Đã ghi âm.</b> <small>${recWhy(res.error)?recWhy(res.error)+' Con bấm ▶ nghe lại giọng mình nhé.':res.error==='network'?'Chưa kết nối được máy chấm điểm (cần có mạng).':'Thiết bị này chưa chấm điểm tự động được — con bấm ▶ nghe lại giọng mình và so với giọng mẫu nhé. Mở bằng Chrome để được chấm sao.'}</small>${res.url?`<button class="say-btn" data-play="${res.url}">▶ Nghe lại</button>`:''}</div>`;
   return `<div class="rec-res"><div class="rec-top">${starsHTML(res.stars)}<b>${praiseFor(res.stars)}</b></div><div class="rec-target">${markTarget(target,res)}</div>${recTips(target,res)}${res.heard?`<small>App nghe được: “${esc(res.heard)}”</small>`:'<small>App chưa nghe rõ, con đọc to và rõ hơn nhé.</small>'}${res.url?`<button class="say-btn" data-play="${res.url}">▶ Nghe lại giọng con</button>`:''}</div>`;}
 let playEl=null;function playUrl(u){try{if(playEl)playEl.pause();playEl=new Audio(u);playEl.play().catch(()=>{});}catch(e){}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-play]');if(b){e.stopPropagation();playUrl(b.dataset.play);}},true);

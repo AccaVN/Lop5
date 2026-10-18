@@ -9,7 +9,10 @@ app.use(cors());
 app.use(express.json());
 
 // Tự cập nhật cấu trúc DB (thêm cột/bảng mới) trước khi xử lý API
+// /api/tts (giọng đọc) không dùng bảng dữ liệu nào ngoài cấu hình giọng → KHÔNG chờ kiểm tra schema.
+// Trước đây mỗi lần function khởi động, câu đọc đầu tiên phải chờ Neon "thức dậy" (có thể vài giây).
 app.use('/api', async (req, res, next) => {
+  if (req.path === '/tts' || req.path.startsWith('/tts/')) return next();
   try { await pool.ensureSchema(); } catch (e) { console.error('ensureSchema:', e.message); }
   next();
 });
