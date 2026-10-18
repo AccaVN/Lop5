@@ -352,9 +352,9 @@ button.st{font:inherit;color:inherit;cursor:pointer}
 @keyframes fall{from{top:-70px}to{top:100%}}
 .mg-star.pop{transform:scale(1.7);opacity:0;transition:transform .2s,opacity .2s}
 .holes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:380px;margin:20px auto 0}
-.hole{aspect-ratio:1;border-radius:50%;border:0;background:radial-gradient(circle at 50% 70%,#4A3322 0 48%,#7A5A3A 49% 100%);overflow:hidden;position:relative}
-.hole span{position:absolute;left:0;right:0;bottom:-70%;font-size:52px;transition:bottom .15s}
-.hole.up span{bottom:12%}.hole.bonk span{bottom:12%;transform:scale(.7) rotate(20deg)}
+.hole{aspect-ratio:1;border-radius:50%;border:0;background:radial-gradient(circle at 50% 70%,#4A3322 0 48%,#7A5A3A 49% 100%);overflow:hidden;position:relative;isolation:isolate;-webkit-mask-image:-webkit-radial-gradient(white,black);touch-action:manipulation}
+.hole span{position:absolute;left:0;right:0;bottom:-110%;font-size:52px;visibility:hidden;transition:bottom .15s,visibility 0s .15s}
+.hole.up span,.hole.bonk span{visibility:visible;transition:bottom .15s,visibility 0s}.hole.up span{bottom:12%}.hole.bonk span{bottom:12%;transform:scale(.7) rotate(20deg)}
 .mem{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:400px;margin:12px auto 0}
 .mcard{aspect-ratio:3/4;border-radius:14px;border:0;background:var(--sky);box-shadow:0 5px 0 var(--sky-d);font-size:38px;color:#fff}
 .mcard span{visibility:hidden}.mcard.flip{background:var(--card);box-shadow:0 5px 0 var(--line)}.mcard.flip span{visibility:visible}
@@ -2098,8 +2098,20 @@ function setAudioSession(t){try{if(navigator.audioSession&&sessType!==t){sessTyp
 /* Đo trên iPhone thật: unlockEl.play() đứng ~0,8s mỗi lần, và iOS hay tự dừng <audio> im lặng khi đang đọc giọng chuẩn,
    nên trước đây gần như lần chạm nào cũng bị đứng. Nay: máy có navigator.audioSession (iOS 17+) thì chỉ cần đặt 'playback';
    máy cũ chỉ phát đồng bộ ở lần chạm đầu tiên, các lần sau phát lại sau khi màn hình vẽ xong và tối đa 1 lần/15 giây. */
+/* iPhone/iPad: giọng đọc phát qua MỘT thẻ <audio> dùng chung thay vì Web Audio:
+   - Web Audio bị nút gạt im lặng tắt tiếng (con không nghe câu hỏi), thẻ <audio> thì không.
+   - Không cần giải mã (decodeAudioData) và không phải giữ <audio> im lặng chạy nền → hết đứng/chậm.
+   Thẻ được "mở khóa" một lần ở lần chạm đầu tiên; sau đó app tự đọc được ở mọi câu. */
+const USE_EL=IS_IOS;
+let spEl=null,spElOk=false,spDone=null;
+function spElGet(){if(!spEl){spEl=document.createElement('audio');spEl.setAttribute('playsinline','');spEl.setAttribute('webkit-playsinline','');spEl.setAttribute('x-webkit-airplay','deny');spEl.preload='auto';spEl.disableRemotePlayback=true;}return spEl;}
+function spElUnlock(){if(spElOk||!USE_EL||AUDIO_REC)return;const el=spElGet();try{el.src=silentWavUrl();const q=el.play();spElOk=true;if(q&&q.then)q.then(()=>{try{if(!spDone)el.pause();}catch(e){}},()=>{spElOk=false;});}catch(e){spElOk=false;}}
+function spElPlay(ab){return new Promise((res,rej)=>{const el=spElGet();if(spDone)spDone();const u=URL.createObjectURL(new Blob([ab],{type:'audio/mpeg'}));let done=false;
+  const fin=err=>{if(done)return;done=true;if(spDone===stop)spDone=null;el.onended=el.onerror=null;setTimeout(()=>{try{URL.revokeObjectURL(u);}catch(e){}},1500);err?rej(err):res();};const stop=()=>fin();
+  spDone=stop;el.onended=()=>fin();el.onerror=()=>fin(new Error('audio el'));el.src=u;try{const q=el.play();if(q&&q.catch)q.catch(e=>fin(e||new Error('play')));}catch(e){fin(e);}});}
+function spElStop(){try{if(spEl&&!spEl.paused)spEl.pause();}catch(e){}if(spDone)spDone();}
 let unlockTried=false,unlockAt=0,unlockTm=0;
-function iosAudioUnlock(gesture){if(!IS_IOS||AUDIO_REC||document.hidden)return;setAudioSession('playback');if(navigator.audioSession)return;
+function iosAudioUnlock(gesture){if(!IS_IOS||AUDIO_REC||document.hidden)return;setAudioSession('playback');if(navigator.audioSession||USE_EL)return;
   try{if(!unlockEl){unlockEl=document.createElement('audio');unlockEl.setAttribute('playsinline','');unlockEl.setAttribute('webkit-playsinline','');unlockEl.setAttribute('x-webkit-airplay','deny');unlockEl.preload='auto';unlockEl.loop=true;unlockEl.disableRemotePlayback=true;unlockEl.src=silentWavUrl();}
     if(!unlockEl.paused||unlockTm)return;
     const play=()=>{unlockTm=0;if(AUDIO_REC||document.hidden||!unlockEl.paused)return;unlockAt=Date.now();const q=unlockEl.play();if(q&&q.catch)q.catch(()=>{});};
@@ -2107,15 +2119,15 @@ function iosAudioUnlock(gesture){if(!IS_IOS||AUDIO_REC||document.hidden)return;s
     if(Date.now()-unlockAt<15000)return;
     unlockTm=setTimeout(()=>{if(window.requestAnimationFrame)requestAnimationFrame(()=>setTimeout(play,0));else play();},400);}catch(e){}}
 function iosAudioPause(){try{if(unlockEl&&!unlockEl.paused)unlockEl.pause();}catch(e){}}
-if(IS_IOS){['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{iosAudioUnlock(true);try{if(actx&&actx.state!=='running')actx.resume();}catch(e){}},true));
+if(IS_IOS){['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{spElUnlock();iosAudioUnlock(true);try{if(actx&&actx.state!=='running')actx.resume();}catch(e){}},true));
   document.addEventListener('visibilitychange',()=>{if(document.hidden)iosAudioPause();});}
 function acx(){iosAudioUnlock();try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended'||actx.state==='interrupted')actx.resume();}catch(e){}return actx;}
 const bufCache=new Map();let playTok=0,curSrc=null;
 function b64buf(b){const s=atob(b);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer;}
 async function decodeClip(k){await ensureClips();if(bufCache.has(k))return bufCache.get(k);const p=new Promise((res,rej)=>{const c=clips().get(k);acx().decodeAudioData(typeof c==='string'?b64buf(c):c.slice(0),res,rej);});bufCache.set(k,p);p.catch(()=>bufCache.delete(k));return p;}
 /* iOS: speechSynthesis.cancel() chạy đồng bộ và chậm; khi tự đọc đang chạy mà con chạm thì để màn hình đổi trước rồi mới dừng giọng. */
-let devSeq=0;function stopVoice(){playTok++;try{if(curSrc)curSrc.stop();}catch(e){}curSrc=null;try{if(HAS_TTS&&(speechSynthesis.speaking||speechSynthesis.pending)){const t=playTok,d=devSeq;const go=()=>{if(t!==playTok||d!==devSeq)return;try{speechSynthesis.cancel();}catch(e){}};if(window.requestAnimationFrame&&!document.hidden)requestAnimationFrame(()=>setTimeout(go,0));else go();}}catch(e){}}
-async function playKeys(keys){await ensureClips();stopVoice();const tok=playTok;const ctx=acx();if(!ctx)return;for(const k of keys){if(!clips().has(k))continue;let buf;try{buf=await decodeClip(k);}catch(e){continue;}if(tok!==playTok)return;await new Promise(r=>{const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);curSrc=s;s.onended=r;try{s.start();}catch(e){r();}});if(tok!==playTok)return;await new Promise(r=>setTimeout(r,300));}}
+let devSeq=0;function stopVoice(){playTok++;try{if(curSrc)curSrc.stop();}catch(e){}curSrc=null;spElStop();try{if(HAS_TTS&&(speechSynthesis.speaking||speechSynthesis.pending)){const t=playTok,d=devSeq;const go=()=>{if(t!==playTok||d!==devSeq)return;try{speechSynthesis.cancel();}catch(e){}};if(window.requestAnimationFrame&&!document.hidden)requestAnimationFrame(()=>setTimeout(go,0));else go();}}catch(e){}}
+async function playKeys(keys){await ensureClips();stopVoice();const tok=playTok;if(USE_EL&&spElOk){let ok=0;for(const k of keys){const c=clips().get(k);if(!c)continue;try{await spElPlay(typeof c==='string'?b64buf(c):c);ok++;}catch(e){if(!ok&&e&&e.name==='NotAllowedError'){spElOk=false;break;}continue;}if(tok!==playTok)return;await new Promise(r=>setTimeout(r,300));if(tok!==playTok)return;}if(spElOk)return;}const ctx=acx();if(!ctx)return;for(const k of keys){if(!clips().has(k))continue;let buf;try{buf=await decodeClip(k);}catch(e){continue;}if(tok!==playTok)return;await new Promise(r=>{const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);curSrc=s;s.onended=r;try{s.start();}catch(e){r();}});if(tok!==playTok)return;await new Promise(r=>setTimeout(r,300));}}
 const hasClips=keys=>keys.some(k=>clips().has(k));
 /* ============ GIỌNG ĐỌC CHUẨN (máy chủ: 1 giọng nữ + 1 giọng nam do admin chọn) ============
    Thứ tự ưu tiên mặc định: giọng chuẩn qua mạng → giọng của thiết bị → giọng thu sẵn trong app.
@@ -2155,7 +2167,7 @@ function segPlan(segs,gender){const m=[];segs.forEach(([l,t])=>{t=cleanSpeech(t)
 /* Tải sẵn: phải chuẩn hoá giống hệt speak() (đơn vị, phép tính…), nếu không đường dẫn khác nhau → tải sẵn vô ích và câu đó đọc chậm. */
 function ttsPrefetch(segs){if(!segs||!segs.length||S.voiceMode==='device'||S.voiceMode==='app'||Date.now()<TTS.downUntil)return;try{segs=segs.filter(x=>x&&cleanSpeech(x[1])).map(([l,t])=>[l,l==='en'?t:viSpeech(t)]);segPlan(segs).slice(0,6).forEach(p=>ttsFetch(p.url).catch(()=>{}));}catch(e){}}
 async function playCloud(segs,tok,gender,slowMs){const plan=segPlan(segs,gender);if(!plan.length)return;const ctx=acx();if(!ctx)throw new Error('no audio');
-  const bufs=plan.map(p=>ttsDecode(p.url));bufs.forEach(b=>b.catch(()=>{}));
+  if(USE_EL&&spElOk){const abs=plan.map(p=>ttsFetch(p.url));abs.forEach(b=>b.catch(()=>{}));let elOk=true;for(let i=0;i<plan.length;i++){let ab;try{ab=await (i===0&&slowMs?Promise.race([abs[0],new Promise((_,rj)=>setTimeout(()=>rj(Object.assign(new Error('slow'),{slow:true})),slowMs))]):abs[i]);}catch(e){if(i===0)throw e;return;}if(tok!==playTok)return;if(i>0)await new Promise(r=>setTimeout(r,plan[i].gap));if(tok!==playTok)return;try{await spElPlay(ab);}catch(e){if(i===0&&e&&e.name==='NotAllowedError'){spElOk=false;elOk=false;break;}if(i===0)throw e;return;}if(tok!==playTok)return;}if(elOk)return;}const bufs=plan.map(p=>ttsDecode(p.url));bufs.forEach(b=>b.catch(()=>{}));
   for(let i=0;i<plan.length;i++){let buf;try{buf=await (i===0&&slowMs?Promise.race([bufs[0],new Promise((_,rj)=>setTimeout(()=>rj(Object.assign(new Error('slow'),{slow:true})),slowMs))]):bufs[i]);}catch(e){if(i===0)throw e;return;}if(tok!==playTok)return;
     if(i>0)await new Promise(r=>setTimeout(r,plan[i].gap));if(tok!==playTok)return;
     await new Promise(r=>{const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);curSrc=s;s.onended=r;try{s.start();}catch(e){r();}});if(tok!==playTok)return;}}
