@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>Học Vui Lớp 5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,6 +32,7 @@ img,svg{max-width:100%}
 .screen{height:100%;overflow-y:auto;overflow-x:hidden;padding-bottom:96px;-webkit-overflow-scrolling:touch}
 /* Nền vở ô li */
 .notebook{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1.5px,transparent 1.5px),linear-gradient(90deg,var(--grid) 1.5px,transparent 1.5px);background-size:24px 24px;position:relative}
+.notebook.nogrid{background-image:none}.notebook.nogrid::before{display:none}
 .notebook::before{content:"";position:absolute;top:0;bottom:0;left:30px;width:2px;background:var(--margin);pointer-events:none}
 
 /* Thanh trên */
@@ -2259,7 +2263,7 @@ function greet(){const h=new Date().getHours();return h<11?'Chào buổi sáng':
 function renderHome(){
   Q=null;stopSpeed();stopVoice();
   const cur=currentLevel();const td=S.days[todayStr()]||{n:0,sec:0};
-  let h=`<div class="screen notebook" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>${greet()}, ${esc(S.name)}!</b><br>${td.n>=1?'Con đã xong mục tiêu hôm nay. Học thêm một bài nữa nhé?':`Hôm nay mình học bài ${LEVEL_INFO[cur%6].d} của Chặng ${Math.floor(cur/6)+1} nhé.`}<div class="goal"><div class="goal-bar"><i style="width:${Math.min(td.n,1)*100}%"></i></div><small>Mục tiêu hôm nay: ${Math.min(td.n,1)}/1 bài</small></div></div></section>${examBanner('toan')}`;
+  let h=`<div class="screen notebook nogrid" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>${greet()}, ${esc(S.name)}!</b><br>${td.n>=1?'Con đã xong mục tiêu hôm nay. Học thêm một bài nữa nhé?':`Hôm nay mình học bài ${LEVEL_INFO[cur%6].d} của Chặng ${Math.floor(cur/6)+1} nhé.`}<div class="goal"><div class="goal-bar"><i style="width:${Math.min(td.n,1)*100}%"></i></div><small>Mục tiêu hôm nay: ${Math.min(td.n,1)}/1 bài</small></div></div></section>${examBanner('toan')}`;
   WEEKS.forEach((wk,w)=>{const[c,cd]=WCOL[w];h+=`<section class="stage" style="--c:${c};--cd:${cd}"><div class="stage-head"><div class="stage-num">Chặng ${w+1}</div><h2>${wk.t}</h2><p>${wk.s}</p></div><div class="path">`;
     LEVEL_INFO.forEach((li,d)=>{const i=w*6+d,un=isUnlocked(i),st=S.stars[i]||0,isCur=i===cur&&un;
       h+=`<div class="node-wrap${isCur?' current':''}" style="--x:${XOFF[d]}px">${isCur?'<div class="start-tip">Bắt đầu!</div>':''}<button class="node${d===5?' boss':''}${un?'':' locked'}" data-act="level" data-i="${i}" aria-label="${li.d}: ${wk.lv?wk.lv[d][0]:li.n}${un?'':', chưa mở'}${st?', '+st+' sao':''}">${un?(wk.lv?wk.lv[d][1]:li.i):'🔒'}</button><div class="node-lbl">${li.d}: ${wk.lv?wk.lv[d][0]:li.n}</div>${st?`<div class="node-stars" aria-hidden="true">${'★'.repeat(st)}<span class="dim">${'★'.repeat(3-st)}</span></div>`:''}</div>`;});
@@ -2365,7 +2369,7 @@ function confetti(){if(window.matchMedia&&matchMedia('(prefers-reduced-motion: r
 /* ============ ENGLISH ============ */
 const ECOL=[['#7C5CF0','#5A3DC7'],['#0D9488','#096B62'],['#1D8CE0','#1466AB'],['#EE5A1E','#BF4210']];
 function renderEnglish(){Q=null;stopSpeed();stopVoice();const cur=currentEn();
-  let h=`<div class="screen notebook" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>Let's learn English!</b><br>20 Unit theo sách Tiếng Anh 5 Global Success (Kết nối tri thức với cuộc sống). Mỗi bài có 3 phần: Vocabulary, Listen & Phonics, Sentences, kèm 📒 Từ vựng và 🗣️ Luyện nói có ghi âm chấm sao.</div></section>${examBanner('en')}${examBanner('cam')}<button class="exam-banner" data-act="spk" data-u="time" style="--c:#EE8A1E;--cd:#B8650F"><span class="eb-ic">🗣️</span><span><b>Communication: Daily routines</b><small>Luyện nói giờ giấc theo tranh + đồng hồ · ${(()=>{const[a,b]=spkCount('time');return a+'/'+b;})()}</small></span><span class="eb-go">›</span></button>`;
+  let h=`<div class="screen notebook nogrid" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>Let's learn English!</b><br>20 Unit theo sách Tiếng Anh 5 Global Success (Kết nối tri thức với cuộc sống). Mỗi bài có 3 phần: Vocabulary, Listen & Phonics, Sentences, kèm 📒 Từ vựng và 🗣️ Luyện nói có ghi âm chấm sao.</div></section>${examBanner('en')}${examBanner('cam')}<button class="exam-banner" data-act="spk" data-u="time" style="--c:#EE8A1E;--cd:#B8650F"><span class="eb-ic">🗣️</span><span><b>Communication: Daily routines</b><small>Luyện nói giờ giấc theo tranh + đồng hồ · ${(()=>{const[a,b]=spkCount('time');return a+'/'+b;})()}</small></span><span class="eb-go">›</span></button>`;
   EN_UNITS.forEach((U,u)=>{const[c,cd]=ECOL[Math.floor(u/4)%ECOL.length];h+=`<section class="stage" style="--c:${c};--cd:${cd}"><div class="stage-head"><div class="stage-num">${U.lab}</div><h2>${U.t}</h2><p>${U.vn}: ${U.w.map(w=>w[0]).join(', ')}</p></div>${enTools(u)}<div class="path">`;
     EN_LV.forEach((li,d)=>{const i=u*3+d,un=isUnlockedEn(i),st=enStars().stars[i]||0,isCur=i===cur&&un;
       h+=`<div class="node-wrap${isCur?' current':''}" style="--x:${[-50,30,-10][d]}px">${isCur?'<div class="start-tip">Start!</div>':''}<button class="node${un?'':' locked'}" data-act="enlevel" data-i="${i}" aria-label="Unit ${u+1}: ${li.n}${un?'':', chưa mở'}">${un?li.i:'🔒'}</button><div class="node-lbl">${li.n}</div>${st?`<div class="node-stars" aria-hidden="true">${'★'.repeat(st)}<span class="dim">${'★'.repeat(3-st)}</span></div>`:''}</div>`;});
@@ -2379,7 +2383,7 @@ function startEn(i){const u=Math.floor(i/3),d=i%3;Q={mode:'en',level:i,qs:buildE
 /* ============ TIẾNG VIỆT ============ */
 const TCOL=[['#F0476A','#C22D4F'],['#16A34A','#0F7A37'],['#EE5A1E','#BF4210'],['#1D8CE0','#1466AB']];
 function renderTv(){Q=null;stopSpeed();stopVoice();const cur=currentTv();
-  let h=`<div class="screen notebook" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>Cùng học Tiếng Việt!</b><br>8 chủ điểm, 64 bài đọc theo sách Tiếng Việt 5 Kết nối tri thức với cuộc sống (chia thành 16 phần, mỗi phần 4 bài đọc của 2 tuần học). Mỗi phần có 3 bài: Đọc hiểu, Chính tả & Từ ngữ, Câu & Viết.</div></section>${examBanner('tv')}`;
+  let h=`<div class="screen notebook nogrid" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>Cùng học Tiếng Việt!</b><br>8 chủ điểm, 64 bài đọc theo sách Tiếng Việt 5 Kết nối tri thức với cuộc sống (chia thành 16 phần, mỗi phần 4 bài đọc của 2 tuần học). Mỗi phần có 3 bài: Đọc hiểu, Chính tả & Từ ngữ, Câu & Viết.</div></section>${examBanner('tv')}`;
   TV_UNITS.forEach((U,u)=>{const[c,cd]=TCOL[Math.floor(u/4)%TCOL.length];h+=`<section class="stage" style="--c:${c};--cd:${cd}"><div class="stage-head"><div class="stage-num">${U.lab}</div><h2>${U.t}</h2><p>${U.vn}</p></div><div class="path">`;
     TV_LV.forEach((li,d)=>{const i=u*3+d,un=isUnlockedTv(i),st=tvStars().stars[i]||0,isCur=i===cur&&un;
       h+=`<div class="node-wrap${isCur?' current':''}" style="--x:${[-50,30,-10][d]}px">${isCur?'<div class="start-tip">Bắt đầu!</div>':''}<button class="node${un?'':' locked'}" data-act="tvlevel" data-i="${i}" aria-label="${U.t}: ${li.n}${un?'':', chưa mở'}">${un?li.i:'🔒'}</button><div class="node-lbl">${li.n}</div>${st?`<div class="node-stars" aria-hidden="true">${'★'.repeat(st)}<span class="dim">${'★'.repeat(3-st)}</span></div>`:''}</div>`;});

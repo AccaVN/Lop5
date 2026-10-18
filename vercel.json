@@ -16,8 +16,8 @@
       "dest": "/api/index.js"
     },
     {
-      "src": "/favicon.ico",
-      "status": 204,
+      "src": "/(favicon\\.ico|favicon\\.png|apple-touch-icon\\.png)",
+      "dest": "/public/$1",
       "headers": {
         "Cache-Control": "public, max-age=2592000"
       }
