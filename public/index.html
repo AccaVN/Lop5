@@ -2858,23 +2858,68 @@ function vnJoin(H,T){const TS=new Set(T),out=[];for(let j=0;j<H.length;j++){cons
     if(nx&&TS.has(w+nx)&&!(TS.has(w)&&TS.has(nx))){out.push(w+nx);j++;continue;}
     if(!TS.has(w)&&w.length>=4){let k=2;for(;k<=w.length-2;k++)if(TS.has(w.slice(0,k))&&TS.has(w.slice(k)))break;if(k<=w.length-2){out.push(w.slice(0,k),w.slice(k));continue;}}
     out.push(w);}return out;}
+/* So khớp theo ÂM cho giọng Việt (soft): máy nhận dạng en-US hay nghe con đọc ĐÚNG thành từ khác gần âm, hoặc tách/ghép sai
+   ranh giới từ (I like→alike, my name is→mine aim is, football→foot ball, blue→blow, three→tree, very→berry, books→book).
+   Cả câu mẫu và câu máy nghe được đổi thành chuỗi âm rút gọn (p t k f s l r m n + nguyên âm a), rồi dóng hàng theo đúng thứ tự:
+   từ mẫu nào khớp phần lớn âm (nhất là phụ âm) thì được tính “gần đúng” (màu cam) thay vì bị coi là thiếu. */
+const PH_MEMO=new Map();
+function phKey(w){let v=PH_MEMO.get(w);if(v!==undefined)return v;let s=String(w).toLowerCase().replace(/[^a-z]/g,'');
+  s=s.replace(/^kn/,'n').replace(/^wr/,'r').replace(/^ps/,'s').replace(/igh/g,'ai').replace(/gh(?![aeiouy])/g,'').replace(/ph/g,'f').replace(/th/g,'t')
+   .replace(/tch|sh|ch|ss/g,'s').replace(/ck|qu|q|x/g,'k').replace(/c(?=[eiy])/g,'s').replace(/c|g/g,'k').replace(/[zj]/g,'s')
+   .replace(/d/g,'t').replace(/b/g,'p').replace(/v/g,'f').replace(/h/g,'').replace(/w/g,'u');
+  if(s.length>2)s=s.replace(/([^aeiouy])e$/,'$1');                    // e câm cuối từ (cute, five, blue→blu)
+  s=s.replace(/r(?![aeiouy])/g,'');                                   // r sau nguyên âm thường không nghe (car, colour, bird)
+  s=s.replace(/[aeiouy]+/g,'a').replace(/(.)\1+/g,'$1');
+  if(PH_MEMO.size>20000)PH_MEMO.clear();PH_MEMO.set(w,s);return s;}
+const PH_NEAR=new Set(['l|n','n|l','l|r','r|l','m|n','n|m','t|k','k|t','s|t','t|s','f|p','p|f','t|n','n|t','k|p','p|k']);
+/* trả về mảng điểm âm 0..1 cho từng từ của câu mẫu T, dóng với câu nghe được H */
+function phAlign(T,H){const k=T.join(' ')+'|'+H.join(' ');let m0=PH_MEMO.get('#'+k);if(m0)return m0;
+  const tc=[],tw=[],tf=[];T.forEach((w,i)=>{const s=phKey(w);for(let j=0;j<s.length;j++){tc.push(s[j]);tw.push(i);tf.push(j===s.length-1&&j>0);}});
+  const hc=H.map(phKey).join('');const m=tc.length,n=hc.length,res=new Array(T.length).fill(0);
+  if(!m||!n)return res;
+  const isV=c=>c==='a';const del=i=>isV(tc[i])?.5:1,INS=.6;
+  const sub=(a,b)=>a===b?0:(isV(a)||isV(b))?1.2:PH_NEAR.has(a+'|'+b)?.45:1.2;
+  // DP dóng hàng: bỏ qua tự do phần thừa ở đầu/cuối câu nghe được (con nói thêm, máy nghe thêm tiếng ồn)
+  const D=Array.from({length:m+1},()=>new Float64Array(n+1)),B=Array.from({length:m+1},()=>new Uint8Array(n+1));
+  for(let i=1;i<=m;i++){D[i][0]=D[i-1][0]+del(i-1);B[i][0]=1;}
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const a=D[i-1][j-1]+sub(tc[i-1],hc[j-1]),b=D[i-1][j]+del(i-1),c=D[i][j-1]+(i===m?0:INS);
+    if(a<=b&&a<=c){D[i][j]=a;B[i][j]=0;}else if(b<=c){D[i][j]=b;B[i][j]=1;}else{D[i][j]=c;B[i][j]=2;}}
+  const cred=new Array(T.length).fill(0),wsum=new Array(T.length).fill(0),cons=new Array(T.length).fill(0);
+  for(let i=0;i<m;i++)wsum[tw[i]]+=isV(tc[i])?.4:tf[i]?.6:1;
+  let i=m,j=n;while(i>0){const b=j>0?B[i][j]:1;if(b===0){const a=tc[i-1],h=hc[j-1],w=isV(a)?.4:tf[i-1]?.6:1;
+      if(a===h){cred[tw[i-1]]+=w;if(!isV(a))cons[tw[i-1]]++;}else if(PH_NEAR.has(a+'|'+h))cred[tw[i-1]]+=w*.6;i--;j--;}
+    else if(b===1)i--;else j--;}
+  T.forEach((w,x)=>{const s=phKey(w);const nc=s.replace(/a/g,'').length;
+    // từ có phụ âm thì phải khớp đúng ít nhất 1 phụ âm (chống “chấm bừa” khi con nói linh tinh)
+    res[x]=wsum[x]?(nc&&!cons[x]?0:cred[x]/wsum[x]):0;});
+  if(PH_MEMO.size>20000)PH_MEMO.clear();PH_MEMO.set('#'+k,res);return res;}
+/* điểm âm → mức “gần đúng”; từ quá ngắn (a, I, is…) chỉ được tính khi khớp gần như hoàn toàn */
+const phCredit=(v,w)=>{const L=phKey(w).length;return v>=.97&&L>=1?.8:L<3?0:v>=.85?.75:v>=.7?.6:L>=4&&v>=.6?.5:0;};
 function scoreSpeech(target,alts,opts){const soft=!!(opts&&opts.soft);const T=normEn(target);let best={r:0,heard:'',hit:new Set(),sim:new Map(),sErr:new Set(),oo:0};
-  (alts||[]).forEach(h=>{let H=normEn(h);if(!H.length)return;if(soft)H=vnJoin(H,T);const {len,hit,sim,usedH,pair,tot}=lcsWords(T,H,soft);
+  const W=T.map(w=>soft&&EN_LIGHT.has(w)?.5:1);
+  const cands=[];
+  (alts||[]).forEach(h=>{let H=normEn(h);if(!H.length)return;if(soft)H=vnJoin(H,T);const L=lcsWords(T,H,soft);cands.push({h,H,L,r0:L.len/L.tot});});
+  // giọng Việt: dóng theo âm cho các phương án tốt nhất (giới hạn số phương án để chấm nhanh khi đang nói)
+  if(soft){cands.sort((a,b)=>b.r0-a.r0);cands.slice(0,10).forEach(c=>{const ps=phAlign(T,c.H);ps.forEach((v,i)=>{const cr=phCredit(v,T[i]);const old=c.L.sim.get(i)||0;
+      if(cr>old){c.L.len+=(cr-old)*W[i];c.L.sim.set(i,cr);c.L.hit.add(i);c.ph=1;}});});}
+  cands.forEach(({h,H,L})=>{const {len,hit,sim,usedH,pair,tot}=L;
     // Từ có đọc nhưng sai vị trí (sai thứ tự) và từ thiếu/thừa s cuối
     const freeH=H.map((x,j)=>usedH.has(j)?null:x);let oo=0;const sErr=new Set();
-    if(soft)hit.forEach(i=>{if(sPair(T[i],H[pair.get(i)]))sErr.add(i);});
+    if(soft)hit.forEach(i=>{if(pair.has(i)&&sPair(T[i],H[pair.get(i)]))sErr.add(i);});
     T.forEach((t,i)=>{if(hit.has(i))return;const j=freeH.findIndex(x=>x&&wordSim(t,x,soft)>=.6);if(j>=0){oo++;freeH[j]=null;return;}
       const k=freeH.findIndex(x=>x&&sPair(t,x));if(k>=0){sErr.add(i);freeH[k]=null;}});
-    const extra=Math.max(0,H.length-T.length);const r=Math.min(1,len/(tot+extra*(soft?.25:.5)+oo*.5));
+    const extra=Math.max(0,H.length-T.length);const r=Math.min(1,len/(tot+extra*(soft?.15:.5)+oo*.5));
     const better=r>best.r+1e-9||(Math.abs(r-best.r)<1e-9&&(!best.heard||sErr.size+oo<best.sErr.size+best.oo));
     if(better)best={r,heard:h,hit,sim,sErr,oo};});
   const allExact=T.length>0&&T.every((_,i)=>best.sim.get(i)===1);
-  const stars=best.r>=.95&&allExact?5:best.r>=.85?4:best.r>=.65?3:best.r>=.4?2:best.heard?1:0;return{...best,stars,words:T};}
+  // soft: máy hiếm khi nghe giọng Việt đúng 100% từng chữ → 5★ khi khớp ≥ 92% (không bắt buộc mọi từ khớp tuyệt đối)
+  const stars=soft?(best.r>=.92?5:best.r>=.8?4:best.r>=.62?3:best.r>=.4?2:best.heard?1:0)
+    :best.r>=.95&&allExact?5:best.r>=.85?4:best.r>=.65?3:best.r>=.4?2:best.heard?1:0;return{...best,stars,words:T};}
 /* Ghép các đoạn nhận dạng (mỗi đoạn có vài phương án) thành các câu ứng viên để chấm. Xử lý cả lỗi lặp chữ của Android/iOS. */
 function srCandidates(segs,target){segs=segs.filter(a=>a&&a.length&&a[0]);if(!segs.length)return[];const top=segs.map(a=>a[0]);const out=new Set();const J=x=>x.join(' ').replace(/\s+/g,' ').trim();
   out.add(J(top));
   /* giọng Việt: phương án thứ 2–5 của máy thường đúng hơn phương án đầu → ở mỗi đoạn chọn phương án khớp câu mẫu nhất */
-  if(target&&segs.some(a=>a.length>1)){const TS=new Set(normEn(target).map(enCanon));const fit=x=>normEn(x).reduce((s,w)=>s+(TS.has(enCanon(w))?1:-.3),0);
+  if(target&&segs.some(a=>a.length>1)){const TS=new Set(normEn(target).map(enCanon));const TP=new Set(normEn(target).map(phKey));const fit=x=>normEn(x).reduce((s,w)=>s+(TS.has(enCanon(w))?1:TP.has(phKey(w))?.7:-.3),0);
     out.add(J(segs.map(a=>a.reduce((b,x)=>fit(x)>fit(b)?x:b,a[0]))));}
   const dd=[];top.forEach(t=>{const n=normEn(t).join(' '),pv=dd.length?normEn(dd[dd.length-1]).join(' '):null;if(pv!==null&&n.startsWith(pv))dd[dd.length-1]=t;else if(pv!==null&&pv.startsWith(n)){}else dd.push(t);});out.add(J(dd));
   segs.slice(-8).forEach((alts,ii)=>{const i=segs.length-Math.min(8,segs.length)+ii;alts.slice(1,5).forEach(a=>{const c=top.slice();c[i]=a;out.add(J(c));});});
