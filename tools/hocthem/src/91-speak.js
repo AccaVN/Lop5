@@ -69,47 +69,12 @@ function paMark(text,res,mode){const hide=mode===1?paHide(text):null;const hit=r
     return c?`<span class="${c}">${H(w)}</span>`:H(w);}).join(' ');}
 function paCue(p){const vs=paViSplit(p);return paSplit(p.en).map((s,i)=>{const w=s.split(/\s+/);const st=w.slice(0,Math.min(2,Math.max(1,w.length-2))).join(' ');return `<div class="pa-sent"><span class="no">${i+1}</span><span class="tx"><b>${H(st)} …</b>${vs?`<small>${H(vs[i])}</small>`:''}</span></div>`;}).join('')+(vs?'':`<p class="pa-vi">${H(p.vi)}</p>`);}
 
-/* Ghi âm dài cho cả đoạn: nghe liên tục tới ~2 phút, tự dừng khi con im ~4,5 giây hoặc đã nói đủ. */
-async function recLong(target,cb,btn,onLive){
-  if(REC.active){REC.active.stop();return;}
-  stopVoice();let stream=null,mr=null,chunks=[],srDone=!SR_API,mrDone=true,finished=false,timer=null,silTimer=null,srErr='',fatal=false,userStop=false,srRunning=false,restarts=0,heardAt=0,dropRec=false,micErr='',liveT=0;
-  const segs=[];let sess=[];const t0=Date.now(),maxMs=Math.min(120000,12000+String(target).length*130);
-  AUDIO_REC=true;iosAudioPause();setAudioSession('play-and-record');
-  const relMic=()=>{try{stream&&stream.getTracks().forEach(t=>t.stop());}catch(e){}stream=null;};
-  const finish=()=>{if(finished||!srDone||!mrDone)return;finished=true;clearTimeout(timer);clearTimeout(silTimer);REC.active=null;if(btn)btn.classList.remove('rec-on');relMic();
-    AUDIO_REC=false;setTimeout(()=>{if(!AUDIO_REC)setAudioSession(IS_IOS?'playback':'auto');},300);
-    const url=chunks.length&&!dropRec?URL.createObjectURL(new Blob(chunks,{type:(mr&&mr.mimeType)||'audio/webm'})):null;
-    const alts=srCandidates(segs.concat(sess));
-    if(!SR_API||(srErr&&!alts.length&&srErr!=='no-speech'&&srErr!=='aborted')){cb({noScore:true,url,error:srErr||micErr});return;}
-    const r=scoreSpeech(target,alts);cb({...r,stars:paStars(r),url});};
-  const endAll=()=>{srDone=true;if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(_){mrDone=true;}}finish();};
-  const stopAll=()=>{userStop=true;clearTimeout(silTimer);if(srRunning){try{sr.stop();}catch(e){srRunning=false;endAll();}}else endAll();};
-  const useRec=typeof MediaRecorder!=='undefined'&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&!(SR_API&&recSeq);
-  if(useRec){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});const mt=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'].find(x=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x));mr=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);mrDone=false;mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};mr.onstop=()=>{mrDone=true;finish();};mr.onerror=()=>{mrDone=true;dropRec=true;finish();};mr.start();}
-    catch(e){micErr=e&&e.name==='NotAllowedError'?'not-allowed':'audio-capture';relMic();if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast(micErr==='not-allowed'?'Con cần cho phép dùng micro để ghi âm nhé!':'Không mở được micro. Con tắt ứng dụng khác đang dùng micro rồi thử lại nhé!');return;}mr=null;mrDone=true;}}
-  else if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast('Thiết bị này chưa hỗ trợ ghi âm. Con mở bằng Chrome nhé!');return;}
-  let sr=null;
-  const cur=()=>scoreSpeech(target,srCandidates(segs.concat(sess)));
-  const startSR=()=>{sr=new SR_API();sr.lang='en-US';sr.interimResults=true;sr.maxAlternatives=3;sr.continuous=true;
-    sr.onresult=e=>{const c=[];for(let i=0;i<e.results.length;i++){const R=e.results[i],a=[];for(let k=0;k<R.length;k++){const tx=String(R[k].transcript||'').trim();if(tx)a.push(tx);}if(a.length)c.push(a);}
-      sess=c;if(!c.length)return;heardAt=Date.now();if(srErr==='no-speech')srErr='';clearTimeout(silTimer);
-      let r=null;if(Date.now()-liveT>350){liveT=Date.now();try{r=cur();onLive&&onLive(r);}catch(_){}}
-      if(r&&r.hit.size>=r.words.length&&r.r>=.95){silTimer=setTimeout(stopAll,900);return;}
-      silTimer=setTimeout(stopAll,4500);};
-    sr.onerror=e=>{const er=e.error||'error';if(er==='no-speech'||er==='aborted'){if(!srErr)srErr=er;return;}
-      if(er==='audio-capture'&&mr&&!heardAt&&!dropRec){dropRec=true;try{if(mr.state!=='inactive')mr.stop();}catch(_){mrDone=true;}relMic();recSeq=true;try{localStorage.setItem('hv_rec_seq','1');}catch(_){}sr._retry=true;return;}
-      srErr=er;if(/not-allowed|service-not-allowed|audio-capture|language-not-supported|network/.test(er))fatal=true;if(er==='not-allowed'&&!mr)toast('Con cần cho phép dùng micro để ghi âm nhé!');};
-    sr.onend=()=>{srRunning=false;if(sess.length){segs.push(...sess);sess=[];}
-      if(sr._retry){sr._retry=false;setTimeout(()=>{if(userStop||finished){endAll();return;}try{sr.start();srRunning=true;}catch(e){srErr='audio-capture';endAll();}},250);return;}
-      const left=maxMs-(Date.now()-t0);
-      if(!userStop&&!fatal&&!finished&&left>1500&&restarts<40&&!(heardAt&&Date.now()-heardAt>4500)){restarts++;try{sr.start();srRunning=true;return;}catch(e){}}
-      if(fatal&&!userStop&&!finished&&mr&&mr.state==='recording'){srDone=true;toast('Con đọc xong thì bấm 🎤 lần nữa để dừng nhé!');return;}
-      endAll();};
-    try{sr.start();srRunning=true;}catch(e){srRunning=false;srDone=true;srErr='start';}};
-  if(SR_API)startSR();
-  if(btn)btn.classList.add('rec-on');sfx.tap();
-  REC.active={stop:stopAll};timer=setTimeout(()=>REC.active&&REC.active.stop(),maxMs);
-  if(srDone&&!mr)finish();}
+/* Ghi âm dài cho cả đoạn: nghe liên tục tới ~2 phút, tự dừng khi con im ~4,5 giây hoặc đã nói đủ.
+   Con chỉ đọc 1 lần: vừa ghi âm vừa chấm (xem recCore trong 94-rec.js). */
+function recLong(target,cb,btn,onLive){
+  const sc=a=>{const r=scoreSpeech(target,a);return {...r,stars:paStars(r)};};
+  return recCore({target,maxMs:Math.min(120000,12000+String(target).length*130),silMs:4500,maxRestarts:40,score:sc,
+    full:r=>r.hit.size>=r.words.length&&r.r>=.95,fullMs:900,onLive,btn,cb:res=>{if(res.pending){toast('⏳ Đang chấm bài đọc của con…');return;}cb(res);}});}
 
 function paResHTML(res,text,mode){if(res.noScore)return recResultHTML(res,text);
   return `<div class="rec-res"><div class="rec-top">${starsHTML(res.stars)}<b>${praiseFor(res.stars)}</b></div><small>Đúng ${res.hit.size}/${res.words.length} từ (${Math.round(res.r*100)}%). Từ xanh: đúng · cam: gần đúng · đỏ: thiếu/sai.</small>${recTips(text,res)}${res.url?`<button class="say-btn" data-play="${res.url}">▶ Nghe lại giọng con</button>`:''}</div>`;}

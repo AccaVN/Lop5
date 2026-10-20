@@ -314,3 +314,18 @@ hoặc “🎲 Hỏi nhanh 5 câu” (câu hỏi ngẫu nhiên từ mọi Unit).
   Lỗi mạng / hết lượt / không có khóa → tự quay về cách chấm trên máy. API: `GET /api/qa/status`, `POST /api/qa/grade` (`src/routes/qa.js`).
 - Sao lưu theo từng câu (`p.qa<unit>.<câu>`), cộng điểm như luyện nói (chỉ cộng khi tốt hơn lần trước). Không cần chạy SQL.
 - Kiểm thử: `node tools/hocthem/test/qa_test.js` (câu mẫu phải đạt 5★, trả lời 1 từ 3★, câu lạc đề ≤ 2★, số Unit khớp app).
+
+## Cập nhật 20/10/2026 (lần 5) — Luyện nói: đọc 1 lần, vừa chấm sao vừa ghi âm
+
+Trước đây trên một số điện thoại Android, con đọc xong app báo “đọc lại một lần nữa” (máy không cho vừa ghi âm vừa nhận dạng),
+và từ đó chỉ chấm sao, không còn ghi âm. Nay con **chỉ đọc 1 lần** (từ, câu, đoạn văn), app vừa chấm vừa giữ bản ghi âm để nghe lại:
+
+1. **Chrome / Edge từ bản 133**: nhận dạng giọng nói nghe từ chính luồng micro đang ghi âm (`SpeechRecognition.start(track)`) — không cần cài gì.
+2. **Máy vẫn không cho dùng chung micro** (trình duyệt cũ, một số máy Android): app giữ bản ghi âm và gửi lên máy chủ nhận dạng
+   (`POST /api/stt`, Google Cloud Speech-to-Text) rồi chấm như bình thường. Cần biến môi trường **`GOOGLE_STT_API_KEY`**
+   (khóa Google Cloud đã bật *Cloud Speech-to-Text API*; nếu khóa `GOOGLE_TTS_API_KEY` đã bật API này thì dùng luôn khóa đó).
+   Chỉ dùng cho học sinh đã đăng nhập, tối đa `STT_DAILY_LIMIT` lần/ngày (mặc định 200). Giá Google khoảng 0,016 USD/phút âm thanh.
+3. Không có khóa và máy không hỗ trợ cách 1: như cũ — lần đầu trên máy đó con phải đọc lại 1 lần, sau đó app chỉ chấm sao, không ghi âm.
+
+App tự nhớ máy thuộc trường hợp nào (`localStorage` khóa `<KEY>_mic`). Mã nguồn: `tools/hocthem/src/94-rec.js` (dùng chung cho
+`recordAndScore` và `recLong`), máy chủ: `src/routes/stt.js`.

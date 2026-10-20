@@ -12,7 +12,7 @@ app.use(express.json());
 // /api/tts (giọng đọc) không dùng bảng dữ liệu nào ngoài cấu hình giọng → KHÔNG chờ kiểm tra schema.
 // Trước đây mỗi lần function khởi động, câu đọc đầu tiên phải chờ Neon "thức dậy" (có thể vài giây).
 app.use('/api', async (req, res, next) => {
-  if (req.path === '/tts' || req.path.startsWith('/tts/') || req.path === '/qa/status') return next();
+  if (req.path === '/tts' || req.path.startsWith('/tts/') || req.path === '/qa/status' || req.path === '/stt/status') return next();
   try { await pool.ensureSchema(); } catch (e) { console.error('ensureSchema:', e.message); }
   next();
 });
@@ -26,6 +26,8 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/x', require('./routes/extra'));
 // 10/2026: Hỏi đáp tiếng Anh — chấm câu trả lời bằng AI nếu có ANTHROPIC_API_KEY (src/routes/qa.js)
 app.use('/api/qa', require('./routes/qa'));
+// 10/2026: nhận dạng giọng nói trên máy chủ cho máy không cho vừa ghi âm vừa nhận dạng (src/routes/stt.js)
+app.use('/api/stt', require('./routes/stt'));
 app.use('/api/tts', require('./routes/tts').router);
 
 app.get('/', (req, res) => res.json({ ok: true, service: 'hocvui-backend' }));
