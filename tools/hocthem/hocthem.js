@@ -2363,8 +2363,603 @@ if(typeof renderEnglish==='function'){const _re2=renderEnglish;renderEnglish=fun
   const ref=[...scr.querySelectorAll('.exam-banner')].pop();if(ref)ref.after(b.firstChild);else{const h=scr.querySelector('.hello');if(h)h.after(b.firstChild);}}}catch(e){}return r;};}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act="htpara"],[data-act="htparahome"]');if(!b)return;e.stopPropagation();sfx.tap();
   if(b.dataset.act==='htparahome'){renderParaHome();return;}const u=b.dataset.u==='x'?'x':+b.dataset.u;renderPara(u,+b.dataset.k||0,0);},true);
+/* ================= HỎI ĐÁP TIẾNG ANH — ngân hàng câu hỏi theo từng Unit =================
+   QA_DATA[lớp][unit] = các câu "câu hỏi|nghĩa|câu mẫu|mẫu khác|từ hợp lệ|hình"
+   – câu mẫu: {…} là chỗ con tự điền; nhiều câu mẫu cách nhau " / " (vd. "Yes, I do. / No, I don't.").
+   – mẫu khác (cách nhau ;): * = chỗ điền 1–5 từ, a/b = một trong các từ, [x] = có hoặc không, "=…" = câu trả lời ngắn (3★).
+   – từ hợp lệ (cách nhau ,): các từ đúng cho chỗ điền; "~" = trả lời tự do. Bỏ trống = chỉ nhận từ trong câu mẫu.
+   – hình: emoji hiện trong bong bóng câu hỏi (cho câu hỏi kiểu “What is it?”).
+   Mạo từ a/an/the được bỏ qua khi chấm; viết tắt (I'm, it's, don't…) tự đổi thành dạng đầy đủ. */
+const QA_NUM='one,two,three,four,five,six,seven,eight,nine,ten,eleven,twelve,thirteen,fourteen,fifteen,sixteen,seventeen,eighteen,nineteen,twenty';
+const QA_COL='red,blue,yellow,green,pink,orange,purple,black,white,brown,grey,violet';
+const QA_MON='january,february,march,april,may,june,july,august,september,october,november,december';
+const QA_DAY='monday,tuesday,wednesday,thursday,friday,saturday,sunday,mondays,tuesdays,wednesdays,thursdays,fridays,saturdays,sundays';
+const QA_YN=(q,vi,a,b)=>`${q}|${vi}|${a} / ${b}||`;
+const QA_DATA={
+/* ---------------- Lớp Lá ---------------- */
+0:[
+ ["Hello! What's your name?|Xin chào! Con tên là gì?|My name is {Nam}.|i am *;name is *|~",
+  "Are you a boy or a girl?|Con là bạn trai hay bạn gái?|I am a {boy}.||boy,girl",
+  "How are you?|Con có khỏe không?|I am {fine}, thank you.|i am *;* thank you|fine,good,great,happy,ok,okay,very well"],
+ ["What colour is it?|Nó màu gì?|It is {red}.|=*||🍎",
+  "What colour is it?|Nó màu gì?|It is {yellow}.|=*||🍌",
+  "What colour do you like?|Con thích màu gì?|I like {blue}.|=*|"+QA_COL],
+ ["How many apples?|Có mấy quả táo?|{Three} apples.|=*;i see * apples;there are * apples||🍎🍎🍎",
+  "How many stars?|Có mấy ngôi sao?|{Five} stars.|=*;i see * stars;there are * stars||⭐⭐⭐⭐⭐",
+  "How many cats?|Có mấy con mèo?|{Two} cats.|=*;i see * cats;there are * cats||🐱🐱"],
+ ["How old are you?|Con mấy tuổi?|I am {six}.|i am * years old;=*|four,five,six,seven",
+  "How many cars?|Có mấy chiếc ô tô?|{Eight} cars.|=*;i see * cars;there are * cars||🚗🚗🚗🚗🚗🚗🚗🚗",
+  "How many fingers?|Có mấy ngón tay?|{Ten} fingers.|=*;i have * fingers||🖐️🖐️"],
+ ["What is it?|Đây là con gì?|It is a {cow}.|=*||🐄",
+  "What is it?|Đây là con gì?|It is a {pig}.|=*||🐷",
+  "What is it?|Đây là con gì?|It is a {duck}.|=*||🦆"],
+ ["What pet do you have?|Con nuôi con vật gì?|I have a {dog}.|=*|cat,dog,fish,bird,rabbit,hamster,turtle,parrot",
+  QA_YN("Do you have a cat?","Con có nuôi mèo không?","Yes, I do.","No, I don't."),
+  "What is it?|Đây là con gì?|It is a {rabbit}.|=*||🐰"],
+ ["What fruit do you like?|Con thích quả gì?|I like {bananas}.|=*|apples,bananas,oranges,mangoes,grapes,apple,banana,orange,mango,grape,watermelon,strawberries",
+  QA_YN("Do you like apples?","Con có thích táo không?","Yes, I do.","No, I don't."),
+  "What is it?|Đây là quả gì?|It is an {orange}.|=*||🍊"],
+ ["What do you want?|Con muốn gì?|{Milk}, please. / I want {milk}.|=*|milk,bread,rice,egg,water,juice,cake",
+  "What is it?|Đây là gì?|It is {bread}.|=*||🍞",
+  QA_YN("Are you hungry?","Con có đói không?","Yes, I am.","No, I am not.")],
+ ["What is it?|Đây là gì?|It is my {nose}.|it is *;=*||👃",
+  "What is it?|Đây là gì?|It is my {ear}.|it is *;=*||👂",
+  "How many eyes do you have?|Con có mấy mắt?|I have {two} eyes.|=*;* eyes|"],
+ ["Who is this?|Đây là ai?|This is my {mom}.|it is my *;=*|mom,mother,mommy,mum,mummy|👩",
+  "Who is this?|Đây là ai?|This is my {grandpa}.|it is my *;=*|grandpa,grandfather,granddad|👴",
+  QA_YN("Do you love your family?","Con có yêu gia đình không?","Yes, I do.","No, I don't.")],
+ ["What is it?|Đây là gì?|It is a {ball}.|=*||⚽",
+  "What toy do you have?|Con có đồ chơi gì?|I have a {doll}.|=*|ball,doll,car,teddy bear,kite,robot,train,yo-yo",
+  QA_YN("Do you have a kite?","Con có cái diều không?","Yes, I do.","No, I don't.")],
+ ["What is it?|Đây là gì?|It is a {pencil}.|this is my *;this is *;=*||✏️",
+  "What is it?|Đây là gì?|It is a {ruler}.|this is my *;this is *;=*||📏",
+  QA_YN("Is this your bag?","Đây có phải cặp của con không?","Yes, it is.","No, it isn't.")],
+ ["What shape is it?|Đây là hình gì?|It is a {circle}.|=*||⭕",
+  "What shape is it?|Đây là hình gì?|It is a {triangle}.|=*||🔺",
+  "What shape is it?|Đây là hình gì?|It is a {star}.|=*||⭐"],
+ ["What animal is it?|Đây là con vật gì?|It is a {lion}.|look *;=*||🦁",
+  "What animal is it?|Đây là con vật gì?|It is an {elephant}.|look *;=*||🐘",
+  QA_YN("Do you like monkeys?","Con có thích khỉ không?","Yes, I do.","No, I don't.")],
+ ["What do you see?|Con nhìn thấy gì?|I see a {bus}.|it is *;=*||🚌",
+  "What do you see?|Con nhìn thấy gì?|I see a {plane}.|it is *;=*|plane,airplane,aeroplane|✈️",
+  "What do you see?|Con nhìn thấy gì?|I see a {bike}.|it is *;=*|bike,bicycle|🚲"],
+ [QA_YN("Can you swim?","Con có biết bơi không?","Yes, I can.","No, I can't."),
+  QA_YN("Can you jump?","Con có nhảy được không?","Yes, I can.","No, I can't."),
+  "What can you do?|Con làm được gì?|I can {run}.|=*|run,jump,swim,sing,dance,draw,read,skip,hop,climb"]],
+
+/* ---------------- Lớp 1 ---------------- */
+1:[
+ ["Hello! What's your name?|Xin chào! Bạn tên là gì?|My name is {Mai}.|i am *;name is *|~",
+  "How are you?|Bạn có khỏe không?|I am {fine}, thank you.|i am *;* thank you|fine,good,great,happy,ok,okay,very well",
+  "What is it?|Đây là gì?|It is a {ball}.|=*||⚽",
+  "What is it?|Đây là gì?|It is a {book}.|=*||📕"],
+ ["What do you have?|Bạn có gì?|I have a {car}.|=*||🚗",
+  "What do you have?|Bạn có gì?|I have a {cake}.|=*||🎂",
+  "What do you have?|Bạn có gì?|I have a {cat}.|=*||🐱",
+  QA_YN("Do you have a cup?","Bạn có cái cốc không?","Yes, I do.","No, I don't.")],
+ ["What is this?|Đây là gì?|This is my {bag}.|it is my *;this is *;=*||👜",
+  "What is this?|Đây là gì?|This is my {hat}.|it is my *;this is *;=*||👒",
+  "What is this?|Đây là gì?|This is my {apple}.|it is my *;this is *;=*||🍎"],
+ ["What is it?|Đây là gì?|It is a {dog}.|=*||🐶",
+  "What is it?|Đây là gì?|It is a {duck}.|=*||🦆",
+  "What is it?|Đây là gì?|It is a {door}.|=*||🚪",
+  "What is it?|Đây là gì?|It is a {desk}.|=*||🗄️"],
+ ["What do you like?|Bạn thích gì?|I like {chips}.|=*|chips,fish,milk,chicken,rice,bread,cake,fruit",
+  QA_YN("Do you like fish?","Bạn có thích cá không?","Yes, I do.","No, I don't."),
+  QA_YN("Do you like milk?","Bạn có thích sữa không?","Yes, I do.","No, I don't.")],
+ ["What is this?|Đây là gì?|This is a {pen}.|it is *;=*||🖊️",
+  "What is this?|Đây là gì?|This is a {pencil}.|it is *;=*||✏️",
+  "What colour is it?|Nó màu gì?|It is {red}.|=*||🔴",
+  "What colour is it?|Nó màu gì?|It is {green}.|=*||🟢"],
+ ["What do you see?|Bạn nhìn thấy gì?|I see a {goat}.|it is *;=*||🐐",
+  "What do you see?|Bạn nhìn thấy gì?|I see a {girl}.|it is *;=*||👧",
+  QA_YN("Do you like the garden?","Bạn có thích khu vườn không?","Yes, I do.","No, I don't.")],
+ ["What is it?|Đây là gì?|It is my {hand}.|it is *;=*|hand,hands|✋",
+  "What do you see?|Bạn nhìn thấy gì?|I see a {horse}.|it is *;=*||🐴",
+  QA_YN("Can you touch your head?","Bạn chạm được vào đầu không?","Yes, I can.","No, I can't.")],
+ ["How many clocks?|Có mấy cái đồng hồ?|{Four} clocks.|=*;i see * clocks;there are * clocks||🕐🕐🕐🕐",
+  "How many locks?|Có mấy cái ổ khóa?|{Two} locks.|=*;i see * locks;there are * locks||🔒🔒",
+  "How many pots?|Có mấy cái nồi?|{Three} pots.|=*;i see * pots;there are * pots||🍲🍲🍲"],
+ ["What's that?|Kia là con gì?|That is a {monkey}.|it is *;=*||🐒",
+  "What's that?|Kia là con gì?|That is a {mouse}.|it is *;=*||🐭",
+  "What's that?|Kia là quả gì?|That is a {mango}.|it is *;=*||🥭"],
+ ["What is it?|Đây là gì?|It is a {bus}.|look at *;=*||🚌",
+  "What is it?|Đây là gì?|It is a {truck}.|look at *;=*||🚚",
+  "What is it?|Đây là gì?|It is the {sun}.|look at *;=*||☀️"],
+ ["What is it?|Đây là gì?|It is a {lemon}.|look at *;=*||🍋",
+  "What is it?|Đây là con gì?|It is a {lion}.|look at *;=*||🦁",
+  "What is it?|Đây là gì?|It is a {leaf}.|look at *;=*||🍃"],
+ ["What is he having?|Bạn ấy đang ăn gì?|He is having {noodles}.|=*||🍜",
+  "What is she having?|Bạn ấy đang ăn gì?|She is having {bananas}.|=*|bananas,banana|🍌",
+  "How many bananas?|Có mấy quả chuối?|{Nine} bananas.|=*;i see * bananas;there are * bananas||🍌🍌🍌🍌🍌🍌🍌🍌🍌"],
+ ["What can you see?|Bạn nhìn thấy gì?|I can see a {teddy bear}.|i see *;it is *;=*|teddy bear,teddy,bear|🧸",
+  "What can you see?|Bạn nhìn thấy gì?|I can see a {tiger}.|i see *;it is *;=*||🐯",
+  "What can you see?|Bạn nhìn thấy gì?|I can see a {turtle}.|i see *;it is *;=*|turtle,tortoise|🐢"],
+ [QA_YN("Do you like football?","Bạn có thích bóng đá không?","Yes, I do.","No, I don't."),
+  "What is it?|Đây là gì?|It is my {foot}.|it is *;=*|foot,feet|🦶",
+  "Who is this?|Đây là ai?|This is my {father}.|it is my *;=*|father,dad,daddy|👨"],
+ ["How many windows?|Có mấy cái cửa sổ?|{Three} windows.|=*;i see * windows;there are * windows||🪟🪟🪟",
+  QA_YN("Do you like water?","Bạn có thích nước không?","Yes, I do.","No, I don't."),
+  "What is it?|Đây là gì?|It is my {bed}.|this is my *;it is *;=*||🛏️"]],
+
+/* ---------------- Lớp 2 ---------------- */
+2:[
+ ["What food do you like?|Bạn thích món gì?|I like {pizza}.|=*|pizza,popcorn,pasta,cake,chicken,chips,ice cream,noodles,rice,bread",
+  QA_YN("Do you like popcorn?","Bạn có thích bỏng ngô không?","Yes, I do.","No, I don't."),
+  "How old are you?|Bạn mấy tuổi?|I am {seven} years old.|i am *;=*|six,seven,eight"],
+ ["What do you have?|Bạn có gì?|I have a {kite}.|=*||🪁",
+  "What do you have?|Bạn có gì?|I have a {bike}.|=*|bike,bicycle|🚲",
+  "What can you see?|Bạn nhìn thấy gì?|I can see a {kitten}.|i see *;=*|kitten,cat|🐱"],
+ ["What can you see?|Bạn nhìn thấy gì?|I can see the {sea}.|i see *;=*|sea,ocean|🌊",
+  "What can you see?|Bạn nhìn thấy gì?|I can see the {sand}.|i see *;=*|sand,beach|🏖️",
+  QA_YN("Is the sun hot?","Mặt trời có nóng không?","Yes, it is.","No, it isn't.")],
+ ["What can you see?|Bạn nhìn thấy gì?|I can see a {rainbow}.|i see *;=*||🌈",
+  "Is the rabbit big or small?|Con thỏ to hay nhỏ?|It is {small}.|rabbit is *;=*|small,little|🐇",
+  QA_YN("Is the road long?","Con đường có dài không?","Yes, it is.","No, it isn't.")],
+ ["What shape is it?|Đây là hình gì?|It is a {square}.|=*||🟥",
+  QA_YN("Can I ask a question?","Tớ hỏi một câu được không?","Yes, you can.","No, you can't."),
+  QA_YN("Do you like quizzes?","Bạn có thích câu đố không?","Yes, I do.","No, I don't.")],
+ ["What can you see?|Bạn nhìn thấy gì?|I can see a {fox}.|i see *;=*||🦊",
+  "How many ducks can you see?|Bạn thấy mấy con vịt?|I can see {six} ducks.|i see * ducks;* ducks;=*||🦆🦆🦆🦆🦆🦆",
+  "Where is the fox?|Con cáo ở đâu?|It is in the {box}.|fox is in *;=in *|box|🦊📦"],
+ ["What do you want?|Bạn muốn gì?|I want some {juice}.|=*|juice,jelly,jam,milk,water,bread,cake",
+  "Do you want some jam?|Bạn có muốn ăn mứt không?|Yes, please. / No, thank you.|yes i do;no i do not;no thanks|",
+  QA_YN("Do you like jelly?","Bạn có thích thạch không?","Yes, I do.","No, I don't.")],
+ [QA_YN("Do you play volleyball?","Bạn có chơi bóng chuyền không?","Yes, I do.","No, I don't."),
+  "What can you see?|Bạn nhìn thấy gì?|I can see a {van}.|i see *;=*||🚐",
+  "What do you play?|Bạn chơi nhạc cụ gì?|I play the {violin}.|=*|violin,piano,guitar,drums|🎻"],
+ ["What do you want?|Bạn muốn gì?|I want some {yogurt}.|=*|yogurt,yoghurt,yams,juice,milk,bread,apples",
+  "What colour is it?|Nó màu gì?|It is {yellow}.|=*||🍋",
+  QA_YN("Do you like yo-yos?","Bạn có thích yo-yo không?","Yes, I do.","No, I don't.")],
+ ["What can you see?|Bạn nhìn thấy gì?|I can see a {zebra}.|i see *;=*||🦓",
+  "What colour is the zebra?|Con ngựa vằn màu gì?|It is {black and white}.|zebra is *;=*|black and white,white and black",
+  QA_YN("Do you like the zoo?","Bạn có thích sở thú không?","Yes, I do.","No, I don't.")],
+ [QA_YN("Can you ride a bike?","Bạn có biết đi xe đạp không?","Yes, I can.","No, I can't."),
+  QA_YN("Can you drive a car?","Bạn có biết lái ô tô không?","Yes, I can.","No, I can't."),
+  "What can you do?|Bạn làm được gì?|I can {ride a bike}.|=*|~"],
+ ["What would you like?|Bạn muốn ăn gì?|I'd like some {grapes}.|i want *;=*|grapes,cake,juice,milk,ice cream,bread,apples,water",
+  "Would you like a cake?|Bạn có muốn ăn bánh không?|Yes, please. / No, thank you.|yes i would;no thanks|",
+  "Where do you sit?|Bạn ngồi ở đâu?|I sit at the {table}.|at *;=*|table,desk"],
+ ["How many pens do you have?|Bạn có bao nhiêu cái bút?|I have {eleven} pens.|* pens;=*|~",
+  "What is ten and two?|Mười cộng hai bằng mấy?|It is {twelve}.|ten and two is *;=*|",
+  QA_YN("Can you count to fifteen?","Bạn đếm được đến mười lăm không?","Yes, I can.","No, I can't.")],
+ ["Who is this?|Đây là ai?|This is my {brother}.|it is my *;=*||👦",
+  "Who is this?|Đây là ai?|This is my {grandmother}.|it is my *;=*|grandmother,grandma,granny|👵",
+  QA_YN("Do you love your family?","Bạn có yêu gia đình không?","Yes, I do.","No, I don't.")],
+ ["What do you want?|Bạn muốn mua gì?|I want a {shirt}.|=*|shirt,t-shirt|👕",
+  QA_YN("Do you like this dress?","Bạn có thích chiếc váy này không?","Yes, I do.","No, I don't."),
+  "What are these?|Đây là những gì?|They are {shoes}.|these are *;=*||👟👟"],
+ ["What is it?|Đây là gì?|It is a {tent}.|this is my *;=*||⛺",
+  QA_YN("Do you like camping?","Bạn có thích cắm trại không?","Yes, I do.","No, I don't."),
+  QA_YN("Do you have a blanket?","Bạn có chăn không?","Yes, I do.","No, I don't.")]],
+
+/* ---------------- Lớp 3 ---------------- */
+3:[
+ ["What's your name?|Bạn tên là gì?|My name is {Rosy}.|i am *;name is *|~",
+  "How old are you?|Bạn bao nhiêu tuổi?|I am {eight}.|i am * years old;=*|seven,eight,nine",
+  "What colour is it?|Nó màu gì?|It is {green}.|=*||🍏",
+  "How are you?|Bạn có khỏe không?|I am {fine}, thank you.|i am *;* thank you|fine,good,great,happy,ok,okay,very well"],
+ [QA_YN("Is this your doll?","Đây có phải búp bê của bạn không?","Yes, it is.","No, it isn't."),
+  "What is this?|Đây là gì?|This is my {train}.|it is *;this is *;=*||🚂",
+  "What toys do you have?|Bạn có đồ chơi gì?|I have a {ball}.|=*|ball,doll,bike,kite,train,teddy bear,car,robot,yo-yo",
+  "What's your favourite toy?|Đồ chơi yêu thích của bạn là gì?|My favourite toy is my {teddy bear}.|it is *;i like *;=*|~"],
+ [QA_YN("Is that his ruler?","Kia có phải thước kẻ của bạn ấy không?","Yes, it is.","No, it isn't."),
+  "What's in your bag?|Trong cặp của bạn có gì?|I have a {book} in my bag.|there is * in my bag;i have *;=*|~",
+  "What colour is your pen?|Bút của bạn màu gì?|My pen is {blue}.|it is *;=*|"+QA_COL],
+ ["Where is the cat?|Con mèo ở đâu?|The cat is on the {table}.|it is on *;=on *||🐱⬆️🪑",
+  "Where is the ball?|Quả bóng ở đâu?|The ball is in the {box}.|it is in *;=in *||⚽📦",
+  "Where is the dog?|Con chó ở đâu?|The dog is under the {bed}.|it is under *;=under *||🐶⬇️🛏️"],
+ ["Nice to meet you!|Rất vui được gặp bạn!|Nice to meet you, too.|nice to meet you;=me too|",
+  "What do red and white make?|Đỏ và trắng pha thành màu gì?|Red and white make {pink}.|it is *;they make *;=*|",
+  "What do blue and yellow make?|Xanh dương và vàng pha thành màu gì?|Blue and yellow make {green}.|it is *;they make *;=*|"],
+ [QA_YN("Do you like monkeys?","Bạn có thích khỉ không?","Yes, I do.","No, I don't."),
+  "What animals do you like?|Bạn thích con vật nào?|I like {monkeys}.|=*|~",
+  QA_YN("Is the giraffe tall?","Con hươu cao cổ có cao không?","Yes, it is.","No, it isn't."),
+  "Is the elephant big or little?|Con voi to hay nhỏ?|It is {big}.|elephant is *;=*|big,very big"],
+ [QA_YN("Do you like carrots?","Bạn có thích cà rốt không?","Yes, I do.","No, I don't."),
+  QA_YN("Do you like meat?","Bạn có thích thịt không?","Yes, I do.","No, I don't."),
+  "What food do you like?|Bạn thích món gì?|I like {fish}.|=*|~",
+  QA_YN("Do you eat healthy food?","Bạn có ăn đồ ăn tốt cho sức khỏe không?","Yes, I do.","No, I don't.")],
+ ["What colour are your eyes?|Mắt bạn màu gì?|My eyes are {black}.|they are *;=*|black,brown,blue,green,grey",
+  QA_YN("Do you have long hair?","Tóc bạn có dài không?","Yes, I do.","No, I don't."),
+  QA_YN("Do you have curly hair?","Tóc bạn có xoăn không?","Yes, I do.","No, I don't."),
+  "Is your best friend tall?|Bạn thân của bạn có cao không?|Yes, he is. / No, he isn't.|yes she is;no she is not;yes he is tall;no he is short|"],
+ [QA_YN("Do you like fish?","Bạn có thích cá không?","Yes, I do.","No, I don't."),
+  "How many legs does an insect have?|Côn trùng có mấy chân?|An insect has {six} legs.|it has * legs;* legs;=*|",
+  "What does a bird have?|Con chim có gì?|A bird has {feathers}.|it has *;=*|feathers,wings,two legs"],
+ ["What are you wearing?|Bạn đang mặc gì?|I'm wearing a {T-shirt}.|i am wearing *;=*|~",
+  "What colour is your T-shirt?|Áo phông của bạn màu gì?|My T-shirt is {white}.|it is *;=*|"+QA_COL,
+  QA_YN("Are you wearing jeans?","Bạn có đang mặc quần bò không?","Yes, I am.","No, I'm not.")],
+ ["What are you doing?|Bạn đang làm gì?|I'm {reading}.|=*|~",
+  QA_YN("Are you dancing?","Bạn có đang nhảy múa không?","Yes, I am.","No, I'm not."),
+  "What is your dad doing?|Bố bạn đang làm gì?|He is {washing the car}.|=*|~"],
+ [QA_YN("Can you ride a bike?","Bạn có biết đi xe đạp không?","Yes, I can.","No, I can't."),
+  QA_YN("Can you swim?","Bạn có biết bơi không?","Yes, I can.","No, I can't."),
+  "What can you do?|Bạn làm được gì?|I can {run}.|=*|~",
+  QA_YN("Can a bird fly?","Con chim có bay được không?","Yes, it can.","No, it can't.")],
+ [QA_YN("May I take a photo?","Tớ chụp ảnh được không?","Yes, you may.","No, you may not."),
+  QA_YN("May I open the window?","Tớ mở cửa sổ được không?","Yes, you may.","No, you may not."),
+  QA_YN("Is this an old car?","Đây có phải chiếc ô tô cũ không?","Yes, it is.","No, it isn't.")],
+ ["What's on the bed?|Trên giường có gì?|There's a {pillow} on the bed.|there is *;=*|pillow,doll,teddy bear,book,cat|🛏️🧸",
+  "How many books are there?|Có bao nhiêu quyển sách?|There are {three} books.|* books;=*||📚📕📗",
+  QA_YN("Is there a lamp in your room?","Phòng bạn có đèn không?","Yes, there is.","No, there isn't.")],
+ ["What are these?|Đây là những gì?|These are {computers}.|they are *;those are *;=*|computers,computer|💻💻",
+  QA_YN("Are those your pencils?","Kia có phải bút chì của bạn không?","Yes, they are.","No, they aren't."),
+  QA_YN("Is this your chair?","Đây có phải ghế của bạn không?","Yes, it is.","No, it isn't.")],
+ ["What are you wearing today?|Hôm nay bạn mặc gì?|I'm wearing {new shoes}.|i am wearing *;=*|~",
+  "What do you see with?|Bạn nhìn bằng gì?|I see with my {eyes}.|with my *;=*|eyes,eye",
+  "What do you hear with?|Bạn nghe bằng gì?|I hear with my {ears}.|with my *;=*|ears,ear",
+  QA_YN("May I go on the swing?","Tớ chơi xích đu được không?","Yes, you may.","No, you may not.")]],
+
+/* ---------------- Lớp 4 ---------------- */
+4:[
+ ["Where are you from?|Bạn đến từ đâu?|I'm from {Viet Nam}.|=*|~",
+  "Where is she from?|Bạn ấy đến từ đâu?|She's from {Japan}.|she is from *;=*||👧🇯🇵",
+  "What's your name?|Bạn tên là gì?|My name is {Mai}.|i am *;name is *|~",
+  "Nice to meet you!|Rất vui được gặp bạn!|Nice to meet you, too.|nice to meet you;=me too|"],
+ ["What time is it?|Mấy giờ rồi?|It's {seven o'clock}.|=*|seven oclock,seven|🕖",
+  "What time do you get up?|Bạn thức dậy lúc mấy giờ?|I get up at {six}.|=at *;=*|~",
+  "What time do you go to school?|Bạn đi học lúc mấy giờ?|I go to school at {seven}.|=at *;=*|~",
+  "What time do you go to bed?|Bạn đi ngủ lúc mấy giờ?|I go to bed at {nine thirty}.|=at *;=*|~"],
+ ["What day is it today?|Hôm nay là thứ mấy?|It's {Monday}.|today is *;=*|"+QA_DAY,
+  "What do you do on Sundays?|Bạn làm gì vào Chủ nhật?|I {listen to music} on Sundays.|=*|~",
+  QA_YN("Do you go to school on Saturdays?","Bạn có đi học vào thứ Bảy không?","Yes, I do.","No, I don't.")],
+ ["When's your birthday?|Sinh nhật bạn vào khi nào?|It's in {June}.|my birthday is in *;=in *;=*|"+QA_MON,
+  "What do you want at your party?|Bạn muốn ăn gì ở bữa tiệc?|I want some {chips}.|=*|~",
+  "Would you like some lemonade?|Bạn có muốn uống nước chanh không?|Yes, please. / No, thank you.|yes i would;no thanks|"],
+ ["What can you do?|Bạn làm được gì?|I can {swim}.|=*|~",
+  QA_YN("Can you ride a horse?","Bạn có biết cưỡi ngựa không?","Yes, I can.","No, I can't."),
+  QA_YN("Can you play the guitar?","Bạn có biết chơi ghi-ta không?","Yes, I can.","No, I can't."),
+  "What can your best friend do?|Bạn thân của bạn làm được gì?|He can {dance}.|she can *;=*|~"],
+ [QA_YN("Is there a garden at your school?","Trường bạn có vườn không?","Yes, there is.","No, there isn't."),
+  "Where is the library?|Thư viện ở đâu?|It's on the {second} floor.|library is on *;=on * floor;=*|~",
+  QA_YN("Is your school big?","Trường bạn có to không?","Yes, it is.","No, it isn't.")],
+ ["What subjects do you have today?|Hôm nay bạn có môn gì?|I have {Maths and English}.|we have *;=*|~",
+  "What's your favourite subject?|Môn học yêu thích của bạn là gì?|My favourite subject is {Art}.|i like *;it is *;=*|maths,english,art,science,music,vietnamese,pe,it,history,geography",
+  "When do you have English?|Bạn học tiếng Anh vào hôm nào?|I have English on {Mondays}.|we have english on *;=on *;=*|"+QA_DAY,
+  "What do you want to be?|Bạn muốn làm nghề gì?|I want to be a {teacher}.|=*|~"],
+ ["When's sports day?|Ngày hội thể thao vào khi nào?|It's in {November}.|sports day is in *;=in *;=*|"+QA_MON,
+  "What are you doing?|Bạn đang làm gì?|I'm {running}.|=*|~",
+  "What are they doing?|Họ đang làm gì?|They're playing {football}.|=*|football,soccer|⚽"],
+ ["Where were you last summer?|Hè năm ngoái bạn ở đâu?|I was at the {beach}.|i was in *;=at *;=in *|~",
+  "What did you do there?|Bạn đã làm gì ở đó?|I {built sandcastles}.|we *;=*|~",
+  QA_YN("Did you take photos?","Bạn có chụp ảnh không?","Yes, I did.","No, I didn't.")],
+ ["Where do you live?|Bạn sống ở đâu?|I live in the {city}.|i live on *;i live at *;=*|~",
+  "What's your street like?|Đường phố nhà bạn thế nào?|It's {busy}.|my street is *;=*|busy,quiet,big,small,noisy,beautiful,long,narrow,wide,crowded,clean",
+  "Do you live in a house or a flat?|Bạn sống ở nhà riêng hay căn hộ?|I live in a {house}.|=*|house,flat,apartment"],
+ ["What does your father do?|Bố bạn làm nghề gì?|He's a {farmer}.|he works *;=*|~",
+  "What does your mother do?|Mẹ bạn làm nghề gì?|She's a {nurse}.|she works *;=*|~",
+  "Where does a nurse work?|Y tá làm việc ở đâu?|She works in a {hospital}.|=in *;=*|hospital,clinic",
+  "What do you want to be?|Bạn muốn làm nghề gì?|I want to be a {teacher}.|=*|~"],
+ ["What does your mother look like?|Mẹ bạn trông thế nào?|She's {tall and slim}.|she has *;=*|~",
+  "What does your best friend look like?|Bạn thân của bạn trông thế nào?|He's {short}.|she is *;he has *;she has *;=*|~",
+  "Who is taller, you or your brother?|Ai cao hơn, bạn hay anh/em trai bạn?|{My brother} is taller than me.|* taller;=*|~",
+  QA_YN("Do you have big eyes?","Mắt bạn có to không?","Yes, I do.","No, I don't.")],
+ ["What do you do in the morning?|Buổi sáng bạn làm gì?|I {do morning exercise}.|=*|~",
+  "What do you do in the evening?|Buổi tối bạn làm gì?|I {watch TV} in the evening.|=*|~",
+  "What do you do on Sundays?|Chủ nhật bạn làm gì?|We {go to the swimming pool} on Sundays.|i * on sundays;=*|~"],
+ ["What's the weather like today?|Hôm nay thời tiết thế nào?|It's {sunny}.|=*|sunny,rainy,cloudy,windy,hot,cold,warm,cool,snowy,stormy,foggy",
+  QA_YN("Is it hot today?","Hôm nay trời có nóng không?","Yes, it is.","No, it isn't."),
+  "Where is the post office?|Bưu điện ở đâu?|It's next to the {bookshop}.|it is *;go *;turn *;=*|~"],
+ ["How much is the T-shirt?|Áo phông giá bao nhiêu?|It's {seventy thousand} dong.|it is *;=*|~|👕 70.000đ",
+  "What do you want to buy?|Bạn muốn mua gì?|I want to buy a {jacket}.|i want *;=*|~",
+  "Can I help you?|Tôi giúp gì được bạn?|Yes, I want a {T-shirt}.|i want *;i would like *;=*|~"],
+ ["What animal is it?|Đây là con vật gì?|It's a {kangaroo}.|=*||🦘",
+  "What can a monkey do?|Con khỉ làm được gì?|It can {climb}.|monkey can *;=*|~",
+  "What are they doing?|Họ đang làm gì?|They're putting up a {tent}.|=*|tent|⛺",
+  "What animal do you like?|Bạn thích con vật nào?|I like {elephants}.|=*|~"]],
+
+/* ---------------- Lớp 5 ---------------- */
+5:[
+ ["Can you tell me about yourself?|Bạn kể về bản thân được không?|I'm {Nam}. I'm in Class 5A.|i am *;my name is *;i live in *;i am in class *|~",
+  "What class are you in?|Bạn học lớp nào?|I'm in Class {5C}.|=class *;=*|~",
+  "What's your favourite animal?|Con vật yêu thích của bạn là gì?|It's the {dolphin}.|my favourite animal is *;i like *;=*|~",
+  "What's your favourite colour?|Màu yêu thích của bạn là gì?|My favourite colour is {pink}.|it is *;i like *;=*|"+QA_COL],
+ ["What's your address?|Địa chỉ nhà bạn là gì?|It's {15 Ba Dinh Street}.|my address is *;i live at *;i live on *|~",
+  "Do you live in a house or a flat?|Bạn sống ở nhà riêng hay căn hộ?|I live in a {house}.|=*|house,flat,apartment,building",
+  QA_YN("Do you live near the school?","Nhà bạn có gần trường không?","Yes, I do.","No, I don't."),
+  "Do you live in the city or the countryside?|Bạn sống ở thành phố hay nông thôn?|I live in the {city}.|=*|city,countryside,town,village"],
+ ["What nationality is he?|Bạn ấy quốc tịch gì?|He's {Australian}.|he is from *;=*||👦🇦🇺",
+  "What nationality is she?|Bạn ấy quốc tịch gì?|She's {Japanese}.|she is from *;=*||👧🇯🇵",
+  "What nationality are you?|Bạn quốc tịch gì?|I'm {Vietnamese}.|i am from *;=*|vietnamese,viet nam,vietnam",
+  "What's your best friend like?|Bạn thân của bạn là người thế nào?|He's {clever and helpful}.|she is *;=*|~"],
+ ["What do you like doing in your free time?|Lúc rảnh bạn thích làm gì?|I like {watching cartoons}.|i love *;=*|~",
+  "What do you do at the weekend?|Cuối tuần bạn làm gì?|I often {play table tennis}.|i usually *;i sometimes *;i always *;=*|~",
+  QA_YN("Do you like surfing the Internet?","Bạn có thích lướt mạng không?","Yes, I do.","No, I don't.")],
+ ["What would you like to be in the future?|Sau này bạn muốn làm nghề gì?|I'd like to be a {firefighter}.|i want to be *;=*|~",
+  "Why would you like to be a teacher?|Vì sao bạn muốn làm giáo viên?|Because I'd like to {teach children}.|because *;i would like to *;=*|~",
+  "What would your best friend like to be?|Bạn thân của bạn muốn làm nghề gì?|She'd like to be a {reporter}.|he would like to be *;he wants to be *;she wants to be *;=*|~"],
+ ["Where's the computer room?|Phòng máy tính ở đâu?|It's on the {third} floor.|computer room is on *;=on *;=*|~",
+  "Where's the music room?|Phòng âm nhạc ở đâu?|It's on the {first} floor.|music room is on *;=on *;=*|~",
+  "Could you tell me the way to the library?|Bạn chỉ đường đến thư viện giúp tôi?|Go along the corridor. / Go upstairs to the second floor.|go *;turn *;it is *|~",
+  "How many floors does your school have?|Trường bạn có mấy tầng?|It has {three} floors.|my school has *;* floors;=*|~"],
+ ["What school activity do you like?|Bạn thích hoạt động nào ở trường?|I like {reading books}.|=*|~",
+  "Why do you like reading books?|Vì sao bạn thích đọc sách?|Because I think it's {interesting}.|because *;i think it is *;it is *;=*|~",
+  QA_YN("Do you like doing projects?","Bạn có thích làm dự án không?","Yes, I do.","No, I don't.")],
+ ["Where are the crayons?|Bút sáp màu ở đâu?|They're beside the {books}.|they are *;=*|~|🖍️📚",
+  "Where are the maps?|Những tấm bản đồ ở đâu?|They're above the {board}.|they are *;=*|~",
+  "Whose glue stick is this?|Thỏi keo này của ai?|It's {Mai's}.|it is *;=*|~"],
+ ["Were you at the aquarium yesterday?|Hôm qua bạn có ở thủy cung không?|Yes, I was. / No, I wasn't.|yes we were;no we were not|",
+  "What did you do yesterday?|Hôm qua bạn đã làm gì?|I {watched the fish}.|we *;=*|~",
+  "Where were you last weekend?|Cuối tuần trước bạn ở đâu?|I was at the {campsite}.|we were at *;i was in *;we were in *;=at *;=in *|~"],
+ [QA_YN("Did you go to Ba Na Hills?","Bạn có đi Bà Nà không?","Yes, I did.","No, I didn't."),
+  "What did you do on your school trip?|Bạn đã làm gì trong chuyến đi của trường?|We {planted trees}.|i *;they *;=*|~",
+  "When was your school trip?|Chuyến đi của trường bạn vào khi nào?|It was in {December}.|our school trip was in *;=in *;=*|~"],
+ ["Did you buy souvenirs?|Bạn có mua quà lưu niệm không?|Yes, I did. I bought a {hat}. / No, I didn't.|yes i did;i bought *|~",
+  "What did your family do last summer?|Hè năm ngoái gia đình bạn đã làm gì?|We {took a boat trip}.|i *;=*|~",
+  "When did you go to Ha Long Bay?|Bạn đi Vịnh Hạ Long khi nào?|We went there {last summer}.|i went there *;i went *;we went *;=*|~"],
+ [QA_YN("Will you decorate the house for Tet?","Bạn có trang trí nhà đón Tết không?","Yes, I will.","No, I won't."),
+  "Where will you go at Tet?|Tết bạn sẽ đi đâu?|I'll go to the {flower festival}.|we will go to *;=to *;=*|~",
+  "What will you do at Tet?|Tết bạn sẽ làm gì?|We'll {make banh chung}.|i will *;=*|~"],
+ ["What will you do at the Mid-Autumn Festival?|Tết Trung thu bạn sẽ làm gì?|We'll {carry lanterns and eat mooncakes}.|i will *;=*|~",
+  "What food will you have at the party?|Ở bữa tiệc bạn sẽ ăn gì?|We'll have {burgers and pizza}.|i will have *;=*|~",
+  "What drinks will you have at the party?|Ở bữa tiệc bạn sẽ uống gì?|We'll have {apple juice}.|i will have *;=*|~"],
+ ["How do you stay healthy?|Bạn giữ sức khỏe bằng cách nào?|I {do morning exercise}.|=*|~",
+  "How often do you play sports?|Bạn chơi thể thao bao lâu một lần?|I play sports {three times a week}.|=*|~",
+  QA_YN("Do you eat healthy food?","Bạn có ăn đồ ăn tốt cho sức khỏe không?","Yes, I do.","No, I don't."),
+  "How does your father stay healthy?|Bố bạn giữ sức khỏe bằng cách nào?|He {goes jogging}.|=*|~"],
+ ["What's the matter?|Bạn bị làm sao thế?|I have a {headache}.|=*|headache,toothache,stomach ache,sore throat,fever,cold,cough,earache,backache|🤕",
+  "I have a toothache. What should I do?|Tôi bị đau răng. Tôi nên làm gì?|You should {go to the dentist}.|=*|~",
+  "I have a sore throat. What should I do?|Tôi bị đau họng. Tôi nên làm gì?|You should {drink warm water}.|=*|~"],
+ ["What's the weather like in summer?|Mùa hè thời tiết thế nào?|It's {hot} in summer.|it is *;=*|hot,sunny,warm,very hot,rainy",
+  "What do you usually wear in winter?|Mùa đông bạn thường mặc gì?|I wear {a jumper and jeans}.|i usually wear *;=*|~",
+  "What's your favourite season?|Mùa yêu thích của bạn là gì?|My favourite season is {spring}.|i like *;it is *;=*|spring,summer,autumn,fall,winter"],
+ ["Who are the main characters in The Hare and the Tortoise?|Nhân vật chính trong truyện Thỏ và Rùa là ai?|They're the {hare and the tortoise}.|=*|~",
+  "How did the hare run?|Con thỏ chạy thế nào?|He ran {fast}.|it ran *;=*|fast,quickly,very fast",
+  QA_YN("Do you like reading stories?","Bạn có thích đọc truyện không?","Yes, I do.","No, I don't."),
+  "What's your favourite story?|Câu chuyện yêu thích của bạn là gì?|My favourite story is {Snow White}.|i like *;it is *;=*|~"],
+ ["How do you go to school?|Bạn đến trường bằng gì?|I go to school {by bike}.|i go *;=by *;=on foot;=*|~",
+  "Where do you want to visit?|Bạn muốn đến thăm nơi nào?|I want to visit {Dragon Bridge}.|i would like to visit *;=*|~",
+  "How can I get to the zoo?|Tôi đến sở thú bằng cách nào?|You can get there {by bus}.|you can go *;=by *;=on foot|~"],
+ ["What do you think of Ba Na Hills?|Bạn nghĩ gì về Bà Nà?|I think it's {beautiful}.|it is *;=*|~",
+  "What do you think of the old buildings?|Bạn nghĩ gì về những tòa nhà cổ?|I think they're {fantastic}.|they are *;=*|~",
+  "Which place do you want to visit?|Bạn muốn đến thăm nơi nào?|I want to visit {Phu Quoc Island}.|i would like to visit *;=*|~"],
+ ["Where are you going to visit this summer?|Hè này bạn định đi đâu?|I'm going to visit {Phu Quoc Island}.|i will visit *;i want to visit *;=*|~",
+  "What are you going to do this summer?|Hè này bạn định làm gì?|I'm going to {go camping}.|i will *;=*|~",
+  QA_YN("Are you going to join a music club?","Bạn có định tham gia câu lạc bộ âm nhạc không?","Yes, I am.","No, I'm not.")]]
+};
+/* ================= HỎI ĐÁP TIẾNG ANH: máy hỏi – con trả lời – máy chấm =================
+   Mỗi Unit có vài câu hỏi (QA_DATA trong 92-qa-data.js). App đọc câu hỏi bằng giọng tiếng Anh, con trả lời bằng giọng nói
+   (hoặc gõ), app chấm 1–5 sao theo mẫu câu: trả lời đúng ý bằng cả câu → 5★, chỉ nói 1 từ → 3★, lạc đề → 1★.
+   Máy chủ có ANTHROPIC_API_KEY (src/routes/qa.js) thì câu trả lời được chấm thêm bằng AI: hiểu câu tự do, sửa ngữ pháp,
+   nhận xét bằng tiếng Việt. Không có mạng / không có khóa → vẫn chấm trên máy như bình thường. */
+const QA_CSS=`
+html body .en-tools .tool-btn.ht-qa{background:#0F766E;color:#fff;border-color:transparent}
+html body .en-tools .tool-btn.ht-qa small{color:#CCFBF1}
+.qa-page{padding-bottom:30px}
+.qa-page .lead{margin:2px 0 8px;color:var(--muted);font-weight:700}
+.qa-dots{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.qa-dots button{min-width:34px;height:34px;border-radius:12px;border:2px solid var(--line);background:var(--card);font:inherit;font-weight:800;font-size:14px;color:var(--ink);cursor:pointer}
+.qa-dots button.on{border-color:#0F766E;background:#0F766E;color:#fff}
+.qa-dots button.ok{border-color:#16A34A}
+.qa-ask{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px}
+.qa-ask .owl{flex:none;font-size:44px;line-height:1}
+.qa-bub{flex:1;min-width:0;background:var(--card);border:2px solid var(--line);border-radius:4px 18px 18px 18px;padding:12px 14px}
+.qa-bub .pic{font-size:40px;line-height:1.2;margin:0 0 6px;letter-spacing:2px;overflow-wrap:anywhere}
+.qa-bub .q{font-size:21px;font-weight:800;line-height:1.35;margin:0}
+.qa-bub .q.hid{color:var(--muted);font-size:16px}
+.qa-bub .vi{margin:6px 0 0;color:var(--muted);font-weight:600;font-size:14px}
+.qa-bub .ex{margin:8px 0 0;padding:8px 10px;border-radius:12px;background:var(--soft);font-weight:700;font-size:15px}
+.qa-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.qa-tools button{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font:inherit;font-weight:800;font-size:14px;color:var(--ink);cursor:pointer}
+.qa-big{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 12px}
+.qa-big .rec-btn{font-size:21px;padding:12px 26px}
+.qa-live{min-height:22px;font-weight:700;color:var(--muted);text-align:center;font-size:15px}
+.qa-type{display:flex;gap:6px;width:100%}
+.qa-type[hidden]{display:none}
+.qa-type input{flex:1;min-width:0;border:2px solid var(--line);border-radius:14px;padding:10px 12px;font:inherit;font-size:17px;background:var(--card);color:var(--ink)}
+.qa-type button{border:0;border-radius:14px;background:#0F766E;color:#fff;font:inherit;font-weight:800;padding:0 16px}
+.qa-res{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:12px 14px;margin:0 0 12px}
+.qa-res .rec-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.qa-res .heard{color:var(--muted);font-size:14px;font-weight:600;margin:0 0 6px}
+.qa-res .fb{font-weight:700;margin:0 0 8px;line-height:1.45}
+.qa-res .better{display:flex;align-items:center;gap:8px;background:#ECFDF5;border-radius:12px;padding:8px 10px;font-weight:800;color:#065F46}
+.qa-res .better b{flex:1;min-width:0}
+.qa-res .ai{margin-top:8px;font-size:13px;color:var(--muted);font-weight:700}
+.qa-sum{display:grid;gap:6px;margin:8px 0 14px}
+.qa-sum div{display:flex;gap:8px;align-items:center;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 10px;font-weight:700}
+.qa-sum div span{flex:1;min-width:0}
+`;
+const qaEl=document.createElement('style');qaEl.id='ht-qa';qaEl.textContent=QA_CSS;document.head.appendChild(qaEl);
+window.addEventListener('load',()=>document.head.appendChild(qaEl));
+
+/* ---------- dữ liệu ---------- */
+/* mỗi câu: "câu hỏi|nghĩa|câu mẫu có {chỗ trống}|mẫu khác;mẫu khác|từ hợp lệ"
+   – mẫu khác viết thường, * = chỗ con tự điền (1–5 từ), a/b = một trong các từ, [x] = có hoặc không,
+     mẫu bắt đầu bằng "=" là câu trả lời ngắn (chấm 3★).
+   – từ hợp lệ: danh sách từ cho chỗ trống, "~" = câu trả lời tự do (tên, số nhà…) */
+const qaS=()=>{S.qa=S.qa||{};return S.qa;};
+const qaSt=u=>{const Q=qaS();return Q[u]||(Q[u]={});};
+function qaParse(s,u,i){const p=String(s).split('|');const exs=String(p[2]||'').split(/\s+\/\s+/);const ex=exs[0];const m=ex.match(/\{([^}]*)\}/);
+  const words=(p[4]||'').trim();const open=words==='~';
+  const W=open?[]:words.split(',').map(x=>x.trim()).filter(Boolean);if(m&&!open)W.push(m[1]);
+  return {u,i,q:p[0],vi:p[1]||'',ex,exs,show:ex.replace(/[{}]/g,''),alts:(p[3]||'').split(';').map(x=>x.trim()).filter(Boolean),words:W,open,pic:(p[5]||'').trim()};}
+function qaList(u){const L=(typeof QA_DATA!=='undefined'&&QA_DATA[GRADE]||[])[u]||[];return L.map((s,i)=>qaParse(s,u,i));}
+function qaUnits(){const n=typeof EN_UNITS!=='undefined'?EN_UNITS.length:0;const out=[];for(let u=0;u<n;u++)if(qaList(u).length)out.push(u);return out;}
+function qaUnitCount(u){const L=qaList(u),st=qaSt(u);let d=0;L.forEach((_,i)=>{if((st[i]||0)>=3)d++;});return[d,L.length];}
+function qaAllCount(){let d=0,t=0;qaUnits().forEach(u=>{const[a,b]=qaUnitCount(u);d+=a;t+=b;});return[d,t];}
+
+/* ---------- chấm trên máy ---------- */
+const QA_FILL=new Set(['um','uh','er','erm','hmm','ah','oh','well','so','okay','ok','yeah']);
+const QA_ART=new Set(['a','an','the']);
+const QA_SP={favorite:'favourite',favorites:'favourites',color:'colour',colors:'colours',gray:'grey',mom:'mum',mommy:'mummy',theater:'theatre',center:'centre',meter:'metre',meters:'metres',kilometers:'kilometres',kilometer:'kilometre',practice:'practise',traveling:'travelling'};
+/* viết tắt normEn chưa tách (we'll → "well", she'd → "shed"…) */
+const qaUnc=t=>String(t||'').replace(/[’‘`´]/g,"'").replace(/\b(i|you|he|she|it|we|they|that|there)'ll\b/gi,'$1 will').replace(/\bwon't\b/gi,'will not')
+  .replace(/\b(you|he|she|we|they)'d\b/gi,'$1 would').replace(/\b(i|you|we|they)'ve\b/gi,'$1 have').replace(/\b(did|was|were|has|have|had|would|should|could|must)n't\b/gi,'$1 not');
+/* normEn bỏ "am" (hiểu là a.m.) → giữ lại để phân biệt "I am" */
+function qaNorm(t){return normEn(qaUnc(t).replace(/\bam\b/gi,'qqam')).map(w=>w==='qqam'?'am':QA_SP[w]||w).filter(w=>!QA_ART.has(w));}
+function qaClean(t){const w=qaNorm(t);while(w.length&&QA_FILL.has(w[0]))w.shift();return w;}
+const qaStem=w=>w.length>4&&/ies$/.test(w)?w.slice(0,-3)+'y':w.length>3&&/(s|x|ch|sh)es$/.test(w)?w.slice(0,-2):w.length>2&&/s$/.test(w)&&!/ss$/.test(w)?w.slice(0,-1):w;
+/* mẫu → danh sách token {slot} | {opt, alts:[[từ…]…]} */
+const QA_TPL=new Map();
+function qaTpl(t){if(QA_TPL.has(t))return QA_TPL.get(t);const out=[];
+  String(t).replace(/[{][^}]*[}]/g,'*').replace(/[.,!?]/g,' ').split(/\s+/).filter(Boolean).forEach(raw=>{
+    if(raw==='*'){out.push({slot:true});return;}
+    const opt=/^\[.*\]$/.test(raw);const inner=opt?raw.slice(1,-1):raw;
+    const alts=inner.split('/').map(a=>qaNorm(a.replace(/_/g,' '))).filter(a=>a.length);
+    if(alts.length)out.push({opt,alts});});
+  QA_TPL.set(t,out);return out;}
+/* tìm mọi cách khớp mẫu P với một đoạn liên tiếp của câu A (bắt đầu tại s) */
+function qaMatchAt(P,A,s){const res=[];
+  const go=(pi,ai,slot)=>{if(res.length>40)return;if(pi===P.length){res.push({end:ai,slot});return;}
+    const t=P[pi];
+    if(t.slot){for(let k=1;k<=5&&ai+k<=A.length;k++)go(pi+1,ai+k,slot.concat([A.slice(ai,ai+k)]));return;}
+    if(t.opt)go(pi+1,ai,slot);
+    t.alts.forEach(seq=>{let ok=ai+seq.length<=A.length;for(let k=0;ok&&k<seq.length;k++)if(qaStem(A[ai+k])!==qaStem(seq[k]))ok=false;if(ok)go(pi+1,ai+seq.length,slot);});};
+  go(0,s,[]);return res;}
+function qaMatch(tpl,A){const P=qaTpl(tpl);if(!P.length)return null;let best=null;
+  for(let s=0;s<A.length;s++)qaMatchAt(P,A,s).forEach(m=>{const span=m.end-s;const sc=span*2-(s>0?1:0)+(m.end===A.length?1:0);if(!best||sc>best.sc)best={sc,start:s,end:m.end,slot:m.slot};});
+  return best;}
+function qaWordOk(it,seg){if(it.open)return true;const set=new Set(it.words.map(w=>qaNorm(w).map(qaStem).join(' ')));
+  const toks=seg.map(qaStem);for(let a=0;a<toks.length;a++)for(let b=a+1;b<=toks.length;b++)if(set.has(toks.slice(a,b).join(' ')))return true;return false;}
+function qaKnown(it,A){if(it.open||!it.words.length)return null;const set=it.words.map(w=>qaNorm(w).map(qaStem));const T=A.map(qaStem);
+  for(const w of set)for(let a=0;a+w.length<=T.length;a++)if(w.every((x,k)=>T[a+k]===x))return A.slice(a,a+w.length);return null;}
+function qaLcs(a,b){const m=a.length,n=b.length;if(!m||!n)return 0;let pr=new Array(n+1).fill(0);for(let i=1;i<=m;i++){const cu=[0];for(let k=1;k<=n;k++)cu[k]=qaStem(a[i-1])===qaStem(b[k-1])?pr[k-1]+1:Math.max(pr[k],cu[k-1]);pr=cu;}return pr[n];}
+/* điền từ của con vào câu mẫu (viết hoa nếu chỗ trống trong câu mẫu viết hoa: tên riêng, thứ, tháng) */
+const qaFill=(it,seg,ti)=>{const base=it.exs[ti>0&&ti<it.exs.length?ti:0];const m=base.match(/\{([^}]*)\}/);if(!seg||!m)return base.replace(/[{}]/g,'');
+  const up=/^[A-Z]/.test(m[1]);return base.replace(m[0],seg.map(w=>up?w[0].toUpperCase()+w.slice(1):w).join(' '));};
+const qaSent=t=>{t=qaCap(String(t).replace(/\s+/g,' ').trim());return /[.!?]$/.test(t)?t:t+'.';};
+const qaCap=s=>{s=String(s).trim();return s?s[0].toUpperCase()+s.slice(1):s;};
+const qaYN=it=>/^(yes|no)\b/i.test(it.ex);
+/* chấm 1 câu trả lời (chuỗi) → {stars, fb, better, heard} */
+function qaGrade1(it,text){const A=qaClean(text);if(!A.length)return {stars:0,heard:''};
+  const full=it.exs.concat(it.alts.filter(a=>a[0]!=='='));const short=it.alts.filter(a=>a[0]==='=').map(a=>a.slice(1));
+  let best=null;
+  full.forEach((t,ti)=>{const m=qaMatch(t,A);if(!m)return;const seg=m.slot[m.slot.length-1]||null;const okW=!m.slot.length||m.slot.every(sg=>qaWordOk(it,sg));
+    const cov=(m.end-m.start)/A.length;if(qaTpl(t).filter(x=>!x.slot).length<2&&cov<.6)return;const sc=(okW?10:8)+cov;if(!best||sc>best.sc)best={sc,kind:okW?'full':'fullUnk',seg,ti};});
+  if(!best){short.forEach(t=>{const m=qaMatch(t,A);if(!m||(it.open&&m.slot.length&&A.length>3))return;const seg=m.slot[m.slot.length-1]||null;if(m.slot.length&&!m.slot.every(sg=>qaWordOk(it,sg)))return;
+      const cov=(m.end-m.start)/A.length;if(cov<.5)return;const sc=5+cov;if(!best||sc>best.sc)best={sc,kind:'short',seg};});}
+  if(!best){const kw=qaKnown(it,A);
+    if(kw&&A.length<=kw.length+1)best={kind:'short',seg:kw};
+    else if(qaYN(it)&&A.length<=2&&/^(yes|no)$/.test(A[0]))best={kind:'short',seg:null,yn:A[0]};
+    else if(it.open&&A.length<=3&&!qaYN(it))best={kind:'short',seg:A};
+    else{const T=qaTpl(it.ex).filter(t=>!t.slot).map(t=>t.alts[0]).flat();
+      const l=qaLcs(A,T),r=l/Math.max(T.length,1),ra=l/A.length;
+      best={kind:r>=.6&&ra>=.5&&A.length>=2?'near':kw||(r>=.3&&ra>=.25)?'topic':'off',seg:kw};}}
+  const yi=best.yn?Math.max(0,it.exs.findIndex(x=>x.toLowerCase().startsWith(best.yn))):best.ti;
+  const better=best.kind==='full'?qaSent(text):best.kind==='fullUnk'?it.show:qaCap(qaFill(it,best.seg,yi));
+  const stars={full:5,fullUnk:3,short:3,near:3,topic:2,off:1}[best.kind];
+  const fb={full:'Con trả lời đúng ý và nói được cả câu. Giỏi lắm!',fullUnk:'Con nói đúng mẫu câu rồi, nhưng từ con chọn chưa đúng. Con nghe câu đúng nhé.',
+    short:'Con trả lời đúng ý rồi! Lần sau con thử nói cả câu nhé.',near:'Gần đúng rồi! Con nói lại theo câu mẫu cho đủ từ nhé.',
+    topic:'Con đã hiểu câu hỏi. Con nghe câu mẫu rồi trả lời lại cả câu nhé.',off:'Câu trả lời chưa khớp với câu hỏi. Con nghe lại câu hỏi và câu mẫu nhé.'}[best.kind];
+  return {stars,fb,better,heard:text,kind:best.kind};}
+function qaGrade(it,alts){let best={stars:0,heard:''};(alts||[]).slice(0,40).forEach(t=>{const r=qaGrade1(it,t);if(r.stars>best.stars||(r.stars===best.stars&&r.stars&&t.length<best.heard.length))best=r;});
+  if(!best.stars&&alts&&alts[0])best={...qaGrade1(it,alts[0])};return best;}
+
+/* ---------- chấm bằng AI (máy chủ) ---------- */
+let QA_AI=null;// null = chưa hỏi, true/false
+function qaAiCheck(){if(QA_AI!==null||!LOGGED())return;QA_AI=false;fetch(API_BASE+'/qa/status').then(r=>r.json()).then(d=>{QA_AI=!!(d&&d.ai);}).catch(()=>{QA_AI=null;});}
+function qaAiGrade(it,answer,alts){const U=typeof EN_UNITS!=='undefined'?EN_UNITS[it.u]:null;
+  const p=apiPost('/qa/grade',{grade:GRADE,topic:U?U.t:'',question:it.q,samples:it.exs.map(x=>x.replace(/[{}]/g,'')),answer,alts:(alts||[]).slice(1,4)});
+  return Promise.race([p,new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),12000))]);}
+
+/* ---------- nghe câu trả lời (chỉ nhận dạng, tự dừng khi con im ~2,5 giây) ---------- */
+function qaListen(cb,btn,onLive){
+  if(REC.active){REC.active.stop();return;}
+  if(!SR_API){cb({alts:[],error:'no-sr'});return;}
+  stopVoice();AUDIO_REC=true;iosAudioPause();setAudioSession('play-and-record');
+  const segs=[];let sess=[],finished=false,userStop=false,running=false,fatal=false,restarts=0,heardAt=0,err='',sil=null,tm=null;const t0=Date.now(),maxMs=16000;
+  const sr=new SR_API();sr.lang='en-US';sr.interimResults=true;sr.maxAlternatives=5;sr.continuous=true;
+  const done=()=>{if(finished)return;finished=true;clearTimeout(sil);clearTimeout(tm);REC.active=null;if(btn)btn.classList.remove('rec-on');
+    AUDIO_REC=false;setTimeout(()=>{if(!AUDIO_REC)setAudioSession(IS_IOS?'playback':'auto');},300);
+    const alts=srCandidates(segs.concat(sess));cb({alts,error:alts.length?'':(err||'no-speech')});};
+  const stop=()=>{userStop=true;clearTimeout(sil);if(running){try{sr.stop();}catch(e){running=false;done();}}else done();};
+  sr.onresult=e=>{const cur=[];for(let i=0;i<e.results.length;i++){const R=e.results[i],a=[];for(let k=0;k<R.length;k++){const tx=String(R[k].transcript||'').trim();if(tx)a.push(tx);}if(a.length)cur.push(a);}
+    sess=cur;if(!cur.length)return;heardAt=Date.now();try{onLive&&onLive(segs.concat(cur).map(a=>a[0]).join(' '));}catch(_){}clearTimeout(sil);sil=setTimeout(stop,2500);};
+  sr.onerror=e=>{const er=e.error||'error';if(er==='no-speech'||er==='aborted'){if(!err)err=er;return;}err=er;
+    if(/not-allowed|service-not-allowed|audio-capture|language-not-supported|network/.test(er))fatal=true;};
+  sr.onend=()=>{running=false;if(sess.length){segs.push(...sess);sess=[];}
+    if(!userStop&&!fatal&&!finished&&Date.now()-t0<maxMs-1000&&restarts<8&&!(heardAt&&Date.now()-heardAt>2500)){restarts++;try{sr.start();running=true;return;}catch(e){}}
+    done();};
+  try{sr.start();running=true;}catch(e){err='start';done();return;}
+  if(btn)btn.classList.add('rec-on');sfx.tap();REC.active={stop};tm=setTimeout(stop,maxMs);}
+const qaWhy=e=>e==='no-sr'?'Trình duyệt này chưa nghe được giọng nói. Con mở bằng Chrome hoặc Safari, hoặc bấm ⌨️ để gõ câu trả lời nhé.':e==='no-speech'||e==='aborted'||!e?'App chưa nghe thấy con nói. Con bấm 🎤 rồi nói to, rõ hơn nhé.':(typeof recWhy==='function'&&recWhy(e))||'Chưa nghe được. Con thử lại hoặc bấm ⌨️ để gõ câu trả lời nhé.';
+
+/* ---------- màn hỏi đáp ---------- */
+let QA_RUN=null;// {u, list, k, res:[], hint:Set}
+function qaStart(u){const list=u==='x'?qaQuick():qaList(u);if(!list.length){toast('Chưa có câu hỏi cho bài này.');return;}QA_RUN={u,list,k:0,res:[],hint:new Set()};qaAiCheck();renderQa();}
+function qaQuick(){const pool=[];qaUnits().forEach(u=>qaList(u).forEach(it=>pool.push(it)));for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}return pool.slice(0,5);}
+function qaAsk(it){speak([['en',it.q]]);}
+function renderQa(){stopVoice();stopRec();const R=QA_RUN;if(!R)return;const it=R.list[R.k];const U=EN_UNITS[it.u];const hide=!!S.qaHide;const canType=GRADE>=1;
+  const dots=R.list.map((x,j)=>{const r=R.res[j];return `<button data-j="${j}" class="${j===R.k?'on':''}${r&&r.stars>=3?' ok':''}">${r?r.stars+'★':j+1}</button>`;}).join('');
+  app.innerHTML=`<div class="screen"><div class="page qa-page"><div class="voc-head"><button class="icon-btn" id="qaBack" aria-label="Quay lại">✕</button><h1>💬 Hỏi đáp tiếng Anh</h1></div>
+    <p class="lead">${R.u==='x'?'🎲 Hỏi nhanh 5 câu':H(U.lab+': '+U.t)}</p><div class="qa-dots">${dots}</div>
+    <div class="qa-ask"><div class="owl" aria-hidden="true">🦉</div><div class="qa-bub">${it.pic?`<div class="pic" aria-hidden="true">${H(it.pic)}</div>`:''}
+      <p class="q${hide?' hid':''}" id="qaQ">${hide?'🎧 Con nghe câu hỏi rồi trả lời nhé':H(it.q)}</p><div id="qaMore"></div>
+      <div class="qa-tools"><button id="qaSay">🔊 Nghe lại</button>${hide?'<button id="qaShow">👀 Xem chữ</button>':''}<button id="qaVi">🇻🇳 Nghĩa</button><button id="qaHint">💡 Gợi ý</button></div></div></div>
+    <div class="qa-big"><button class="rec-btn" id="qaRec">🎤 Trả lời</button><div class="qa-live" id="qaLive">Bấm 🎤 rồi trả lời bằng tiếng Anh, nói cả câu nhé.</div>
+      ${canType?`<button class="btn btn-soft" id="qaTypeBtn" style="margin:0">⌨️ Gõ câu trả lời</button><div class="qa-type" id="qaType" hidden><input id="qaIn" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Type your answer…"><button id="qaSend">Gửi</button></div>`:''}</div>
+    <div id="qaRes">${R.res[R.k]?qaResHTML(R.res[R.k],it):''}</div>
+    <div class="voc-nav"><button class="btn btn-soft" id="qaPrev" ${R.k===0?'disabled':''}>◀ Câu trước</button><button class="btn ${R.res[R.k]?'btn-go':'btn-soft'}" id="qaNext">${R.k<R.list.length-1?'Câu tiếp ▶':'Xong ✓'}</button></div>
+    <label style="display:flex;gap:8px;align-items:center;font-weight:700;color:var(--muted);font-size:14px"><input type="checkbox" id="qaHideCk" ${hide?'checked':''}> Ẩn chữ câu hỏi (chỉ nghe)</label>
+  </div></div>`;
+  const back=()=>{stopRec();stopVoice();QA_RUN=null;renderQaHome();};$('#qaBack').onclick=back;
+  app.querySelectorAll('.qa-dots [data-j]').forEach(b=>b.onclick=()=>{sfx.tap();R.k=+b.dataset.j;renderQa();});
+  $('#qaSay').onclick=()=>qaAsk(it);
+  if($('#qaShow'))$('#qaShow').onclick=()=>{const q=$('#qaQ');q.textContent=it.q;q.classList.remove('hid');$('#qaShow').remove();};
+  const more=$('#qaMore');
+  $('#qaVi').onclick=()=>{if(!more.querySelector('.vi'))more.insertAdjacentHTML('afterbegin',`<p class="vi">${H(it.vi)}</p>`);};
+  $('#qaHint').onclick=()=>{R.hint.add(R.k);if(!more.querySelector('.ex')){more.insertAdjacentHTML('beforeend',`<p class="ex">💡 ${H(it.show)}</p>`);speak([['en',it.show]]);}};
+  $('#qaHideCk').onchange=e=>{S.qaHide=e.target.checked;save();renderQa();};
+  $('#qaPrev').onclick=()=>{if(R.k>0){R.k--;renderQa();}};
+  $('#qaNext').onclick=()=>{stopRec();if(R.k<R.list.length-1){R.k++;renderQa();}else renderQaSum();};
+  const live=$('#qaLive'),btn=$('#qaRec');
+  btn.onclick=()=>{if(REC.active){REC.active.stop();return;}btn.textContent='🎙️ Đang nghe';live.textContent='🎙️ Con nói đi…';
+    qaListen(r=>{btn.textContent='🎤 Trả lời lại';if(!r.alts.length){live.textContent=qaWhy(r.error);sfx.bad();return;}live.textContent='';qaJudge(it,r.alts);},btn,t=>{live.textContent='🎙️ '+t;});};
+  if(canType){$('#qaTypeBtn').onclick=()=>{$('#qaType').hidden=false;$('#qaTypeBtn').remove();$('#qaIn').focus();};
+    const send=()=>{const v=$('#qaIn').value.trim();if(!v){toast('Con gõ câu trả lời trước nhé!');return;}qaJudge(it,[v],true);};
+    $('#qaSend').onclick=send;$('#qaIn').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();send();}};}
+  if(!R.res[R.k])setTimeout(()=>{if(QA_RUN===R&&R.list[R.k]===it)qaAsk(it);},250);}
+
+function qaResHTML(r,it){if(r.pending)return `<div class="qa-res"><p class="heard">Con nói: “${H(r.heard)}”</p><p class="fb">🤖 Đang chấm…</p></div>`;
+  return `<div class="qa-res"><div class="rec-top">${starsHTML(r.stars)}<b>${praiseFor(r.stars)}</b></div>
+    <p class="heard">${r.typed?'Con viết':'App nghe được'}: “${H(r.heard)}”</p><p class="fb">${H(r.fb)}</p>
+    ${r.better?`<div class="better"><b>${r.stars>=5&&!r.ai?'✓ ':'👉 '}${H(r.better)}</b><button class="spk" data-qasay="${H(r.better)}" aria-label="Nghe câu mẫu">🔊</button></div>`:''}
+    ${r.ai?'<div class="ai">🤖 Được chấm bằng AI</div>':r.hint?'<div class="ai">💡 Con đã xem gợi ý nên tối đa 4★.</div>':''}</div>`;}
+
+async function qaJudge(it,alts,typed){const R=QA_RUN;const k=R.k;let r=qaGrade(it,alts);r.typed=!!typed;
+  const box=$('#qaRes');const useAi=QA_AI===true&&LOGGED()&&r.heard;
+  if(useAi&&box){box.innerHTML=qaResHTML({pending:true,heard:r.heard},it);
+    try{const a=await qaAiGrade(it,r.heard,alts);if(a&&a.stars){const sameBetter=qaNorm(a.better).join(' ')===qaNorm(r.heard).join(' ');
+      r={...r,stars:a.stars,fb:a.feedback_vi||r.fb,better:sameBetter&&a.stars>=5?'':(a.better||r.better),ai:true};}}catch(e){}}
+  if(R.hint.has(k)&&r.stars>4){r.stars=4;r.hint=true;}
+  const prevRun=R.res[k];if(!prevRun||r.stars>=prevRun.stars)R.res[k]=r;
+  if(QA_RUN!==R||R.k!==k||!$('#qaRes'))return;
+  $('#qaRes').innerHTML=qaResHTML(r,it);
+  const st=qaSt(it.u);const prev=st[it.i]||0;if(r.stars>prev){st[it.i]=r.stars;addSpeakPoints(r.stars-prev,`p.qa${it.u}.${it.i}`,r.stars);save();}
+  r.stars>=3?sfx.ok():sfx.bad();if(r.stars>=5&&typeof confetti==='function')confetti();
+  const say=[['en',praiseFor(r.stars).replace(/[^\x20-\x7E]/g,'').trim()]];if(r.better&&r.stars<5)say.push(['en',r.better]);speak(say,{silent:true});
+  const d=app.querySelector(`.qa-dots [data-j="${k}"]`);if(d){d.textContent=R.res[k].stars+'★';d.classList.toggle('ok',R.res[k].stars>=3);}
+  const nx=$('#qaNext');if(nx){nx.classList.add('btn-go');nx.classList.remove('btn-soft');}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-qasay]');if(!b)return;e.stopPropagation();speak([['en',b.dataset.qasay]]);},true);
+
+function renderQaSum(){stopVoice();const R=QA_RUN;if(!R)return;const tot=R.res.reduce((s,r)=>s+(r?r.stars:0),0),max=R.list.length*5;const pct=tot/max;
+  if(pct>=.8){sfx.win();if(typeof confetti==='function')confetti();}
+  app.innerHTML=`<div class="screen"><div class="page qa-page"><div class="voc-head"><button class="icon-btn" id="qaBack" aria-label="Quay lại">✕</button><h1>💬 Kết quả hỏi đáp</h1></div>
+    <section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>${pct>=.8?'Excellent! 🌟':pct>=.6?'Great job! ⭐':'Good try! 💪'}</b><br>Con được ${tot}/${max} sao.</div></section>
+    <div class="qa-sum">${R.list.map((it,j)=>{const r=R.res[j];return `<div><span>${H(it.q)}<br><small style="color:var(--muted)">${r?'“'+H(r.heard)+'”':'Chưa trả lời'}</small></span>${r?starsHTML(r.stars):''}</div>`;}).join('')}</div>
+    <button class="btn btn-go" id="qaAgain">🔁 Làm lại</button><button class="btn btn-soft" id="qaHome">Tất cả bài hỏi đáp</button><button class="btn btn-soft" id="qaEn">Về trang English</button></div></div>`;
+  $('#qaBack').onclick=$('#qaHome').onclick=()=>{QA_RUN=null;renderQaHome();};
+  $('#qaAgain').onclick=()=>qaStart(R.u);$('#qaEn').onclick=()=>{QA_RUN=null;renderEnglish();};}
+
+/* ---------- danh sách bài ---------- */
+function renderQaHome(){stopVoice();stopRec();qaAiCheck();const[d,t]=qaAllCount();
+  const rows=qaUnits().map(u=>{const U=EN_UNITS[u];const[a,b]=qaUnitCount(u);const st=qaSt(u);const s=qaList(u).reduce((x,_,i)=>x+(st[i]||0),0);
+    return `<button class="ht-row" data-act="htqa" data-u="${u}"><span class="n">${u+1}</span><span class="tx"><b>${H(U.lab)}: ${H(U.t)}</b><small>${b} câu hỏi · đã đạt ${a}/${b}</small><span class="ht-bar" style="--c:#0F766E"><i style="width:${b?Math.round(s/(b*5)*100):0}%"></i></span></span><span class="go">›</span></button>`;}).join('');
+  app.innerHTML=`<div class="screen notebook nogrid ht-list" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>Hỏi đáp tiếng Anh</b><br>Cú Bông hỏi bằng tiếng Anh, con trả lời bằng tiếng Anh (nói cả câu). App chấm ngay và gợi ý câu đúng. Đã đạt ${d}/${t} câu.</div></section>
+    <div class="page ht-page"><button class="exam-banner" data-act="htqa" data-u="x" style="--c:#0F766E;--cd:#115E59;width:100%;margin:0 0 12px"><span class="eb-ic">🎲</span><span><b>Hỏi nhanh 5 câu</b><small>Câu hỏi ngẫu nhiên từ mọi Unit</small></span><span class="eb-go">›</span></button>${rows}
+    <button class="btn btn-soft" id="qaEn">Về trang English</button></div></div>${tabbar('en')}`;
+  $('#qaEn').onclick=()=>renderEnglish();}
+
+/* nút ở mỗi Unit + banner ở trang English */
+{const _et=enTools;enTools=function(u){let h=_et.apply(this,arguments);try{if(qaList(u).length){const[a,b]=qaUnitCount(u);h=h.replace(/<\/div>\s*$/,`<button class="tool-btn ht-qa" data-act="htqa" data-u="${u}">💬 Hỏi đáp <small>${a}/${b}</small></button></div>`);}}catch(e){}return h;};}
+if(typeof renderEnglish==='function'){const _re3=renderEnglish;renderEnglish=function(){const r=_re3.apply(this,arguments);try{const scr=document.getElementById('scr');if(scr&&!scr.querySelector('.ht-qa-banner')&&qaUnits().length){const[d,t]=qaAllCount();const b=document.createElement('div');
+  b.innerHTML=`<button class="exam-banner ht-qa-banner" data-act="htqahome" style="--c:#0F766E;--cd:#115E59"><span class="eb-ic">💬</span><span><b>Hỏi đáp tiếng Anh</b><small>Cú Bông hỏi, con trả lời bằng tiếng Anh · ${d}/${t} câu</small></span><span class="eb-go">›</span></button>`;
+  const ref=[...scr.querySelectorAll('.exam-banner')].pop();if(ref)ref.after(b.firstChild);else{const h=scr.querySelector('.hello');if(h)h.after(b.firstChild);}}}catch(e){}return r;};}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act="htqa"],[data-act="htqahome"]');if(!b)return;e.stopPropagation();sfx.tap();
+  if(b.dataset.act==='htqahome'){renderQaHome();return;}qaStart(b.dataset.u==='x'?'x':+b.dataset.u);},true);
 /* màn hình đầu tiên đã vẽ trước khi lớp này chạy → vẽ lại để có tab Tư duy và các mục mới */
 try{if(document.querySelector('#scr')&&document.querySelector('.tab[data-t="map"].on'))renderHome();
   else{const tb=document.querySelector('nav.tabbar');if(tb){const on=tb.querySelector('.tab.on');const t=on?on.dataset.t:'';const d=document.createElement('div');d.innerHTML=tabbar(t);if(d.firstElementChild)tb.replaceWith(d.firstElementChild);}}}catch(e){}
-window.HT={TDG,TD_ALL,TD_LA,KC,tdBuild,tdMake,kcFor,kcForChapter,bankQs,cardForQ,GRADE,similarQ,polyomino,MG,PLAN,renderTd,startTd,renderPara,renderParaHome,paList,paSt,paSplit,pcS,PARA};
+window.HT={TDG,TD_ALL,TD_LA,KC,tdBuild,tdMake,kcFor,kcForChapter,bankQs,cardForQ,GRADE,similarQ,polyomino,MG,PLAN,renderTd,startTd,renderPara,renderParaHome,paList,paSt,paSplit,pcS,PARA,QA_DATA,qaList,qaGrade,qaStart,renderQaHome};
 })();

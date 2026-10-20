@@ -292,3 +292,22 @@ node tools/hocthem/test/gen_test.js 500             # kiểm thử bộ sinh đ�
   Sao được cộng điểm như luyện nói cũ (khóa `p.pa…`, `p.ps…`, `p.pc…`), không cần đổi máy chủ.
 - Kiểm thử: `node tools/hocthem/test/gen_test.js 150`, `node tools/hocthem/test/math_test.js 15`,
   `python3 tools/hocthem/test/ui_new.py <URL> <email> <mk> <thư mục ảnh>` (giả lập nhận dạng giọng nói).
+
+## Cập nhật 20/10/2026 (lần 4) — 💬 Hỏi đáp tiếng Anh
+
+Cú Bông **hỏi bằng tiếng Anh**, con **trả lời bằng tiếng Anh** (nói vào micro, hoặc bấm ⌨️ để gõ từ lớp 1 trở lên),
+app **chấm 1–5 sao** và gợi ý câu đúng. Vào từ banner “💬 Hỏi đáp tiếng Anh” ở trang English, nút “💬 Hỏi đáp” ở mỗi Unit,
+hoặc “🎲 Hỏi nhanh 5 câu” (câu hỏi ngẫu nhiên từ mọi Unit).
+
+- **Câu hỏi**: 3–4 câu mỗi Unit, bám theo câu mẫu của Unit (tổng cả 6 lớp ~340 câu), có nghĩa tiếng Việt, gợi ý câu mẫu,
+  hình minh họa cho câu “What is it?”. Có chế độ **ẩn chữ câu hỏi** để con luyện nghe.
+  Nguồn: `tools/hocthem/src/92-qa-data.js` (một file cho cả 6 lớp, cách viết ghi ở đầu file); giao diện và bộ chấm: `93-qa.js`.
+- **Chấm trên máy** (luôn chạy, miễn phí, không cần mạng): so câu trả lời với mẫu câu — đúng ý và nói cả câu → 5★,
+  chỉ nói 1 từ / gần đúng / đúng mẫu nhưng sai từ → 3★, đúng chủ đề nhưng chưa trả lời → 2★, lạc đề → 1★.
+  Tha lỗi giọng Việt hay gặp (bỏ qua a/an/the, I'm = I am, favorite = favourite, số 8 = eight…). Xem gợi ý thì tối đa 4★.
+- **Chấm bằng AI (tùy chọn)**: thêm biến môi trường `ANTHROPIC_API_KEY` (khóa Claude API tại console.anthropic.com) trên Vercel.
+  Khi có khóa, câu trả lời của học sinh đã đăng nhập được Claude chấm thêm: hiểu câu trả lời tự do, sửa lỗi ngữ pháp,
+  nhận xét bằng tiếng Việt và viết lại câu đúng giữ ý của con. Mỗi học sinh tối đa `QA_DAILY_LIMIT` lượt/ngày (mặc định 150).
+  Lỗi mạng / hết lượt / không có khóa → tự quay về cách chấm trên máy. API: `GET /api/qa/status`, `POST /api/qa/grade` (`src/routes/qa.js`).
+- Sao lưu theo từng câu (`p.qa<unit>.<câu>`), cộng điểm như luyện nói (chỉ cộng khi tốt hơn lần trước). Không cần chạy SQL.
+- Kiểm thử: `node tools/hocthem/test/qa_test.js` (câu mẫu phải đạt 5★, trả lời 1 từ 3★, câu lạc đề ≤ 2★, số Unit khớp app).

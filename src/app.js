@@ -12,7 +12,7 @@ app.use(express.json());
 // /api/tts (giọng đọc) không dùng bảng dữ liệu nào ngoài cấu hình giọng → KHÔNG chờ kiểm tra schema.
 // Trước đây mỗi lần function khởi động, câu đọc đầu tiên phải chờ Neon "thức dậy" (có thể vài giây).
 app.use('/api', async (req, res, next) => {
-  if (req.path === '/tts' || req.path.startsWith('/tts/')) return next();
+  if (req.path === '/tts' || req.path.startsWith('/tts/') || req.path === '/qa/status') return next();
   try { await pool.ensureSchema(); } catch (e) { console.error('ensureSchema:', e.message); }
   next();
 });
@@ -24,6 +24,8 @@ app.use('/api/parent', (req, res) => res.status(410).json({ error: 'Không còn 
 app.use('/api/admin', require('./routes/admin'));
 // 10/2026: báo câu sai, quà bố mẹ đặt, xếp hạng tuần / chăm chỉ (src/routes/extra.js)
 app.use('/api/x', require('./routes/extra'));
+// 10/2026: Hỏi đáp tiếng Anh — chấm câu trả lời bằng AI nếu có ANTHROPIC_API_KEY (src/routes/qa.js)
+app.use('/api/qa', require('./routes/qa'));
 app.use('/api/tts', require('./routes/tts').router);
 
 app.get('/', (req, res) => res.json({ ok: true, service: 'hocvui-backend' }));
