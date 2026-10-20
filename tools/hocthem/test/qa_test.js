@@ -25,8 +25,8 @@ for(const g of [0,1,2,3,4,5]){const D=c.QA_DATA[g];if(!Array.isArray(D)){bad('th
       if(/^(yes|no)\b/i.test(it.ex)){const r=c.qaGrade(it,['yes']);if(r.stars!==3)bad(tag,'"yes" →',r.stars+'★');}
       OFF.forEach((o,k)=>{const r=c.qaGrade(it,[o]);if(r.stars>(k?3:2)&&!it.open)bad(tag,'lạc đề mà được',r.stars+'★',o);});
       const e=c.qaGrade(it,['']);if(e.stars!==0)bad(tag,'câu rỗng',e.stars);});});}
-// trường hợp cụ thể
-const G=(g,u,i,ans)=>{c.GRADE=g;const it=c.qaList(u)[i];c.GRADE=MYG;return c.qaGrade(it,[ans]);};
+// trường hợp cụ thể — chấm chặt: thiếu/sai a/an/the, thiếu/thừa s cuối, nghe nhầm từ đều không được 5★
+const G=(g,u,i,ans)=>{c.GRADE=g;const it=c.qaList(u)[i];c.GRADE=MYG;return c.qaGrade(it,Array.isArray(ans)?ans:[ans]);};
 const want=(g,u,i,ans,stars,better)=>{const r=G(g,u,i,ans);n++;if(r.stars!==stars||(better&&r.better!==better))bad(`lớp ${g} u${u} c${i}`,JSON.stringify(ans),'→',r.stars+'★',r.better,'(cần',stars+'★',better||'',')');};
 want(0,1,2,'I like pink',5);want(0,1,2,'pink',3,'I like pink.');want(0,1,0,'it is blue',3,'It is red.');
 want(5,0,3,'My favorite color is purple',5);want(5,0,3,'purple',3,'My favourite colour is purple.');
@@ -35,6 +35,14 @@ want(4,3,0,"My birthday is in May",5);want(4,3,0,'in may',3);want(4,3,0,'I like 
 want(5,11,1,"We'll go to the flower market",5);want(5,4,2,"She'd like to be a doctor",5);
 want(3,5,0,'no',3,"No, I don't.");want(3,5,0,"No I don't",5);want(1,4,0,'I like chicken and chips',5);
 want(5,14,0,'I have a toothache',5);want(5,14,0,'I have a pen',3);want(2,13,1,'This is my grandma',5);
+// mạo từ
+want(0,4,0,'It is cow',4,'It is a cow.');want(0,6,2,'It is a orange',4,'It is an orange.');want(5,0,2,"It's dolphin",4,"It's the dolphin.");
+// âm s cuối
+want(0,6,0,'I like banana',4,'I like bananas.');want(0,8,2,'I have two eye',4,'I have two eyes.');want(3,14,0,'These are computer',4,'These are computers.');
+// nghe nhầm từ (giọng Việt) không được tha
+want(3,0,1,'I am tree',3);want(0,15,2,'I can wun',3,'I can run.');
+// chỉ chấm câu máy nghe được đầu tiên, không chọn phương án khác
+want(0,4,0,['It is cow','It is a cow'],4);
 console.log(`Đã kiểm ${n} câu/trường hợp, lớp app này = ${MYG} (${EN_UNITS.length} unit, ngân hàng ${c.QA_DATA[MYG].length} unit). Lỗi: ${errs}`);
 if(c.QA_DATA[MYG].length!==EN_UNITS.length){console.log('LỖI số unit không khớp EN_UNITS');errs++;}
 process.exit(errs?1:0);

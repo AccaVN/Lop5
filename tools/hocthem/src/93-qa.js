@@ -66,48 +66,63 @@ const QA_SP={favorite:'favourite',favorites:'favourites',color:'colour',colors:'
 /* viết tắt normEn chưa tách (we'll → "well", she'd → "shed"…) */
 const qaUnc=t=>String(t||'').replace(/[’‘`´]/g,"'").replace(/\b(i|you|he|she|it|we|they|that|there)'ll\b/gi,'$1 will').replace(/\bwon't\b/gi,'will not')
   .replace(/\b(you|he|she|we|they)'d\b/gi,'$1 would').replace(/\b(i|you|we|they)'ve\b/gi,'$1 have').replace(/\b(did|was|were|has|have|had|would|should|could|must)n't\b/gi,'$1 not');
-/* normEn bỏ "am" (hiểu là a.m.) → giữ lại để phân biệt "I am" */
-function qaNorm(t){return normEn(qaUnc(t).replace(/\bam\b/gi,'qqam')).map(w=>w==='qqam'?'am':QA_SP[w]||w).filter(w=>!QA_ART.has(w));}
-function qaClean(t){const w=qaNorm(t);while(w.length&&QA_FILL.has(w[0]))w.shift();return w;}
+/* normEn bỏ "am" (hiểu là a.m.) → giữ lại để phân biệt "I am". keep=true: giữ a/an/the để chấm mạo từ */
+function qaNorm(t,keep){return normEn(qaUnc(t).replace(/\bam\b/gi,'qqam')).map(w=>w==='qqam'?'am':QA_SP[w]||w).filter(w=>keep||!QA_ART.has(w));}
+function qaClean(t,keep){const w=qaNorm(t,keep);while(w.length&&QA_FILL.has(w[0]))w.shift();return w;}
 const qaStem=w=>w.length>4&&/ies$/.test(w)?w.slice(0,-3)+'y':w.length>3&&/(s|x|ch|sh)es$/.test(w)?w.slice(0,-2):w.length>2&&/s$/.test(w)&&!/ss$/.test(w)?w.slice(0,-1):w;
+/* 3 mức so khớp: 'x' = đúng từng từ, kể cả a/an/the và âm s cuối (được 5★)
+   'a' = đúng từ nhưng thiếu/sai a/an/the · 'l' = thêm cả thiếu/thừa s cuối (book ≠ books) — hai mức này chỉ để báo lỗi cho con */
+const qaEq=(md,a,b)=>md==='l'?qaStem(a)===qaStem(b):a===b;
 /* mẫu → danh sách token {slot} | {opt, alts:[[từ…]…]} */
 const QA_TPL=new Map();
-function qaTpl(t){if(QA_TPL.has(t))return QA_TPL.get(t);const out=[];
+function qaTpl(t,keep){const ck=(keep?'1':'0')+t;if(QA_TPL.has(ck))return QA_TPL.get(ck);const out=[];
   String(t).replace(/[{][^}]*[}]/g,'*').replace(/[.,!?]/g,' ').split(/\s+/).filter(Boolean).forEach(raw=>{
     if(raw==='*'){out.push({slot:true});return;}
     const opt=/^\[.*\]$/.test(raw);const inner=opt?raw.slice(1,-1):raw;
-    const alts=inner.split('/').map(a=>qaNorm(a.replace(/_/g,' '))).filter(a=>a.length);
+    const alts=inner.split('/').map(a=>qaNorm(a.replace(/_/g,' '),keep)).filter(a=>a.length);
     if(alts.length)out.push({opt,alts});});
-  QA_TPL.set(t,out);return out;}
+  QA_TPL.set(ck,out);return out;}
 /* tìm mọi cách khớp mẫu P với một đoạn liên tiếp của câu A (bắt đầu tại s) */
-function qaMatchAt(P,A,s){const res=[];
+function qaMatchAt(P,A,s,md){const res=[];
   const go=(pi,ai,slot)=>{if(res.length>40)return;if(pi===P.length){res.push({end:ai,slot});return;}
     const t=P[pi];
     if(t.slot){for(let k=1;k<=5&&ai+k<=A.length;k++)go(pi+1,ai+k,slot.concat([A.slice(ai,ai+k)]));return;}
     if(t.opt)go(pi+1,ai,slot);
-    t.alts.forEach(seq=>{let ok=ai+seq.length<=A.length;for(let k=0;ok&&k<seq.length;k++)if(qaStem(A[ai+k])!==qaStem(seq[k]))ok=false;if(ok)go(pi+1,ai+seq.length,slot);});};
+    t.alts.forEach(seq=>{let ok=ai+seq.length<=A.length;for(let k=0;ok&&k<seq.length;k++)if(!qaEq(md,A[ai+k],seq[k]))ok=false;if(ok)go(pi+1,ai+seq.length,slot);});};
   go(0,s,[]);return res;}
-function qaMatch(tpl,A){const P=qaTpl(tpl);if(!P.length)return null;let best=null;
-  for(let s=0;s<A.length;s++)qaMatchAt(P,A,s).forEach(m=>{const span=m.end-s;const sc=span*2-(s>0?1:0)+(m.end===A.length?1:0);if(!best||sc>best.sc)best={sc,start:s,end:m.end,slot:m.slot};});
+function qaMatch(tpl,A,md){md=md||'l';const P=qaTpl(tpl,md==='x');if(!P.length)return null;let best=null;
+  for(let s=0;s<A.length;s++)qaMatchAt(P,A,s,md).forEach(m=>{const span=m.end-s;const sc=span*2-(s>0?1:0)+(m.end===A.length?1:0);if(!best||sc>best.sc)best={sc,start:s,end:m.end,slot:m.slot};});
   return best;}
-function qaWordOk(it,seg){if(it.open)return true;const set=new Set(it.words.map(w=>qaNorm(w).map(qaStem).join(' ')));
-  const toks=seg.map(qaStem);for(let a=0;a<toks.length;a++)for(let b=a+1;b<=toks.length;b++)if(set.has(toks.slice(a,b).join(' ')))return true;return false;}
+const qaNoArt=seg=>seg.filter(w=>!QA_ART.has(w));
+/* từ con điền có trong danh sách không (stem=true: tha s cuối) */
+function qaWordOk(it,seg,stem){if(it.open)return true;const f=stem?qaStem:(w=>w);const set=new Set(it.words.map(w=>qaNorm(w).map(f).join(' ')));
+  const toks=qaNoArt(seg).map(f);for(let a=0;a<toks.length;a++)for(let b=a+1;b<=toks.length;b++)if(set.has(toks.slice(a,b).join(' ')))return true;return false;}
+/* đổi từ con nói sai s cuối về từ đúng trong danh sách (banana → bananas) */
+function qaWordFix(it,seg){if(it.open||!seg)return seg;const T=qaNoArt(seg);const st=T.map(qaStem).join(' ');
+  for(const w of it.words){const n=qaNorm(w);if(n.map(qaStem).join(' ')===st)return n;}
+  for(const w of it.words){const n=qaNorm(w);if(n.length===1&&T.some(x=>qaStem(x)===qaStem(n[0])))return n;}return T;}
 function qaKnown(it,A){if(it.open||!it.words.length)return null;const set=it.words.map(w=>qaNorm(w).map(qaStem));const T=A.map(qaStem);
   for(const w of set)for(let a=0;a+w.length<=T.length;a++)if(w.every((x,k)=>T[a+k]===x))return A.slice(a,a+w.length);return null;}
 function qaLcs(a,b){const m=a.length,n=b.length;if(!m||!n)return 0;let pr=new Array(n+1).fill(0);for(let i=1;i<=m;i++){const cu=[0];for(let k=1;k<=n;k++)cu[k]=qaStem(a[i-1])===qaStem(b[k-1])?pr[k-1]+1:Math.max(pr[k],cu[k-1]);pr=cu;}return pr[n];}
 /* điền từ của con vào câu mẫu (viết hoa nếu chỗ trống trong câu mẫu viết hoa: tên riêng, thứ, tháng) */
 const qaFill=(it,seg,ti)=>{const base=it.exs[ti>0&&ti<it.exs.length?ti:0];const m=base.match(/\{([^}]*)\}/);if(!seg||!m)return base.replace(/[{}]/g,'');
-  const up=/^[A-Z]/.test(m[1]);return base.replace(m[0],seg.map(w=>up?w[0].toUpperCase()+w.slice(1):w).join(' '));};
+  const up=/^[A-Z]/.test(m[1]);return base.replace(m[0],qaNoArt(seg).map(w=>up?w[0].toUpperCase()+w.slice(1):w).join(' '));};
 const qaSent=t=>{t=qaCap(String(t).replace(/\s+/g,' ').trim());return /[.!?]$/.test(t)?t:t+'.';};
 const qaCap=s=>{s=String(s).trim();return s?s[0].toUpperCase()+s.slice(1):s;};
 const qaYN=it=>/^(yes|no)\b/i.test(it.ex);
-/* chấm 1 câu trả lời (chuỗi) → {stars, fb, better, heard} */
+/* chấm 1 câu trả lời (chuỗi) → {stars, fb, better, heard}. Chỉ câu đúng từng từ (cả a/an/the, âm s cuối) mới được 5★. */
 function qaGrade1(it,text){const A=qaClean(text);if(!A.length)return {stars:0,heard:''};
+  const AX=qaClean(text,true);
   const full=it.exs.concat(it.alts.filter(a=>a[0]!=='='));const short=it.alts.filter(a=>a[0]==='=').map(a=>a.slice(1));
   let best=null;
-  full.forEach((t,ti)=>{const m=qaMatch(t,A);if(!m)return;const seg=m.slot[m.slot.length-1]||null;const okW=!m.slot.length||m.slot.every(sg=>qaWordOk(it,sg));
-    const cov=(m.end-m.start)/A.length;if(qaTpl(t).filter(x=>!x.slot).length<2&&cov<.6)return;const sc=(okW?10:8)+cov;if(!best||sc>best.sc)best={sc,kind:okW?'full':'fullUnk',seg,ti};});
-  if(!best){short.forEach(t=>{const m=qaMatch(t,A);if(!m||(it.open&&m.slot.length&&A.length>3))return;const seg=m.slot[m.slot.length-1]||null;if(m.slot.length&&!m.slot.every(sg=>qaWordOk(it,sg)))return;
+  /* câu đầy đủ: thử lần lượt mức x → a → l; mức đầu tiên khớp mẫu quyết định loại lỗi */
+  for(const md of ['x','a','l']){const B=md==='x'?AX:A;let mb=null;
+    full.forEach((t,ti)=>{const m=qaMatch(t,B,md);if(!m)return;const cov=(m.end-m.start)/B.length;if(qaTpl(t,md==='x').filter(x=>!x.slot).length<2&&cov<.6)return;
+      const seg=m.slot[m.slot.length-1]||null;const exact=!m.slot.length||m.slot.every(sg=>qaWordOk(it,sg,false));const stem=exact||m.slot.every(sg=>qaWordOk(it,sg,true));
+      const kind=exact?(md==='x'?'full':md==='a'?'art':'s'):stem?'s':'fullUnk';const sc=(kind==='fullUnk'?8:10)+cov;
+      if(!mb||sc>mb.sc)mb={sc,kind,seg,ti};});
+    if(mb&&mb.kind!=='fullUnk'){best=mb;break;}if(mb&&!best)best=mb;}
+  if(!best){short.forEach(t=>{const m=qaMatch(t,A);if(!m||(it.open&&m.slot.length&&A.length>3))return;const seg=m.slot[m.slot.length-1]||null;if(m.slot.length&&!m.slot.every(sg=>qaWordOk(it,sg,true)))return;
       const cov=(m.end-m.start)/A.length;if(cov<.5)return;const sc=5+cov;if(!best||sc>best.sc)best={sc,kind:'short',seg};});}
   if(!best){const kw=qaKnown(it,A);
     if(kw&&A.length<=kw.length+1)best={kind:'short',seg:kw};
@@ -117,20 +132,23 @@ function qaGrade1(it,text){const A=qaClean(text);if(!A.length)return {stars:0,he
       const l=qaLcs(A,T),r=l/Math.max(T.length,1),ra=l/A.length;
       best={kind:r>=.6&&ra>=.5&&A.length>=2?'near':kw||(r>=.3&&ra>=.25)?'topic':'off',seg:kw};}}
   const yi=best.yn?Math.max(0,it.exs.findIndex(x=>x.toLowerCase().startsWith(best.yn))):best.ti;
-  const better=best.kind==='full'?qaSent(text):best.kind==='fullUnk'?it.show:qaCap(qaFill(it,best.seg,yi));
-  const stars={full:5,fullUnk:3,short:3,near:3,topic:2,off:1}[best.kind];
-  const fb={full:'Con trả lời đúng ý và nói được cả câu. Giỏi lắm!',fullUnk:'Con nói đúng mẫu câu rồi, nhưng từ con chọn chưa đúng. Con nghe câu đúng nhé.',
+  const seg=best.kind==='s'||best.kind==='short'?qaWordFix(it,best.seg):best.seg;
+  const better=best.kind==='full'?qaSent(text):best.kind==='fullUnk'?it.show:qaCap(qaFill(it,seg,yi));
+  const stars={full:5,art:4,s:4,fullUnk:3,short:3,near:3,topic:2,off:1}[best.kind];
+  const fb={full:'Con trả lời đúng ý và nói đúng cả câu. Giỏi lắm!',art:'Đúng ý rồi, nhưng con thiếu hoặc dùng sai a / an / the. Con nghe câu đúng và nói lại nhé.',
+    s:'Đúng ý rồi, nhưng con thiếu hoặc thừa âm s cuối từ (vd. book ≠ books). Con nghe câu đúng và nói lại nhé.',
+    fullUnk:'Con nói đúng mẫu câu rồi, nhưng có từ chưa đúng (con chọn sai từ hoặc đọc chưa rõ nên máy nghe thành từ khác). Con nghe câu đúng nhé.',
     short:'Con trả lời đúng ý rồi! Lần sau con thử nói cả câu nhé.',near:'Gần đúng rồi! Con nói lại theo câu mẫu cho đủ từ nhé.',
     topic:'Con đã hiểu câu hỏi. Con nghe câu mẫu rồi trả lời lại cả câu nhé.',off:'Câu trả lời chưa khớp với câu hỏi. Con nghe lại câu hỏi và câu mẫu nhé.'}[best.kind];
   return {stars,fb,better,heard:text,kind:best.kind};}
-function qaGrade(it,alts){let best={stars:0,heard:''};(alts||[]).slice(0,40).forEach(t=>{const r=qaGrade1(it,t);if(r.stars>best.stars||(r.stars===best.stars&&r.stars&&t.length<best.heard.length))best=r;});
-  if(!best.stars&&alts&&alts[0])best={...qaGrade1(it,alts[0])};return best;}
+/* chỉ chấm câu máy nghe được đầu tiên — không chọn phương án nhận dạng khác “đẹp” hơn (không tha lỗi phát âm) */
+function qaGrade(it,alts){const t=(alts||[]).find(x=>String(x||'').trim());return t?qaGrade1(it,t):{stars:0,heard:''};}
 
 /* ---------- chấm bằng AI (máy chủ) ---------- */
 let QA_AI=null;// null = chưa hỏi, true/false
 function qaAiCheck(){if(QA_AI!==null||!LOGGED())return;QA_AI=false;fetch(API_BASE+'/qa/status').then(r=>r.json()).then(d=>{QA_AI=!!(d&&d.ai);}).catch(()=>{QA_AI=null;});}
 function qaAiGrade(it,answer,alts){const U=typeof EN_UNITS!=='undefined'?EN_UNITS[it.u]:null;
-  const p=apiPost('/qa/grade',{grade:GRADE,topic:U?U.t:'',question:it.q,samples:it.exs.map(x=>x.replace(/[{}]/g,'')),answer,alts:(alts||[]).slice(1,4)});
+  const p=apiPost('/qa/grade',{grade:GRADE,topic:U?U.t:'',question:it.q,samples:it.exs.map(x=>x.replace(/[{}]/g,'')),answer});
   return Promise.race([p,new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),12000))]);}
 
 /* ---------- nghe câu trả lời (chỉ nhận dạng, tự dừng khi con im ~2,5 giây) ---------- */
@@ -200,7 +218,7 @@ function qaResHTML(r,it){if(r.pending)return `<div class="qa-res"><p class="hear
 async function qaJudge(it,alts,typed){const R=QA_RUN;const k=R.k;let r=qaGrade(it,alts);r.typed=!!typed;
   const box=$('#qaRes');const useAi=QA_AI===true&&LOGGED()&&r.heard;
   if(useAi&&box){box.innerHTML=qaResHTML({pending:true,heard:r.heard},it);
-    try{const a=await qaAiGrade(it,r.heard,alts);if(a&&a.stars){const sameBetter=qaNorm(a.better).join(' ')===qaNorm(r.heard).join(' ');
+    try{const a=await qaAiGrade(it,r.heard,alts);if(a&&a.stars){const sameBetter=qaNorm(a.better,true).join(' ')===qaNorm(r.heard,true).join(' ');
       r={...r,stars:a.stars,fb:a.feedback_vi||r.fb,better:sameBetter&&a.stars>=5?'':(a.better||r.better),ai:true};}}catch(e){}}
   if(R.hint.has(k)&&r.stars>4){r.stars=4;r.hint=true;}
   const prevRun=R.res[k];if(!prevRun||r.stars>=prevRun.stars)R.res[k]=r;

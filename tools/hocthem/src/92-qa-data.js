@@ -4,7 +4,8 @@
    – mẫu khác (cách nhau ;): * = chỗ điền 1–5 từ, a/b = một trong các từ, [x] = có hoặc không, "=…" = câu trả lời ngắn (3★).
    – từ hợp lệ (cách nhau ,): các từ đúng cho chỗ điền; "~" = trả lời tự do. Bỏ trống = chỉ nhận từ trong câu mẫu.
    – hình: emoji hiện trong bong bóng câu hỏi (cho câu hỏi kiểu “What is it?”).
-   Mạo từ a/an/the được bỏ qua khi chấm; viết tắt (I'm, it's, don't…) tự đổi thành dạng đầy đủ. */
+   Chấm chặt: chỉ câu đúng từng từ (cả a/an/the và âm s cuối) mới được 5★; viết tắt (I'm = I am, don't = do not) và
+   cách viết Anh – Mỹ (favourite/favorite) tính là như nhau vì đều đúng. */
 const QA_NUM='one,two,three,four,five,six,seven,eight,nine,ten,eleven,twelve,thirteen,fourteen,fifteen,sixteen,seventeen,eighteen,nineteen,twenty';
 const QA_COL='red,blue,yellow,green,pink,orange,purple,black,white,brown,grey,violet';
 const QA_MON='january,february,march,april,may,june,july,august,september,october,november,december';
@@ -31,7 +32,7 @@ const QA_DATA={
  ["What pet do you have?|Con nuôi con vật gì?|I have a {dog}.|=*|cat,dog,fish,bird,rabbit,hamster,turtle,parrot",
   QA_YN("Do you have a cat?","Con có nuôi mèo không?","Yes, I do.","No, I don't."),
   "What is it?|Đây là con gì?|It is a {rabbit}.|=*||🐰"],
- ["What fruit do you like?|Con thích quả gì?|I like {bananas}.|=*|apples,bananas,oranges,mangoes,grapes,apple,banana,orange,mango,grape,watermelon,strawberries",
+ ["What fruit do you like?|Con thích quả gì?|I like {bananas}.|=*|apples,bananas,oranges,mangoes,grapes,watermelon,strawberries",
   QA_YN("Do you like apples?","Con có thích táo không?","Yes, I do.","No, I don't."),
   "What is it?|Đây là quả gì?|It is an {orange}.|=*||🍊"],
  ["What do you want?|Con muốn gì?|{Milk}, please. / I want {milk}.|=*|milk,bread,rice,egg,water,juice,cake",
@@ -89,7 +90,7 @@ const QA_DATA={
  ["What do you see?|Bạn nhìn thấy gì?|I see a {goat}.|it is *;=*||🐐",
   "What do you see?|Bạn nhìn thấy gì?|I see a {girl}.|it is *;=*||👧",
   QA_YN("Do you like the garden?","Bạn có thích khu vườn không?","Yes, I do.","No, I don't.")],
- ["What is it?|Đây là gì?|It is my {hand}.|it is *;=*|hand,hands|✋",
+ ["What is it?|Đây là gì?|It is my {hand}.|it is *;=*||✋",
   "What do you see?|Bạn nhìn thấy gì?|I see a {horse}.|it is *;=*||🐴",
   QA_YN("Can you touch your head?","Bạn chạm được vào đầu không?","Yes, I can.","No, I can't.")],
  ["How many clocks?|Có mấy cái đồng hồ?|{Four} clocks.|=*;i see * clocks;there are * clocks||🕐🕐🕐🕐",
@@ -105,7 +106,7 @@ const QA_DATA={
   "What is it?|Đây là con gì?|It is a {lion}.|look at *;=*||🦁",
   "What is it?|Đây là gì?|It is a {leaf}.|look at *;=*||🍃"],
  ["What is he having?|Bạn ấy đang ăn gì?|He is having {noodles}.|=*||🍜",
-  "What is she having?|Bạn ấy đang ăn gì?|She is having {bananas}.|=*|bananas,banana|🍌",
+  "What is she having?|Bạn ấy đang ăn gì?|She is having {bananas}.|=*||🍌",
   "How many bananas?|Có mấy quả chuối?|{Nine} bananas.|=*;i see * bananas;there are * bananas||🍌🍌🍌🍌🍌🍌🍌🍌🍌"],
  ["What can you see?|Bạn nhìn thấy gì?|I can see a {teddy bear}.|i see *;it is *;=*|teddy bear,teddy,bear|🧸",
   "What can you see?|Bạn nhìn thấy gì?|I can see a {tiger}.|i see *;it is *;=*||🐯",
@@ -218,12 +219,12 @@ const QA_DATA={
  ["What's on the bed?|Trên giường có gì?|There's a {pillow} on the bed.|there is *;=*|pillow,doll,teddy bear,book,cat|🛏️🧸",
   "How many books are there?|Có bao nhiêu quyển sách?|There are {three} books.|* books;=*||📚📕📗",
   QA_YN("Is there a lamp in your room?","Phòng bạn có đèn không?","Yes, there is.","No, there isn't.")],
- ["What are these?|Đây là những gì?|These are {computers}.|they are *;those are *;=*|computers,computer|💻💻",
+ ["What are these?|Đây là những gì?|These are {computers}.|they are *;those are *;=*||💻💻",
   QA_YN("Are those your pencils?","Kia có phải bút chì của bạn không?","Yes, they are.","No, they aren't."),
   QA_YN("Is this your chair?","Đây có phải ghế của bạn không?","Yes, it is.","No, it isn't.")],
  ["What are you wearing today?|Hôm nay bạn mặc gì?|I'm wearing {new shoes}.|i am wearing *;=*|~",
-  "What do you see with?|Bạn nhìn bằng gì?|I see with my {eyes}.|with my *;=*|eyes,eye",
-  "What do you hear with?|Bạn nghe bằng gì?|I hear with my {ears}.|with my *;=*|ears,ear",
+  "What do you see with?|Bạn nhìn bằng gì?|I see with my {eyes}.|with my *;=*|eyes",
+  "What do you hear with?|Bạn nghe bằng gì?|I hear with my {ears}.|with my *;=*|ears",
   QA_YN("May I go on the swing?","Tớ chơi xích đu được không?","Yes, you may.","No, you may not.")]],
 
 /* ---------------- Lớp 4 ---------------- */

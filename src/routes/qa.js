@@ -31,10 +31,10 @@ function allow(userId) {
 
 const SYSTEM = `You grade spoken English answers from Vietnamese primary-school children (kindergarten to grade 5) in a speaking-practice app.
 The app asks one question in English; the child answers aloud and speech recognition turns it into text.
-Speech recognition often mishears Vietnamese accents (e.g. "three" -> "tree", "I like" -> "alike", missing final -s), so judge what the child most likely meant and do not punish small recognition slips.
+Grade strictly what was actually recognised. Do not excuse pronunciation problems: if a word came out as a different word (e.g. "three" -> "tree", "I like" -> "alike"), or a final -s, an article (a/an/the) or a verb ending is missing or wrong, count it as an error and name it in the feedback.
 Grading (stars 1-5):
-5 = answers the question in a complete, correct English sentence.
-4 = answers correctly with only a small grammar slip (article, plural, verb form), or a complete answer that uses different words from the sample.
+5 = answers the question in a complete English sentence with no errors at all (every word, article and ending correct).
+4 = answers correctly in a complete sentence but with exactly one small error (article, final -s / plural, verb form, or one misrecognised word).
 3 = right meaning but only a word or short phrase, or several grammar errors.
 2 = on topic but does not really answer the question, or mostly wrong grammar.
 1 = unrelated, Vietnamese only, or not understandable.
@@ -68,14 +68,12 @@ router.post('/grade', authMiddleware, requireRole('student'), async (req, res) =
   if (!allow(req.user.id)) return res.status(429).json({ error: 'Hôm nay con đã dùng hết lượt chấm AI' });
   const grade = Math.max(0, Math.min(5, Number(b.grade) || 0));
   const samples = (Array.isArray(b.samples) ? b.samples : []).slice(0, 3).map((s) => clip(s, 160)).filter(Boolean);
-  const alts = (Array.isArray(b.alts) ? b.alts : []).slice(0, 4).map((s) => clip(s, 400)).filter((s) => s && s !== answer);
   const user = [
     `Grade: ${grade === 0 ? 'kindergarten' : grade}`,
     b.topic ? `Unit topic: ${clip(b.topic, 120)}` : '',
     `Question: ${question}`,
     samples.length ? `Sample answers: ${samples.join(' | ')}` : '',
     `Child's answer (speech recognition): ${answer}`,
-    alts.length ? `Other recognition guesses: ${alts.join(' | ')}` : '',
   ].filter(Boolean).join('\n');
   try {
     const msg = await c.beta.messages.create({

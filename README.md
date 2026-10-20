@@ -304,7 +304,10 @@ hoặc “🎲 Hỏi nhanh 5 câu” (câu hỏi ngẫu nhiên từ mọi Unit).
   Nguồn: `tools/hocthem/src/92-qa-data.js` (một file cho cả 6 lớp, cách viết ghi ở đầu file); giao diện và bộ chấm: `93-qa.js`.
 - **Chấm trên máy** (luôn chạy, miễn phí, không cần mạng): so câu trả lời với mẫu câu — đúng ý và nói cả câu → 5★,
   chỉ nói 1 từ / gần đúng / đúng mẫu nhưng sai từ → 3★, đúng chủ đề nhưng chưa trả lời → 2★, lạc đề → 1★.
-  Tha lỗi giọng Việt hay gặp (bỏ qua a/an/the, I'm = I am, favorite = favourite, số 8 = eight…). Xem gợi ý thì tối đa 4★.
+  **Chấm chặt, không tha lỗi phát âm**: chỉ câu đúng từng từ mới được 5★; thiếu/sai a/an/the hoặc thiếu/thừa âm s cuối → 4★
+  (app chỉ rõ lỗi và đọc câu đúng); đọc chưa rõ nên máy nghe thành từ khác → tính là sai từ. App chỉ chấm câu máy nghe được
+  đầu tiên, không chọn phương án nhận dạng khác cho đẹp. Chỉ coi là như nhau những cách viết đều đúng: I'm = I am,
+  favorite = favourite, 8 = eight. Xem gợi ý thì tối đa 4★.
 - **Chấm bằng AI (tùy chọn)**: thêm biến môi trường `ANTHROPIC_API_KEY` (khóa Claude API tại console.anthropic.com) trên Vercel.
   Khi có khóa, câu trả lời của học sinh đã đăng nhập được Claude chấm thêm: hiểu câu trả lời tự do, sửa lỗi ngữ pháp,
   nhận xét bằng tiếng Việt và viết lại câu đúng giữ ý của con. Mỗi học sinh tối đa `QA_DAILY_LIMIT` lượt/ngày (mặc định 150).
