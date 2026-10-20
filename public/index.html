@@ -3797,6 +3797,494 @@ TDG.la_add=function(G,lv){const e=RP(['🍎','🍬','🎈','⭐','🍓']);
   const a=R(1,5),b=R(1,lv===0?3:5);const sub=lv===1&&Math.random()<.5&&a>b;
   if(sub)return Qin(`Bé có ${a} ${e}, bé cho bạn ${b} ${e}. Bé còn mấy ${e}?`,a-b,{visual:emoRow(Array(a).fill(e)),voice:[['vi',`Bé có ${a} quả, bé cho bạn ${b} quả. Bé còn mấy quả?`]],hints:[`Che đi ${b} hình.`,'Đếm số hình còn lại.'],explain:`${a} bớt ${b} còn ${a-b}.`});
   return Qin(`Bé có ${a} ${e}, mẹ cho thêm ${b} ${e}. Bé có tất cả mấy ${e}?`,a+b,{visual:emoRow(Array(a).fill(e))+emoRow(Array(b).fill(e)),voice:[['vi',`Bé có ${a} quả, mẹ cho thêm ${b} quả. Bé có tất cả mấy quả?`]],hints:['Đếm hàng trên rồi đếm tiếp hàng dưới.',`Bắt đầu từ ${a}, đếm thêm ${b}.`],explain:`${a} thêm ${b} là ${a+b}.`});};
+/* ================= BỘ ĐỀ TOÁN MỚI (máy tự sinh) — phần A: tiện ích, số, cộng trừ =================
+   Mỗi dạng: MG.ten(G, lv, P) → câu hỏi. G = lớp (0 = Lá), lv = 0 cơ bản · 1 vận dụng · 2 thử thách,
+   P = tham số của bài (phạm vi số, bảng nhân…). Lời giải viết từng bước, cách nhau bằng xuống dòng. */
+const MG={};
+/* kỹ năng: dùng đúng mã kỹ năng có trong app của từng lớp */
+const SK_FB={hinhhoc:['hinhhoc','doluong'],thongke:['thongke','xacsuat','doluong','so'],xacsuat:['xacsuat','thongke','so'],phanso:['phanso','so'],stp:['stp','so'],tiso:['tiso','giaitoan'],quyluat:['quyluat','so'],thoigian:['thoigian','doluong'],congtru:['congtru','stp','so'],nhanchia:['nhanchia','stp','so'],giaitoan:['giaitoan','so'],doluong:['doluong','hinhhoc','so'],so:['so']};
+function skOf(k){const L=SK_FB[k]||[k];for(const x of L){try{if(SKILLS&&SKILLS[x])return x;}catch(e){}}return 'so';}
+const fD=(x,dp)=>{let s=dp==null?String(+(+x).toFixed(6)):(+x).toFixed(dp);let [a,b]=s.split('.');a=fN(+a);return b?a+','+b:a;};
+const r6=x=>Math.round(x*1e6)/1e6;
+const pickK=(a,k)=>shuffle(a).slice(0,k);
+const SIGNS=['>','<','='];
+const sgn=(a,b)=>a>b?'>':a<b?'<':'=';
+const Qsign=(prompt,big,a,b,o)=>Qmc(prompt,sgn(a,b),SIGNS,Object.assign({big,fixed:SIGNS.slice()},o||{}));
+function Qord(prompt,answer,o){let items=shuffle(answer.map(String));let t=0;while(items.join('|')===answer.join('|')&&t<10){items=shuffle(answer.map(String));t++;}return Object.assign({type:'order',prompt,answer:answer.map(String),items},o||{});}
+const ops={'+':(a,b)=>a+b,'−':(a,b)=>a-b,'×':(a,b)=>a*b,':':(a,b)=>a/b};
+/* đọc số tiếng Việt */
+const DGV=['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'];
+function read3(n,full){const h=Math.floor(n/100),t=Math.floor(n/10)%10,u=n%10;const out=[];
+  if(full||h>0)out.push(DGV[h]+' trăm');
+  if(t===0){if(u>0&&(full||h>0))out.push('linh '+DGV[u]);else if(u>0)out.push(DGV[u]);}
+  else{out.push(t===1?'mười':DGV[t]+' mươi');if(u===1&&t>1)out.push('mốt');else if(u===5)out.push('lăm');else if(u===4&&t>1)out.push('tư');else if(u>0)out.push(DGV[u]);}
+  return out.join(' ');}
+function vnRead(n){if(n===0)return 'không';const parts=[[1e9,'tỉ'],[1e6,'triệu'],[1e3,'nghìn'],[1,'']];let out=[],started=false;
+  for(const [v,name] of parts){const g=Math.floor(n/v)%1000;if(g===0){continue;}out.push(read3(g,started)+(name?' '+name:''));started=true;}
+  return out.join(' ').replace(/\s+/g,' ').trim();}
+/* SGK lớp 4–5 đọc “tư” (24: hai mươi tư) — các lớp nhỏ đọc “bốn”; cả hai đều đúng, dùng “tư” khi đứng sau mươi */
+/* tên đồ vật cho bài toán có lời văn */
+const THG=[['quả cam','quả'],['cái kẹo','cái'],['quyển vở','quyển'],['bông hoa','bông'],['viên bi','viên'],['cây bút chì','cây'],['quả táo','quả'],['con gà','con'],['quyển truyện','quyển'],['chiếc bánh','chiếc']];
+const thing=()=>RP(THG);
+const lim=(G,P)=>P&&P.max?P.max:[10,100,1000,100000,1000000,1000000][G];
+/* giải thích phép tính trong ô */
+const expl=(...lines)=>lines.filter(Boolean).join('\n');
+
+/* -------- SỐ -------- */
+MG.count=function(G,lv,P){const mx=P.max||10;const E=shuffle(['🍎','🐟','⭐','🌸','🎈','🐥','🍓','🚗','⚽','🐞']);const n=R(lv?Math.ceil(mx/2):1,mx);
+  if(lv===2&&G<=1){const m=R(1,Math.max(1,mx-n));const arr=shuffle(Array(n).fill(E[0]).concat(Array(m).fill(E[1])));return Qin(`Có bao nhiêu ${E[0]}?`,n,{visual:emoRow(arr,'wrap'),voice:[['vi','Đếm xem có bao nhiêu hình này.']],sk:'so',hints:['Chạm tay vào từng hình và đếm to.','Chỉ đếm đúng một loại hình.'],explain:`Có ${n} ${E[0]}.`});}
+  return Qin(`Có bao nhiêu ${E[0]}?`,n,{visual:emoRow(Array(n).fill(E[0]),'wrap'),voice:[['vi','Đếm xem có bao nhiêu hình.']],sk:'so',hints:['Chạm tay vào từng hình và đếm to.','Số đếm cuối cùng là số lượng.'],explain:`Đếm lần lượt 1, 2, … , ${n}. Có ${n} ${E[0]}.`});};
+MG.groups=function(G,lv,P){const mx=P.max||10;const E=shuffle(['🍎','🐟','⭐','🌸','🎈','🐥','🍓','🚗']);let a=R(1,mx),b=R(1,mx);while(b===a)b=R(1,mx);
+  if(lv>=1){const big=Math.max(a,b),sm=Math.min(a,b);return Qin('Nhóm nhiều hơn thì nhiều hơn mấy hình?',big-sm,{visual:emoRow(Array(a).fill(E[0]))+emoRow(Array(b).fill(E[1])),sk:'so',hints:['Nối mỗi hình hàng trên với một hình hàng dưới.','Đếm số hình còn thừa.'],explain:expl(`Hàng trên ${a}, hàng dưới ${b}.`,`${big} − ${sm} = ${big-sm}.`)});}
+  const ans=a>b?E[0]:E[1];return Qmc('Nhóm nào nhiều hơn?',ans,[E[0],E[1]],{emo:true,visual:emoRow(Array(a).fill(E[0]))+emoRow(Array(b).fill(E[1])),sk:'so',hints:['Nối từng cặp một hình trên với một hình dưới.','Hàng còn thừa là hàng nhiều hơn.'],explain:`Có ${a} ${E[0]} và ${b} ${E[1]}, nhóm ${ans} nhiều hơn.`});};
+MG.split=function(G,lv,P){const n=R(2,P.max||10),a=R(1,n-1);if(lv===2){return Qin(`${n} gồm ${a} và mấy?`,n-a,{big:`${n} = ${a} + ?`,sk:'so',hints:[`Đếm thêm từ ${a} đến ${n}.`,`${a} + mấy = ${n}?`],explain:`${n} gồm ${a} và ${n-a} vì ${a} + ${n-a} = ${n}.`});}
+  return Qin(`${n} gồm ${a} và mấy?`,n-a,{visual:emoRow(Array(a).fill('🔵').concat(Array(n-a).fill('⚪'))),sk:'so',hints:['Đếm số chấm trắng.',`${a} chấm xanh, còn lại là chấm trắng.`],explain:`${n} gồm ${a} và ${n-a}.`});};
+MG.readNum=function(G,lv,P){const mx=lim(G,P);let n=R(lv===0?Math.max(10,Math.floor(mx/20)):Math.floor(mx/10),mx-1);if(lv===2){const s=String(n).split('');const k=R(1,s.length-1);s[k]='0';if(s.length>3)s[s.length-2]='0';n=+s.join('');}
+  const ask=Math.random()<.5;const w=vnRead(n);
+  if(ask){const wr=new Set();const sw=String(n);for(let t=0;t<30&&wr.size<3;t++){let s=sw.split('');const i=R(0,s.length-1);s[i]=String((+s[i]+R(1,9))%10);if(s[0]==='0')continue;const m=+s.join('');if(m!==n)wr.add(vnRead(m));}
+    return Qmc(`Số ${fN(n)} đọc là:`,w,[w,...wr].slice(0,4),{sk:'so',bigSmall:true,hints:['Đọc từ trái sang phải theo từng lớp: nghìn, rồi trăm, chục, đơn vị.','Hàng chục là 0 thì đọc “linh”, hàng trăm là 0 thì đọc “không trăm”.'],explain:`${fN(n)} đọc là: ${w}.`});}
+  return Qin(`Viết số: ${w}`,n,{sk:'so',hints:['Viết từng lớp: nghìn trước, rồi trăm, chục, đơn vị.','Hàng nào không đọc tới thì viết 0.'],explain:`“${w}” viết là ${fN(n)}.`});};
+const HANG=['đơn vị','chục','trăm','nghìn','chục nghìn','trăm nghìn'];
+MG.place=function(G,lv,P){const mx=Math.min(lim(G,P),999999);const n=R(Math.max(10,Math.floor(mx/10)),mx-1);const s=String(n);const k=R(lv===1?1:0,s.length-1);const d=+s[s.length-1-k];
+  if(lv===0||d===0){return Qmc(`Trong số ${fN(n)}, chữ số ở hàng ${HANG[k]} là chữ số nào?`,String(d),numOpts(d,[+s[0],+s[s.length-1],(d+1)%10]).map(String),{sk:'so',hints:['Đếm hàng từ phải sang trái: đơn vị, chục, trăm, nghìn…',`Hàng ${HANG[k]} là chữ số thứ ${k+1} từ phải sang.`],explain:`${fN(n)}: hàng ${HANG[k]} là chữ số ${d}.`});}
+  const v=d*Math.pow(10,k);if(lv===1)return Qmc(`Chữ số ${d} ở hàng ${HANG[k]} trong số ${fN(n)} có giá trị là bao nhiêu?`,fN(v),[fN(v),fN(d),fN(d*Math.pow(10,k+1)),fN(d*Math.pow(10,Math.max(0,k-1)))].filter((x,i,a)=>a.indexOf(x)===i),{sk:'so',hints:['Giá trị = chữ số × giá trị của hàng.',`Hàng ${HANG[k]} có giá trị ${fN(Math.pow(10,k))}.`],explain:`${d} × ${fN(Math.pow(10,k))} = ${fN(v)}.`});
+  return Qin(`Viết số gồm: ${s.split('').map((c,i)=>+c?`${c} ${HANG[s.length-1-i]}`:'').filter(Boolean).join(', ')}.`,n,{sk:'so',hints:['Viết các chữ số theo hàng từ cao xuống thấp.','Hàng không được nhắc tới thì viết chữ số 0.'],explain:`Số đó là ${fN(n)}.`});};
+MG.decomp=function(G,lv,P){const mx=Math.min(lim(G,P),999999);const n=R(Math.max(11,Math.floor(mx/10)),mx-1);const s=String(n);const parts=s.split('').map((c,i)=>+c*Math.pow(10,s.length-1-i)).filter(x=>x>0);if(parts.length<2)return MG.decomp(G,lv,P);
+  const k=R(0,parts.length-1);if(lv===2){return Qin('Điền số thích hợp vào ô trống.',n,{big:`? = ${parts.map(fN).join(' + ')}`,sk:'so',hints:['Cộng các số tròn lại với nhau.','Mỗi số nằm ở một hàng.'],explain:`${parts.map(fN).join(' + ')} = ${fN(n)}.`});}
+  return Qin('Điền số thích hợp vào ô trống.',parts[k],{big:`${fN(n)} = ${parts.map((p,i)=>i===k?'?':fN(p)).join(' + ')}`,bigSmall:true,sk:'so',hints:['Tách số theo từng hàng.',`Chữ số tương ứng là ${String(parts[k])[0]}.`],explain:`${fN(n)} = ${parts.map(fN).join(' + ')}.`});};
+MG.tens=function(G,lv,P){const n=R(10,99);const t=Math.floor(n/10),u=n%10;if(lv===0)return Qin(`Số gồm ${t} chục và ${u} đơn vị là số nào?`,n,{sk:'so',hints:['Viết số chục trước, số đơn vị sau.',`${t} chục là ${t*10}.`],explain:`${t} chục và ${u} đơn vị là ${n}.`});
+  return Qin(`Số ${n} gồm mấy chục?`,t,{sk:'so',hints:['Chữ số bên trái là số chục.','Chữ số bên phải là số đơn vị.'],explain:`${n} gồm ${t} chục và ${u} đơn vị.`});};
+MG.neighbor=function(G,lv,P){const mx=Math.min(lim(G,P),999999);const n=R(G<=1?1:Math.floor(mx/10),mx-2);const after=Math.random()<.5;const tr=G<=0?(after?'đứng sau':'đứng trước'):(after?'liền sau':'liền trước');
+  if(lv===2&&G>=2){const a=n,b=n+2;return Qin(`Số nào nằm giữa ${fN(a)} và ${fN(b)}?`,a+1,{sk:'so',hints:['Hai số cách nhau 2 đơn vị.','Số ở giữa hơn số bé 1 đơn vị.'],explain:`${fN(a)}, ${fN(a+1)}, ${fN(b)}.`});}
+  const r=after?n+1:n-1;if(r<0)return MG.neighbor(G,lv,P);return Qin(`Số ${tr} ${fN(n)} là số nào?`,r,{sk:'so',hints:[after?'Số liền sau hơn số đã cho 1 đơn vị.':'Số liền trước kém số đã cho 1 đơn vị.',after?`${fN(n)} + 1`:`${fN(n)} − 1`],explain:`${fN(n)} ${after?'+':'−'} 1 = ${fN(r)}.`});};
+MG.seq=function(G,lv,P){const mx=lim(G,P);const st=P.step?RP(P.step):RP(G<=1?[1,2,5,10]:G===2?[2,5,10,100]:G===3?[5,10,100,1000]:[100,1000,10000]);const len=5;let a=R(0,Math.max(0,Math.floor(mx/st)-len-1))*st+(lv===2&&st>=10?0:0);if(lv>=1)a+=R(0,st-1)*(st<10?1:0);
+  const dec=lv===2&&Math.random()<.5;let s=[];for(let i=0;i<len;i++)s.push(a+i*st);if(dec)s.reverse();if(s.some(v=>v>mx||v<0))return MG.seq(G,lv,P);const k=R(1,len-1);
+  return Qin('Viết số thích hợp vào ô trống.',s[k],{big:s.map((v,i)=>i===k?'?':fN(v)).join(', '),bigSmall:true,sk:'so',hints:['Hai số liền nhau hơn kém nhau bao nhiêu?',`Mỗi lần ${dec?'bớt':'thêm'} ${fN(st)}.`],explain:`Dãy ${dec?'giảm':'tăng'} đều ${fN(st)}: ${s.map(fN).join(', ')}.`});};
+MG.compare=function(G,lv,P){const mx=lim(G,P);
+  if(G===0){const a=R(0,mx);let b=R(0,mx);while(b===a)b=R(0,mx);const big=Math.random()<.5;const ans=big?Math.max(a,b):Math.min(a,b);return Qmc(`Số nào ${big?'lớn':'bé'} hơn?`,String(ans),[String(a),String(b)],{visual:emoRow([String(a),'  ',String(b)]),sk:'so',hints:['Đếm xem số nào đứng sau khi đếm 1, 2, 3…','Số đếm sau thì lớn hơn.'],explain:`${Math.max(a,b)} lớn hơn ${Math.min(a,b)}.`});}
+  if(lv===0||G===0){let a=R(0,mx),b=Math.random()<.2?a:R(Math.max(0,a-Math.ceil(mx/10)),Math.min(mx,a+Math.ceil(mx/10)));if(G>=3&&Math.random()<.5){const s=String(a).split('');if(s.length>2){s[R(1,s.length-1)]=String(R(0,9));b=+s.join('');}}
+    return Qsign('Chọn dấu thích hợp điền vào ô trống.',`${fN(a)} ☐ ${fN(b)}`,a,b,{sk:'so',hints:['Số nào có nhiều chữ số hơn thì lớn hơn.','Cùng số chữ số: so từng hàng từ trái sang phải.'],explain:`${fN(a)} ${sgn(a,b)} ${fN(b)}.`});}
+  const L=Math.min(mx,G<=1?10:mx);if(lv===1){const a=R(1,Math.floor(L/2)),b=R(1,Math.floor(L/2));const s=a+b;const c=RP([s,s+R(1,3),Math.max(0,s-R(1,3))]);
+    return Qsign('Chọn dấu thích hợp điền vào ô trống.',`${fN(a)} + ${fN(b)} ☐ ${fN(c)}`,s,c,{sk:'so',hints:['Tính vế bên trái trước.',`${fN(a)} + ${fN(b)} = ?`],explain:`${fN(a)} + ${fN(b)} = ${fN(s)}, mà ${fN(s)} ${sgn(s,c)} ${fN(c)}.`});}
+  const t=G>=2&&Math.random()<.4&&P.mul?'div':'add';
+  if(t==='div'){const n=RP(P.tables||[2,3,4,5]);const k=RP(P.tables||[2,3,4,5].filter(x=>x!==n));const N=n*k*R(1,2);if(N%n||N%k)return MG.compare(G,lv,P);return Qsign('Điền dấu >, <, = (không cần tính hết cũng được).',`${N} : ${n} ☐ ${N} : ${k}`,N/n,N/k,{sk:'nhanchia',hints:['Cùng số bị chia: chia cho số lớn hơn thì được kết quả bé hơn.',`${N} : ${n} và ${N} : ${k}`],explain:`${N} : ${n} = ${N/n}; ${N} : ${k} = ${N/k}. Vậy ${N/n} ${sgn(N/n,N/k)} ${N/k}.`});}
+  const a=R(1,Math.floor(L/2)),b=R(1,Math.floor(L/2));const d=R(-3,3);const c=Math.max(1,a+d),dd=a+b-c+R(-1,1);if(dd<0)return MG.compare(G,lv,P);
+  return Qsign('Điền dấu >, <, = (không cần tính hết cũng được).',`${fN(a)} + ${fN(b)} ☐ ${fN(c)} + ${fN(dd)}`,a+b,c+dd,{sk:'congtru',hints:['So sánh từng số hạng ở hai vế.','Hoặc tính tổng mỗi vế rồi so sánh.'],explain:`${fN(a)} + ${fN(b)} = ${fN(a+b)}; ${fN(c)} + ${fN(dd)} = ${fN(c+dd)}. Vậy ${fN(a+b)} ${sgn(a+b,c+dd)} ${fN(c+dd)}.`});};
+MG.maxmin=function(G,lv,P){const mx=Math.min(lim(G,P),999999);
+  if(lv===2&&G>=2){const ds=pickK([1,2,3,4,5,6,7,8,9].concat(G>=3?[0]:[]),G>=4?4:3);const big=Math.random()<.5;const sorted=ds.slice().sort((a,b)=>big?b-a:a-b);if(!big&&sorted[0]===0){const i=sorted.findIndex(x=>x>0);[sorted[0],sorted[i]]=[sorted[i],sorted[0]];}const ans=+sorted.join('');
+    return Qin(`Từ các chữ số ${ds.join(', ')}, viết số ${big?'lớn':'bé'} nhất có ${ds.length} chữ số khác nhau.`,ans,{sk:'so',hints:[big?'Chữ số lớn nhất đặt ở hàng cao nhất.':'Chữ số bé nhất (khác 0) đặt ở hàng cao nhất.','Lần lượt đặt các chữ số còn lại.'],explain:`Số ${big?'lớn':'bé'} nhất là ${fN(ans)}.`});}
+  const base=R(Math.floor(mx/10),mx-1);const arr=new Set([base]);while(arr.size<4){const v=G>=3?+String(base).split('').map((c,i)=>i===R(0,String(base).length-1)?R(0,9):c).join(''):R(Math.max(0,base-20),Math.min(mx,base+20));if(v>0&&v<=mx)arr.add(v);}
+  const L=[...arr];const big=Math.random()<.5;const ans=big?Math.max(...L):Math.min(...L);return Qmc(`Số ${big?'lớn':'bé'} nhất trong các số dưới đây là:`,fN(ans),L.map(fN),{sk:'so',hints:['So số chữ số trước.','Cùng số chữ số thì so từng hàng từ trái sang.'],explain:`Số ${big?'lớn':'bé'} nhất là ${fN(ans)}.`});};
+MG.order=function(G,lv,P){const mx=Math.min(lim(G,P),999999);const n=lv===2?5:4;const arr=new Set();while(arr.size<n){arr.add(R(G<=1?0:Math.floor(mx/10),mx));}const L=[...arr];const up=Math.random()<.5;const ans=L.slice().sort((a,b)=>up?a-b:b-a).map(fN);
+  return Qord(`Xếp các số theo thứ tự từ ${up?'bé đến lớn':'lớn đến bé'}.`,ans,{sk:'so',hints:[up?'Tìm số bé nhất đặt trước.':'Tìm số lớn nhất đặt trước.','So sánh từng cặp số.'],explain:ans.join(up?' < ':' > ')});};
+MG.round=function(G,lv,P){const units=P.units||(G===3?[10,100,1000]:[100,1000,10000,100000]);const u=RP(units);const n=R(u*2,Math.min(999999,u*1000))+R(1,u-1);const r=Math.round(n/u)*u;if(r>999999)return MG.round(G,lv,P);const nm={10:'chục',100:'trăm',1000:'nghìn',10000:'chục nghìn',100000:'trăm nghìn'}[u];
+  return Qin(`Làm tròn số ${fN(n)} đến hàng ${nm}.`,r,{sk:'so',hints:[`Nhìn chữ số ngay bên phải hàng ${nm}.`,'Bé hơn 5 thì giữ nguyên, từ 5 trở lên thì tiến thêm 1.'],explain:expl(`Chữ số bên phải hàng ${nm} là ${Math.floor((n%u)/(u/10))}.`,`${fN(n)} làm tròn đến hàng ${nm} được ${fN(r)}.`)});};
+const ROM=n=>{const T=[[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];let s='';for(const [v,c] of T)while(n>=v){s+=c;n-=v;}return s;};
+MG.roman=function(G,lv,P){const n=R(1,lv===0?12:20);if(Math.random()<.5)return Qin(`Chữ số La Mã ${ROM(n)} là số mấy?`,n,{sk:'so',hints:['I = 1, V = 5, X = 10.','Chữ bé đứng trước chữ lớn thì trừ, đứng sau thì cộng.'],explain:`${ROM(n)} = ${n}.`});
+  const w=new Set([ROM(n)]);[n+1,n-1,n+5,n-4,n+10].forEach(x=>{if(x>0&&x<=30&&w.size<4)w.add(ROM(x));});return Qmc(`Số ${n} viết bằng chữ số La Mã là:`,ROM(n),[...w],{sk:'so',hints:['I = 1, V = 5, X = 10.','Viết phần chục trước, rồi phần đơn vị.'],explain:`${n} = ${ROM(n)}.`});};
+MG.evenOdd=function(G,lv,P){const mx=Math.min(lim(G,P),99999);if(lv===0){const ev=Math.random()<.5;const par=x=>(x%2===0)===ev;let ans=R(10,mx);if(!par(ans))ans=ans+1>mx?ans-1:ans+1;const others=new Set();while(others.size<3){let x=R(10,mx);if(par(x))x=x+1>mx?x-1:x+1;if(x!==ans)others.add(x);}
+    return Qmc(`Số nào là số ${ev?'chẵn':'lẻ'}?`,fN(ans),[ans,...others].map(fN),{sk:'so',hints:['Chỉ cần nhìn chữ số tận cùng.','Tận cùng 0, 2, 4, 6, 8 là số chẵn; 1, 3, 5, 7, 9 là số lẻ.'],explain:`${fN(ans)} có chữ số tận cùng là ${ans%10} nên là số ${ev?'chẵn':'lẻ'}.`});}
+  const a=R(1,200),b=a+R(5,40);const ev=Math.random()<.5;let c=0;for(let x=a;x<=b;x++)if((x%2===0)===ev)c++;return Qin(`Từ ${a} đến ${b} có bao nhiêu số ${ev?'chẵn':'lẻ'}?`,c,{sk:'so',hints:[`Tìm số ${ev?'chẵn':'lẻ'} đầu tiên và cuối cùng.`,'Hai số chẵn (lẻ) liền nhau cách nhau 2.'],explain:`Có ${c} số ${ev?'chẵn':'lẻ'}.`});};
+
+/* -------- CỘNG, TRỪ -------- */
+function pickAdd(G,P,lv){const mx=lim(G,P);const carry=P.carry||'any';for(let t=0;t<200;t++){let a,b;const dig=P.k||0;
+    if(dig===1){a=R(10,Math.min(mx,99));b=R(1,9);}else if(P.small){a=R(0,mx);b=R(0,mx-a);}else{a=R(Math.floor(mx/10),mx-1);b=R(1,mx-a);}
+    if(a+b>mx)continue;const c=hasCarry(a,b);if(carry==='none'&&c)continue;if(carry==='yes'&&!c)continue;return [a,b];}return [Math.floor(mx/4),Math.floor(mx/5)];}
+function pickSub(G,P){const mx=lim(G,P);const carry=P.carry||'any';for(let t=0;t<200;t++){let a,b;if(P.k===1){a=R(10,Math.min(mx,99));b=R(1,9);}else if(P.small){a=R(0,mx);b=R(0,a);}else{a=R(Math.floor(mx/5),mx);b=R(1,a);}
+    const c=hasBorrow(a,b);if(carry==='none'&&c)continue;if(carry==='yes'&&!c)continue;return [a,b];}return [Math.floor(mx/2),Math.floor(mx/5)];}
+function hasCarry(a,b){while(a>0||b>0){if(a%10+b%10>=10)return true;a=Math.floor(a/10);b=Math.floor(b/10);}return false;}
+function hasBorrow(a,b){while(b>0){if(a%10<b%10)return true;a=Math.floor(a/10);b=Math.floor(b/10);}return false;}
+MG.addsub=function(G,lv,P){const opsL=P.ops||['+','−'];const op=RP(opsL);
+  if(lv===2&&G>=1){const mx=lim(G,P);const a=R(1,Math.floor(mx/3)),b=R(1,Math.floor(mx/3));const c=R(1,Math.min(a+b,Math.floor(mx/3)));const o2=Math.random()<.5;const v=o2?a+b-c:a+b+c;if(v>mx||v<0)return MG.addsub(G,1,P);
+    return Qin('Tính.',v,{big:`${fN(a)} + ${fN(b)} ${o2?'−':'+'} ${fN(c)} = ?`,sk:'congtru',hints:['Tính lần lượt từ trái sang phải.',`${fN(a)} + ${fN(b)} = ${fN(a+b)}`],explain:expl(`${fN(a)} + ${fN(b)} = ${fN(a+b)}`,`${fN(a+b)} ${o2?'−':'+'} ${fN(c)} = ${fN(v)}`)});}
+  if(op==='+'){const [a,b]=pickAdd(G,P,lv);const col=lv===1&&G>=2&&a>=10&&b>=10;return Qin(col?'Đặt tính rồi tính.':'Tính.',a+b,{big:`${fN(a)} + ${fN(b)} = ?`,visual:col?colHTMLx(a,'+',b):'',sk:'congtru',hints:[G>=2?'Cộng từ hàng đơn vị, sang hàng chục…':'Đếm thêm từ số lớn hơn.',hasCarry(a,b)?'Hàng nào được 10 trở lên thì viết đơn vị, nhớ 1 sang hàng bên trái.':'Cộng từng hàng thẳng cột.'],explain:addSteps(a,b)});}
+  const [a,b]=pickSub(G,P);const col=lv===1&&G>=2&&a>=10&&b>=10;return Qin(col?'Đặt tính rồi tính.':'Tính.',a-b,{big:`${fN(a)} − ${fN(b)} = ?`,visual:col?colHTMLx(a,'−',b):'',sk:'congtru',hints:[G>=2?'Trừ từ hàng đơn vị, sang hàng chục…':'Bớt đi rồi đếm số còn lại.',hasBorrow(a,b)?'Hàng nào không trừ được thì mượn 1 chục, rồi trả 1 vào hàng bên trái của số trừ.':'Trừ từng hàng thẳng cột.'],explain:subSteps(a,b)});};
+function colHTMLx(a,op,b){const w=Math.max(String(a).length,String(b).length)+1;const pad=s=>String(s).padStart(w,' ');return `<div class="ht-col"><div>${pad(a)}</div><div><i>${op}</i>${pad(b).slice(1)}</div><div class="ln"></div></div>`;}
+function addSteps(a,b){if(a<10&&b<10||a+b<20&&b<10&&a<20)return `${fN(a)} + ${fN(b)} = ${fN(a+b)}.`;const L=[];let x=a,y=b,c=0,pos=0;const H=['đơn vị','chục','trăm','nghìn','chục nghìn','trăm nghìn'];
+  while(x>0||y>0||c){const s=x%10+y%10+c;if(x>0||y>0||c)L.push(`Hàng ${H[pos]}: ${x%10} + ${y%10}${c?' + 1 (nhớ)':''} = ${s}${s>=10?`, viết ${s%10} nhớ 1`:''}`);c=s>=10?1:0;x=Math.floor(x/10);y=Math.floor(y/10);pos++;if(pos>6)break;}
+  return expl(...(L.length<=4?L:[]),`${fN(a)} + ${fN(b)} = ${fN(a+b)}.`);}
+function subSteps(a,b){if(a<20&&b<10)return `${fN(a)} − ${fN(b)} = ${fN(a-b)}. Thử lại: ${fN(a-b)} + ${fN(b)} = ${fN(a)}.`;return expl(hasBorrow(a,b)?'Hàng nào không trừ được thì mượn 1 ở hàng bên trái.':'',`${fN(a)} − ${fN(b)} = ${fN(a-b)}.`,`Thử lại: ${fN(a-b)} + ${fN(b)} = ${fN(a)}.`);}
+MG.missing=function(G,lv,P){const mx=lim(G,P);const mul=P.mulOnly||(P.mul&&Math.random()<.5);
+  if(mul){const T=P.tables||[2,3,4,5,6,7,8,9];const a=RP(T),b=R(2,G<=2?5:10),c=a*b;const t=R(0,3);
+    const forms=[[`? × ${a} = ${c}`,b,`Thừa số chưa biết = tích : thừa số kia: ${c} : ${a} = ${b}.`],[`${a} × ? = ${c}`,b,`${c} : ${a} = ${b}.`],[`? : ${a} = ${b}`,c,`Số bị chia = thương × số chia: ${b} × ${a} = ${c}.`],[`${c} : ? = ${b}`,a,`Số chia = số bị chia : thương: ${c} : ${b} = ${a}.`]][t];
+    return Qin('Tìm số thích hợp.',forms[1],{big:forms[0],sk:'nhanchia',hints:['Dùng quan hệ giữa phép nhân và phép chia.',t<2?'Lấy tích chia cho thừa số đã biết.':t===2?'Lấy thương nhân với số chia.':'Lấy số bị chia chia cho thương.'],explain:forms[2]});}
+  let a=R(1,Math.floor(mx/2)),b=R(1,Math.floor(mx/2));if(P.small){a=R(0,mx);b=R(0,mx-a);}const c=a+b;const t=R(0,3);
+  const forms=[[`? + ${fN(b)} = ${fN(c)}`,a,`Số hạng = tổng − số hạng kia: ${fN(c)} − ${fN(b)} = ${fN(a)}.`,'Lấy tổng trừ số hạng đã biết.'],[`${fN(a)} + ? = ${fN(c)}`,b,`${fN(c)} − ${fN(a)} = ${fN(b)}.`,'Lấy tổng trừ số hạng đã biết.'],[`? − ${fN(b)} = ${fN(a)}`,c,`Số bị trừ = hiệu + số trừ: ${fN(a)} + ${fN(b)} = ${fN(c)}.`,'Lấy hiệu cộng số trừ.'],[`${fN(c)} − ? = ${fN(a)}`,b,`Số trừ = số bị trừ − hiệu: ${fN(c)} − ${fN(a)} = ${fN(b)}.`,'Lấy số bị trừ trừ hiệu.']][t];
+  if(lv===2&&G>=2){const k=R(1,Math.floor(mx/4));const tt=R(0,1);if(tt===0){const v=a+b+k;return Qin('Tìm số thích hợp.',a,{big:`? + ${fN(b)} = ${fN(v)} − ${fN(k)}`,bigSmall:true,sk:'congtru',hints:['Tính vế phải trước.',`${fN(v)} − ${fN(k)} = ${fN(c)}`],explain:expl(`${fN(v)} − ${fN(k)} = ${fN(c)}`,`? = ${fN(c)} − ${fN(b)} = ${fN(a)}`)});}
+    return Qin('Tìm số thích hợp.',c,{big:`? − ${fN(b)} = ${fN(a-k>=0?a-k:a)} + ${fN(a-k>=0?k:0)}`,bigSmall:true,sk:'congtru',hints:['Tính vế phải trước.','Số bị trừ = hiệu + số trừ.'],explain:expl(`Vế phải = ${fN(a)}`,`? = ${fN(a)} + ${fN(b)} = ${fN(c)}`)});}
+  return Qin('Tìm số thích hợp.',forms[1],{big:forms[0],sk:'congtru',hints:['Nhớ tên các thành phần: số hạng, tổng, số bị trừ, số trừ, hiệu.',forms[3]],explain:forms[2]});};
+/* điền số không cần tính (giữ nguyên tổng / hiệu / tích) */
+MG.keep=function(G,lv,P){const mx=lim(G,P);const t=lv===2&&G>=3?RP(['mul+','mul−']):lv===0?'add':RP(['add','sub']);
+  if(t==='add'){const a=R(Math.floor(mx/10),Math.floor(mx/2)),b=R(Math.floor(mx/10),Math.floor(mx/2)),k=R(1,Math.min(b-1,Math.max(1,Math.floor(mx/10))));if(b-k<=0)return MG.keep(G,lv,P);
+    return Qin('Điền số thích hợp (không cần tính tổng).',b-k,{big:`${fN(a)} + ${fN(b)} = ${fN(a+k)} + ?`,bigSmall:true,sk:'congtru',hints:['Số hạng thứ nhất tăng thêm bao nhiêu?',`Số hạng thứ nhất tăng ${k} thì số hạng thứ hai phải giảm ${k} để tổng không đổi.`],explain:expl(`${fN(a+k)} hơn ${fN(a)} là ${k}.`,`Để tổng không đổi: ${fN(b)} − ${k} = ${fN(b-k)}.`)});}
+  if(t==='sub'){const a=R(Math.floor(mx/3),mx-Math.floor(mx/10)),b=R(1,Math.floor(a/2)),k=R(1,Math.max(1,Math.floor(mx/10)));if(a+k>mx)return MG.keep(G,lv,P);
+    return Qin('Điền số thích hợp (không cần tính hiệu).',b+k,{big:`${fN(a)} − ${fN(b)} = ${fN(a+k)} − ?`,bigSmall:true,sk:'congtru',hints:['Số bị trừ tăng thêm bao nhiêu?',`Số bị trừ tăng ${k} thì số trừ cũng phải tăng ${k} để hiệu không đổi.`],explain:expl(`${fN(a+k)} hơn ${fN(a)} là ${k}.`,`Để hiệu không đổi: ${fN(b)} + ${k} = ${fN(b+k)}.`)});}
+  const a=RP(P.tables||[2,3,4,5,6,7,8,9]),b=R(2,9);const plus=t==='mul+';
+  return Qin('Điền số thích hợp (không cần tính).',plus?b+1:b-1,{big:`${a} × ${b} ${plus?'+':'−'} ${a} = ${a} × ?`,sk:'nhanchia',hints:[`${a} × ${b} là ${b} lần ${a}.`,plus?`Thêm 1 lần ${a} nữa.`:`Bớt đi 1 lần ${a}.`],explain:`${a} × ${b} là ${b} lần ${a}; ${plus?'thêm':'bớt'} 1 lần ${a} được ${plus?b+1:b-1} lần ${a}: ${a} × ${plus?b+1:b-1}.`});};
+MG.mental=function(G,lv,P){const u=P.round||(G<=1?10:G===2?100:1000);const n=lv===0?2:3;const xs=[];for(let i=0;i<n;i++)xs.push(R(1,9)*u);const plus=Math.random()<.5||xs[0]<xs[1];let v=plus?xs[0]+xs[1]:xs[0]-xs[1];if(n===3&&v+xs[2]>Math.max(lim(G,P),u*10))return MG.mental(G,lv,P);if(plus&&v>Math.max(lim(G,P),u*10))return MG.mental(G,lv,P);let big=`${fN(xs[0])} ${plus?'+':'−'} ${fN(xs[1])}`;
+  if(n===3){v+=xs[2];big+=` + ${fN(xs[2])}`;}if(v<0)return MG.mental(G,lv,P);
+  return Qin('Tính nhẩm.',v,{big:big+' = ?',sk:'congtru',hints:[`Đếm theo ${fN(u)}: coi mỗi ${fN(u)} là 1 đơn vị.`,`${xs[0]/u} ${plus?'+':'−'} ${xs[1]/u}${n===3?' + '+xs[2]/u:''}`],explain:`${xs.slice(0,n).map(x=>x/u+' '+({10:'chục',100:'trăm',1000:'nghìn'}[u]||'')).join(plus?' + ':' − ')} → ${fN(v)}.`});};
+MG.expr=function(G,lv,P){const T=G>=4?[2,3,4,5,6,7,8,9,12,15,25]:[2,3,4,5,6,7,8,9];const t=lv===0?RP(['a+bc','a-bc']):lv===1?RP(['(a+b)c','(a-b):c','a:b+c']):RP(['a+bc-d','(a+b)c-d','abc']);
+  for(let k=0;k<50;k++){let big,v,ex;const a=R(10,G>=4?999:99),b=R(2,9),c=RP(T),d=R(1,50);
+    if(t==='a+bc'){v=a+b*c;big=`${a} + ${b} × ${c}`;ex=expl('Nhân trước, cộng sau.',`${b} × ${c} = ${b*c}`,`${a} + ${b*c} = ${v}`);}
+    else if(t==='a-bc'){if(a<b*c)continue;v=a-b*c;big=`${a} − ${b} × ${c}`;ex=expl('Nhân trước, trừ sau.',`${b} × ${c} = ${b*c}`,`${a} − ${b*c} = ${v}`);}
+    else if(t==='(a+b)c'){const x=R(2,30),y=R(2,30);v=(x+y)*b;big=`(${x} + ${y}) × ${b}`;ex=expl('Trong ngoặc trước.',`${x} + ${y} = ${x+y}`,`${x+y} × ${b} = ${v}`);}
+    else if(t==='(a-b):c'){const q=R(2,20);const y=R(1,40);const x=q*b+y;v=q;big=`(${x} − ${y}) : ${b}`;ex=expl('Trong ngoặc trước.',`${x} − ${y} = ${x-y}`,`${x-y} : ${b} = ${q}`);}
+    else if(t==='a:b+c'){const q=R(2,20);v=q+d;big=`${q*b} : ${b} + ${d}`;ex=expl('Chia trước, cộng sau.',`${q*b} : ${b} = ${q}`,`${q} + ${d} = ${v}`);}
+    else if(t==='a+bc-d'){if(a+b*c<d)continue;v=a+b*c-d;big=`${a} + ${b} × ${c} − ${d}`;ex=expl('Nhân trước.',`${b} × ${c} = ${b*c}`,`${a} + ${b*c} = ${a+b*c}`,`${a+b*c} − ${d} = ${v}`);}
+    else if(t==='(a+b)c-d'){const x=R(2,30),y=R(2,30);if((x+y)*b<d)continue;v=(x+y)*b-d;big=`(${x} + ${y}) × ${b} − ${d}`;ex=expl(`${x} + ${y} = ${x+y}`,`${x+y} × ${b} = ${(x+y)*b}`,`${(x+y)*b} − ${d} = ${v}`);}
+    else{v=b*c*2;big=`${b} × ${c} × 2`;ex=expl(`${b} × ${c} = ${b*c}`,`${b*c} × 2 = ${v}`);}
+    if(v<0||v>999999)continue;return Qin('Tính giá trị của biểu thức.',v,{big:big+' = ?',bigSmall:big.length>16,sk:'congtru',hints:['Trong ngoặc trước; nhân, chia trước; cộng, trừ sau.','Làm từng bước, viết kết quả từng bước ra giấy.'],explain:ex});}
+  return MG.addsub(G,0,P);};
+MG.quicksum=function(G,lv,P){if(G>=3&&lv===2)return TDG.quick(Math.max(3,G),2);if(G<=1)return Object.assign(TDG.quick(1,0),{sk:skOf('congtru')});return Object.assign(TDG.quick(G,lv),{sk:skOf('congtru')});};
+MG.letter=function(G,lv,P){const a=R(2,50),b=R(2,9),c=R(1,99);const t=R(0,2);const big=[`a + b × c`,`(a + b) × c`,`a × b − c`][t];const v=[a+b*c,(a+b)*c,a*b-c][t];if(v<0)return MG.letter(G,lv,P);
+  return Qin(`Tính giá trị của biểu thức ${big} với a = ${a}, b = ${b}, c = ${c}.`,v,{sk:'congtru',hints:['Thay số vào chữ.','Làm theo thứ tự: trong ngoặc, nhân chia, cộng trừ.'],explain:[`${a} + ${b} × ${c} = ${a} + ${b*c} = ${v}`,`(${a} + ${b}) × ${c} = ${a+b} × ${c} = ${v}`,`${a} × ${b} − ${c} = ${a*b} − ${c} = ${v}`][t]});};
+/* ================= BỘ ĐỀ TOÁN MỚI — phần B: nhân, chia, toán có lời văn ================= */
+MG.table=function(G,lv,P){const T=P.tables||[2,3,4,5,6,7,8,9];const a=RP(T),b=R(1,10);const t=P.noDiv?(lv===0?'mul':lv===1?RP(['mul2','missM','mul']):RP(['mix','miss2'])):lv===0?RP(['mul','div']):lv===1?RP(['miss','div','mul2']):RP(['mix','miss2']);
+  if(t==='mul')return Qin('Tính.',a*b,{big:`${a} × ${b} = ?`,sk:'nhanchia',hints:[`Bảng nhân ${a}.`,`${a} × ${b} là ${b} lần ${a}.`],explain:b<=5?`${a} × ${b} = ${Array(b).fill(a).join(' + ')} = ${a*b}.`:`${a} × ${b} = ${a*b} (bảng nhân ${a}).`});
+  if(t==='div')return Qin('Tính.',b,{big:`${a*b} : ${a} = ?`,sk:'nhanchia',hints:[`Nhớ lại bảng nhân ${a}.`,`${a} nhân mấy bằng ${a*b}?`],explain:`Vì ${a} × ${b} = ${a*b} nên ${a*b} : ${a} = ${b}.`});
+  if(t==='mul2'){const k=R(2,5);if(G<=2)return Qin('Viết thành phép nhân rồi tính.',a*k,{big:`${Array(k).fill(a).join(' + ')} = ${a} × ${k} = ?`,bigSmall:true,sk:'nhanchia',hints:[`${a} được lấy ${k} lần.`,`${a} × ${k}`],explain:`${Array(k).fill(a).join(' + ')} = ${a} × ${k} = ${a*k}.`});
+    return Qin('Tính.',a*b*k,{big:`${a} × ${b} × ${k} = ?`,sk:'nhanchia',hints:['Nhân lần lượt từ trái sang phải.',`${a} × ${b} = ${a*b}`],explain:expl(`${a} × ${b} = ${a*b}`,`${a*b} × ${k} = ${a*b*k}`)});}
+  if(t==='missM'){const c=a*b;return Qin('Tìm số thích hợp.',b,{big:`${a} × ? = ${c}`,sk:'nhanchia',hints:[`Bảng nhân ${a}: ${a} nhân mấy bằng ${c}?`,''],explain:`${a} × ${b} = ${c}.`});}
+  if(t==='miss')return MG.missing(G,lv,Object.assign({},P,{mulOnly:true,tables:T}));
+  if(t==='miss2'){const c=R(1,a*2);return Qin('Tìm số thích hợp.',b,{big:`${a} × ? + ${c} = ${a*b+c}`,sk:'nhanchia',hints:[`Bớt ${c} ở vế phải trước.`,`${a} × ? = ${a*b}`],explain:expl(`${a*b+c} − ${c} = ${a*b}`,`${a*b} : ${a} = ${b}`)});}
+  const c=R(1,20);const plus=Math.random()<.5||a*b<c;return Qin('Tính giá trị của biểu thức.',plus?a*b+c:a*b-c,{big:`${a} × ${b} ${plus?'+':'−'} ${c} = ?`,sk:'nhanchia',hints:['Nhân trước, cộng trừ sau.',`${a} × ${b} = ${a*b}`],explain:expl(`${a} × ${b} = ${a*b}`,`${a*b} ${plus?'+':'−'} ${c} = ${plus?a*b+c:a*b-c}`)});};
+MG.mulBig=function(G,lv,P){const d2=P.d2||1;let a,b;if(d2===1){a=R(lv===0?11:101,G>=4?(lv===2?99999:9999):lv===2?9999:999);b=R(2,9);}else{a=R(lv===0?12:101,lv===2?999:99);b=R(11,99);}const v=a*b;if(v>999999)return MG.mulBig(G,lv,P);
+  return Qin(lv===0?'Tính.':'Đặt tính rồi tính.',v,{big:`${fN(a)} × ${b} = ?`,visual:lv>=1?colHTMLx(a,'×',b):'',sk:'nhanchia',hints:[d2===1?'Nhân lần lượt từ hàng đơn vị, nhớ sang hàng tiếp theo.':'Nhân với chữ số hàng đơn vị, rồi hàng chục (viết lùi sang trái một cột), cuối cùng cộng lại.',`Ước lượng: khoảng ${fN(Math.round(a/Math.pow(10,String(a).length-1))*Math.pow(10,String(a).length-1)*b)}.`],explain:d2===1?`${fN(a)} × ${b} = ${fN(v)}.`:expl(`${fN(a)} × ${b%10} = ${fN(a*(b%10))}`,`${fN(a)} × ${Math.floor(b/10)*10} = ${fN(a*Math.floor(b/10)*10)}`,`${fN(a*(b%10))} + ${fN(a*Math.floor(b/10)*10)} = ${fN(v)}`)});};
+MG.divBig=function(G,lv,P){const d2=P.d2||1;const b=d2===1?R(2,9):R(11,G>=4?99:50);const q=R(lv===0?11:101,d2===1?(lv===2?9999:999):(lv===2?999:99));const a=b*q;if(a>999999)return MG.divBig(G,lv,P);
+  if(lv===2){const r=R(1,b-1);return Qsl(`Đặt tính rồi tính: ${fN(a+r)} : ${b}`,['Thương','Số dư'],[q,r],[q+1,r+1,b-r,Math.max(0,q-1)],{sk:'nhanchia',hints:['Chia lần lượt từ hàng cao nhất: chia, nhân, trừ, hạ.','Số dư phải bé hơn số chia.'],explain:expl(`${fN(a+r)} : ${b} = ${fN(q)} (dư ${r})`,`Thử lại: ${fN(q)} × ${b} + ${r} = ${fN(a+r)}`)});}
+  return Qin(lv===0?'Tính.':'Đặt tính rồi tính.',q,{big:`${fN(a)} : ${b} = ?`,sk:'nhanchia',hints:['Chia lần lượt từ hàng cao nhất: chia, nhân, trừ, hạ.',`Thử lại bằng phép nhân: thương × ${b}.`],explain:expl(`${fN(a)} : ${b} = ${fN(q)}`,`Thử lại: ${fN(q)} × ${b} = ${fN(a)}`)});};
+MG.divRem=function(G,lv,P){const b=R(lv===2?4:2,9),q=R(1,lv===0?9:lv===1?30:200),r=R(1,b-1),a=b*q+r;
+  if(lv===0){return Qin(`Trong phép chia ${a} : ${b}, số dư là bao nhiêu?`,r,{sk:'nhanchia',hints:[`${b} nhân mấy gần ${a} nhất mà không vượt quá?`,`${b} × ${q} = ${b*q}`],explain:expl(`${a} : ${b} = ${q} (dư ${r})`,`vì ${b} × ${q} = ${b*q} và ${a} − ${b*q} = ${r}`)});}
+  if(lv===2){return Qin(`Số dư lớn nhất có thể có trong phép chia cho ${b} là bao nhiêu?`,b-1,{sk:'nhanchia',hints:['Số dư luôn bé hơn số chia.',`Số lớn nhất bé hơn ${b}.`],explain:`Số dư bé hơn ${b} nên lớn nhất là ${b-1}.`});}
+  return Qsl(`Thực hiện phép chia ${a} : ${b}.`,['Thương','Số dư'],[q,r],[q+1,r+1,b,Math.max(0,q-1)],{sk:'nhanchia',hints:['Tìm thương trước, rồi số dư.','Số dư bé hơn số chia.'],explain:expl(`${a} : ${b} = ${q} (dư ${r})`,`Thử lại: ${q} × ${b} + ${r} = ${a}`)});};
+MG.times10=function(G,lv,P){const k=RP([10,100,1000]);const mul=Math.random()<.5;if(mul){const a=R(2,lv===2?999:99);return Qin('Tính nhẩm.',a*k,{big:`${a} × ${fN(k)} = ?`,sk:'nhanchia',hints:[`Nhân với ${fN(k)}: thêm ${String(k).length-1} chữ số 0 vào bên phải.`,''],explain:`${a} × ${fN(k)} = ${fN(a*k)}.`});}
+  const a=R(2,lv===2?999:99)*k;return Qin('Tính nhẩm.',a/k,{big:`${fN(a)} : ${fN(k)} = ?`,sk:'nhanchia',hints:[`Chia cho ${fN(k)}: bỏ bớt ${String(k).length-1} chữ số 0 ở tận cùng.`,''],explain:`${fN(a)} : ${fN(k)} = ${fN(a/k)}.`});};
+MG.mulProp=function(G,lv,P){const a=R(3,G>=4?99:9),b=R(11,89),c=(lv===2?100:10*Math.ceil(b/10))-b||10;const t=R(0,2);
+  if(t===0)return Qin('Điền số thích hợp (không cần tính).',c,{big:`${a} × ${b} + ${a} × ${c} = ${a} × (${b} + ?)`,bigSmall:true,sk:'nhanchia',hints:['Nhân một số với một tổng.','a × b + a × c = a × (b + c)'],explain:`${a} × ${b} + ${a} × ${c} = ${a} × (${b} + ${c}).`});
+  if(t===1)return Qin('Tính bằng cách thuận tiện.',a*(b+c),{big:`${a} × ${b} + ${a} × ${c} = ?`,bigSmall:true,sk:'nhanchia',hints:[`Cùng nhân với ${a}.`,`${a} × (${b} + ${c})`],explain:`${a} × (${b} + ${c}) = ${a} × ${b+c} = ${fN(a*(b+c))}.`});
+  const m=RP([[25,4],[5,2],[50,2],[125,8],[20,5]]);const k=R(3,19);return Qin('Tính bằng cách thuận tiện.',m[0]*m[1]*k,{big:`${m[0]} × ${k} × ${m[1]} = ?`,sk:'nhanchia',hints:['Đổi chỗ các thừa số để được số tròn.',`${m[0]} × ${m[1]} = ${m[0]*m[1]}`],explain:`(${m[0]} × ${m[1]}) × ${k} = ${m[0]*m[1]} × ${k} = ${fN(m[0]*m[1]*k)}.`});};
+MG.gap=function(G,lv,P){const a=R(2,lv===2?50:12),k=R(2,9);const t=lv===0?RP(['up','down']):RP(['up','down','how','mixed']);
+  if(t==='up')return Qin(`Gấp ${a} lên ${k} lần được bao nhiêu?`,a*k,{sk:'nhanchia',hints:['Gấp lên nhiều lần thì làm phép nhân.',`${a} × ${k}`],explain:`${a} × ${k} = ${a*k}.`});
+  if(t==='down')return Qin(`Giảm ${a*k} đi ${k} lần được bao nhiêu?`,a,{sk:'nhanchia',hints:['Giảm đi nhiều lần thì làm phép chia.',`${a*k} : ${k}`],explain:`${a*k} : ${k} = ${a}.`});
+  if(t==='how')return Qin(`Số ${a*k} gấp mấy lần số ${a}?`,k,{sk:'nhanchia',hints:['Lấy số lớn chia cho số bé.',`${a*k} : ${a}`],explain:`${a*k} : ${a} = ${k} (lần).`});
+  const c=R(1,9);return Qin(`Gấp ${a} lên ${k} lần rồi thêm ${c} thì được bao nhiêu?`,a*k+c,{sk:'nhanchia',hints:['Gấp lên trước (nhân), rồi thêm (cộng).',`${a} × ${k} = ${a*k}`],explain:expl(`${a} × ${k} = ${a*k}`,`${a*k} + ${c} = ${a*k+c}`)});};
+MG.partOf=function(G,lv,P){const n=R(2,9),q=R(2,lv===2?20:10);const N=n*q;const nm={2:'hai',3:'ba',4:'bốn',5:'năm',6:'sáu',7:'bảy',8:'tám',9:'chín'}[n];const t=thing();
+  if(lv===2)return Qin(`Mẹ có ${N} ${t[0]}, mẹ cho em 1/${n} số ${t[0]} đó. Hỏi mẹ còn lại bao nhiêu ${t[0]}?`,N-q,{sk:'nhanchia',hints:[`1/${n} của ${N} là ${N} : ${n}.`,'Lấy số lúc đầu trừ phần đã cho.'],explain:expl(`1/${n} của ${N} là ${N} : ${n} = ${q}`,`Còn lại: ${N} − ${q} = ${N-q}`)});
+  return Qin(`Tìm một phần ${nm} của ${N}.`,q,{big:`1/${n} của ${N} = ?`,sk:'nhanchia',hints:[`Chia ${N} thành ${n} phần bằng nhau.`,`${N} : ${n}`],explain:`1/${n} của ${N} là ${N} : ${n} = ${q}.`});};
+MG.repAdd=function(G,lv,P){return MG.table(G,1,Object.assign({},P,{}));};
+
+/* -------- TOÁN CÓ LỜI VĂN -------- */
+const NMS=()=>names(2);
+MG.wp1=function(G,lv,P){const mx=lim(G,P);const t=thing();const [A,B]=NMS();const kind=RP(['them','gop','bot','con']);const sub=kind==='bot'||kind==='con';
+  const a=sub?R(G<=1?3:10,mx):R(G<=1?1:10,Math.max(2,mx-1)),b=sub?R(1,a-1):R(1,Math.max(1,mx-a));if(b<1||(!sub&&a+b>mx))return MG.wp1(G,lv,P);
+  if(kind==='them')return Qin(`${A} có ${fN(a)} ${t[0]}, ${B} cho ${A} thêm ${fN(b)} ${t[0]}. Hỏi ${A} có tất cả bao nhiêu ${t[0]}?`,a+b,{sk:'giaitoan',hints:['Được cho thêm thì số lượng tăng lên.','Làm phép cộng.'],explain:expl(`${A} có tất cả: ${fN(a)} + ${fN(b)} = ${fN(a+b)} (${t[1]})`)});
+  if(kind==='gop')return Qin(`Rổ thứ nhất có ${fN(a)} ${t[0]}, rổ thứ hai có ${fN(b)} ${t[0]}. Cả hai rổ có bao nhiêu ${t[0]}?`,a+b,{sk:'giaitoan',hints:['Gộp hai rổ lại.','Làm phép cộng.'],explain:`Cả hai rổ: ${fN(a)} + ${fN(b)} = ${fN(a+b)} (${t[1]}).`});
+  if(kind==='bot')return Qin(`${A} có ${fN(a)} ${t[0]}, ${A} cho bạn ${fN(b)} ${t[0]}. Hỏi ${A} còn lại bao nhiêu ${t[0]}?`,a-b,{sk:'giaitoan',hints:['Cho đi thì số lượng giảm.','Làm phép trừ.'],explain:`${A} còn lại: ${fN(a)} − ${fN(b)} = ${fN(a-b)} (${t[1]}).`});
+  return Qin(`Cửa hàng có ${fN(a)} ${t[0]}, đã bán ${fN(b)} ${t[0]}. Hỏi cửa hàng còn lại bao nhiêu ${t[0]}?`,a-b,{sk:'giaitoan',hints:['Đã bán đi thì còn lại ít hơn.','Làm phép trừ.'],explain:`Còn lại: ${fN(a)} − ${fN(b)} = ${fN(a-b)} (${t[1]}).`});};
+MG.wpMore=function(G,lv,P){const mx=lim(G,P);const t=thing();const [A,B]=NMS();const a=R(G<=1?3:10,Math.floor(mx/2)),d=R(1,Math.max(2,Math.min(a-1,Math.floor(mx/4))));const kind=lv===0?RP(['more','less']):RP(['more','less','diff','diff']);
+  if(kind==='more')return Qin(`${A} có ${fN(a)} ${t[0]}. ${B} có nhiều hơn ${A} ${fN(d)} ${t[0]}. Hỏi ${B} có bao nhiêu ${t[0]}?`,a+d,{sk:'giaitoan',hints:[`${B} có nhiều hơn nên lấy số của ${A} cộng thêm.`,`${fN(a)} + ${fN(d)}`],explain:`${B} có: ${fN(a)} + ${fN(d)} = ${fN(a+d)} (${t[1]}).`});
+  if(kind==='less')return Qin(`${A} có ${fN(a)} ${t[0]}. ${B} có ít hơn ${A} ${fN(d)} ${t[0]}. Hỏi ${B} có bao nhiêu ${t[0]}?`,a-d,{sk:'giaitoan',hints:[`${B} có ít hơn nên lấy số của ${A} trừ đi.`,`${fN(a)} − ${fN(d)}`],explain:`${B} có: ${fN(a)} − ${fN(d)} = ${fN(a-d)} (${t[1]}).`});
+  const b=a-d;return Qin(`${A} có ${fN(a)} ${t[0]}, ${B} có ${fN(b)} ${t[0]}. Hỏi ${A} có nhiều hơn ${B} bao nhiêu ${t[0]}?`,d,{sk:'giaitoan',hints:['Muốn biết nhiều hơn bao nhiêu, lấy số lớn trừ số bé.',`${fN(a)} − ${fN(b)}`],explain:`${fN(a)} − ${fN(b)} = ${fN(d)} (${t[1]}).`});};
+MG.wp2=function(G,lv,P){const mx=lim(G,P);const t=thing();const a=R(10,Math.floor(mx/3)),d=R(2,Math.floor(mx/5));const kind=RP(lv===2&&G>=3?['buygive','threestep']:['moreTot','lessTot','sellLeft']);
+  if(kind==='moreTot')return Qin(`Buổi sáng bán được ${fN(a)} ${t[0]}, buổi chiều bán được nhiều hơn buổi sáng ${fN(d)} ${t[0]}. Hỏi cả hai buổi bán được bao nhiêu ${t[0]}?`,2*a+d,{sk:'giaitoan',hints:['Muốn biết cả hai buổi, phải biết buổi chiều bán bao nhiêu trước.',`Buổi chiều: ${fN(a)} + ${fN(d)}.`],explain:expl(`Buổi chiều: ${fN(a)} + ${fN(d)} = ${fN(a+d)} (${t[1]})`,`Cả hai buổi: ${fN(a)} + ${fN(a+d)} = ${fN(2*a+d)} (${t[1]})`)});
+  if(kind==='lessTot'){if(d>=a)return MG.wp2(G,lv,P);return Qin(`Thùng thứ nhất có ${fN(a)} ${t[0]}, thùng thứ hai có ít hơn thùng thứ nhất ${fN(d)} ${t[0]}. Hỏi cả hai thùng có bao nhiêu ${t[0]}?`,2*a-d,{sk:'giaitoan',hints:['Tìm số trong thùng thứ hai trước.',`Thùng thứ hai: ${fN(a)} − ${fN(d)}.`],explain:expl(`Thùng thứ hai: ${fN(a)} − ${fN(d)} = ${fN(a-d)} (${t[1]})`,`Cả hai thùng: ${fN(a)} + ${fN(a-d)} = ${fN(2*a-d)} (${t[1]})`)});}
+  if(kind==='sellLeft'){const b=R(1,Math.floor(a/2)),c=R(1,Math.floor(a/2));if(b+c>=a)return MG.wp2(G,lv,P);return Qin(`Một cửa hàng có ${fN(a)} ${t[0]}. Buổi sáng bán ${fN(b)} ${t[0]}, buổi chiều bán ${fN(c)} ${t[0]}. Hỏi cửa hàng còn lại bao nhiêu ${t[0]}?`,a-b-c,{sk:'giaitoan',hints:['Tính số đã bán cả ngày trước, hoặc trừ lần lượt.',`${fN(b)} + ${fN(c)} = ${fN(b+c)}`],explain:expl(`Cả ngày bán: ${fN(b)} + ${fN(c)} = ${fN(b+c)} (${t[1]})`,`Còn lại: ${fN(a)} − ${fN(b+c)} = ${fN(a-b-c)} (${t[1]})`)});}
+  if(kind==='buygive'){const n=R(3,9),k=R(4,12),g=R(2,n*k-1);return Qin(`Mẹ mua ${n} hộp bánh, mỗi hộp có ${k} chiếc. Mẹ biếu bà ${g} chiếc. Hỏi mẹ còn lại bao nhiêu chiếc bánh?`,n*k-g,{sk:'giaitoan',hints:['Tính số bánh mẹ mua trước (phép nhân).',`${n} × ${k} = ${n*k}`],explain:expl(`Mẹ mua: ${n} × ${k} = ${n*k} (chiếc)`,`Còn lại: ${n*k} − ${g} = ${n*k-g} (chiếc)`)});}
+  const n=R(3,8),p=R(2,9)*1000,m=R(1,4)*10000+p*n;return Qin(`An mua ${n} quyển vở, mỗi quyển giá ${fN(p)} đồng. An đưa cô bán hàng ${fN(m)} đồng. Hỏi cô trả lại An bao nhiêu tiền?`,m-n*p,{unit:'đồng',sk:'giaitoan',hints:['Tính số tiền mua vở trước.',`${n} × ${fN(p)} = ${fN(n*p)}`],explain:expl(`Tiền mua vở: ${n} × ${fN(p)} = ${fN(n*p)} (đồng)`,`Trả lại: ${fN(m)} − ${fN(n*p)} = ${fN(m-n*p)} (đồng)`)});};
+MG.wpMul=function(G,lv,P){const T=P.tables||[2,3,4,5,6,7,8,9];const k=RP(T),n=R(2,G<=2?5:10);const ctx=RP([['hộp','cái bút','cái'],['đĩa','quả cam','quả'],['túi','cái kẹo','cái'],['hàng','bạn','bạn'],['bàn','học sinh','học sinh'],['chuồng','con thỏ','con']]);const kind=lv===0?'mul':RP(['mul','div','group']);
+  if(kind==='mul')return Qin(`Mỗi ${ctx[0]} có ${k} ${ctx[1]}. Hỏi ${n} ${ctx[0]} như thế có bao nhiêu ${ctx[1]}?`,k*n,{sk:'giaitoan',hints:[`${k} ${ctx[1]} được lấy ${n} lần.`,`${k} × ${n}`],explain:`${k} × ${n} = ${k*n} (${ctx[2]}).`});
+  if(kind==='div')return Qin(`Có ${k*n} ${ctx[1]} chia đều vào ${n} ${ctx[0]}. Hỏi mỗi ${ctx[0]} có bao nhiêu ${ctx[1]}?`,k,{sk:'giaitoan',hints:['Chia đều thì làm phép chia.',`${k*n} : ${n}`],explain:`${k*n} : ${n} = ${k} (${ctx[2]}).`});
+  if(lv===2){const r=R(1,k-1);const N=k*n+r;return Qin(`Có ${N} ${ctx[1]}, xếp vào các ${ctx[0]}, mỗi ${ctx[0]} ${k} ${ctx[1]}. Cần ít nhất bao nhiêu ${ctx[0]} để xếp hết?`,n+1,{sk:'giaitoan',hints:[`${N} : ${k} được bao nhiêu, dư bao nhiêu?`,`Còn dư thì cần thêm 1 ${ctx[0]} nữa.`],explain:expl(`${N} : ${k} = ${n} (dư ${r})`,`Còn ${r} ${ctx[1]} nên cần thêm 1 ${ctx[0]}: ${n} + 1 = ${n+1}.`)});}
+  return Qin(`Có ${k*n} ${ctx[1]}, xếp mỗi ${ctx[0]} ${k} ${ctx[1]}. Hỏi xếp được mấy ${ctx[0]}?`,n,{sk:'giaitoan',hints:[`Mỗi ${ctx[0]} ${k} ${ctx[1]}: chia thành nhóm ${k}.`,`${k*n} : ${k}`],explain:`${k*n} : ${k} = ${n} (${ctx[0]}).`});};
+MG.wpUnit=function(G,lv,P){const n=R(2,9),u=R(3,G>=4?120:30),m=R(2,12);const ctx=RP([['thùng','lít dầu','l'],['bao','ki-lô-gam gạo','kg'],['hộp','cái bánh','cái'],['xe','bao xi măng','bao']]);
+  if(lv===2&&G>=4){const tot=u*m;return Qin(`${n} ${ctx[0]} như nhau chứa ${fN(n*u)} ${ctx[1]}. Hỏi ${fN(tot)} ${ctx[1]} thì cần bao nhiêu ${ctx[0]} như thế?`,m,{sk:'giaitoan',hints:[`Tìm 1 ${ctx[0]} chứa bao nhiêu.`,`${fN(n*u)} : ${n} = ${u}`],explain:expl(`1 ${ctx[0]}: ${fN(n*u)} : ${n} = ${u} (${ctx[2]})`,`Số ${ctx[0]}: ${fN(tot)} : ${u} = ${m}`)});}
+  return Qin(`${n} ${ctx[0]} như nhau chứa ${fN(n*u)} ${ctx[1]}. Hỏi ${m} ${ctx[0]} như thế chứa bao nhiêu ${ctx[1]}?`,u*m,{sk:'giaitoan',hints:[`Bước 1: tìm 1 ${ctx[0]} chứa bao nhiêu (chia).`,`Bước 2: nhân với ${m}.`],explain:expl(`1 ${ctx[0]}: ${fN(n*u)} : ${n} = ${u} (${ctx[2]})`,`${m} ${ctx[0]}: ${u} × ${m} = ${fN(u*m)} (${ctx[2]})`)});};
+MG.wpAvg=function(G,lv,P){const n=lv===0?3:R(3,5);const avg=R(10,G>=5?500:200);const xs=[];let s=0;for(let i=0;i<n-1;i++){const x=avg+R(-9,9)*(G>=5?5:1);xs.push(x);s+=x;}const last=avg*n-s;if(last<=0)return MG.wpAvg(G,lv,P);xs.push(last);
+  if(lv===2)return Qin(`Trung bình cộng của ${n} số là ${avg}. Biết ${n-1} số đầu là ${xs.slice(0,-1).join(', ')}. Tìm số còn lại.`,last,{sk:'giaitoan',hints:['Tổng các số = trung bình cộng × số các số.',`Tổng = ${avg} × ${n} = ${avg*n}`],explain:expl(`Tổng: ${avg} × ${n} = ${avg*n}`,`Số còn lại: ${avg*n} − ${s} = ${last}`)});
+  return Qin(`Tìm số trung bình cộng của các số: ${xs.join(', ')}.`,avg,{sk:'giaitoan',hints:['Cộng tất cả các số lại.',`Rồi chia cho ${n}.`],explain:expl(`Tổng: ${xs.join(' + ')} = ${avg*n}`,`Trung bình cộng: ${avg*n} : ${n} = ${avg}`)});};
+MG.wpSumDiff=function(G,lv,P){const q=TDG.sumdiff(Math.max(3,G),lv===2?2:0);q.sk='giaitoan';return q;};
+MG.wpRatio=function(G,lv,P){const k=R(2,G>=5?7:5),each=R(3,G>=5?300:80);const [A,B]=NMS();const t=thing();
+  if(P.kind?P.kind==='sum':Math.random()<.5){const S=(k+1)*each;return Qin(`Tổng số ${t[0]} của ${A} và ${B} là ${fN(S)}. Số ${t[0]} của ${B} bằng 1/${k} số ${t[0]} của ${A}. Hỏi ${A} có bao nhiêu ${t[0]}?`,k*each,{visual:tapeSVG([{n:B,parts:1},{n:A,parts:k}],fN(S)),sk:'giaitoan',hints:[`${B} 1 phần, ${A} ${k} phần, tổng ${k+1} phần.`,`Mỗi phần: ${fN(S)} : ${k+1}.`],explain:expl(`Tổng số phần: 1 + ${k} = ${k+1}`,`Mỗi phần: ${fN(S)} : ${k+1} = ${fN(each)}`,`${A}: ${fN(each)} × ${k} = ${fN(k*each)} (${t[1]})`)});}
+  const D=(k-1)*each;return Qin(`${A} có nhiều hơn ${B} ${fN(D)} ${t[0]}. Số ${t[0]} của ${A} gấp ${k} lần số ${t[0]} của ${B}. Hỏi ${B} có bao nhiêu ${t[0]}?`,each,{visual:tapeSVG([{n:B,parts:1},{n:A,parts:k}],''),sk:'giaitoan',hints:[`Hiệu số phần: ${k} − 1 = ${k-1}.`,`Mỗi phần: ${fN(D)} : ${k-1}.`],explain:expl(`Hiệu số phần: ${k} − 1 = ${k-1}`,`${B}: ${fN(D)} : ${k-1} = ${fN(each)} (${t[1]})`)});};
+MG.wp3=function(G,lv,P){const n=R(3,9),p=R(5,30)*1000,m=R(2,5),q=R(2,9)*1000;const tot=n*p+m*q;return Qin(`Mẹ mua ${n} kg táo, mỗi ki-lô-gam giá ${fN(p)} đồng và ${m} kg cam, mỗi ki-lô-gam giá ${fN(q)} đồng. Hỏi mẹ phải trả tất cả bao nhiêu tiền?`,tot,{unit:'đồng',sk:'giaitoan',hints:['Tính tiền táo, tiền cam riêng rồi cộng lại.',`Tiền táo: ${n} × ${fN(p)}.`],explain:expl(`Tiền táo: ${n} × ${fN(p)} = ${fN(n*p)} (đồng)`,`Tiền cam: ${m} × ${fN(q)} = ${fN(m*q)} (đồng)`,`Tất cả: ${fN(n*p)} + ${fN(m*q)} = ${fN(tot)} (đồng)`)});};
+/* ================= BỘ ĐỀ TOÁN MỚI — phần C: đo lường, thời gian, tiền, hình học, thống kê ================= */
+/* đổi đơn vị: bảng [tên, hệ số so với đơn vị nhỏ nhất] */
+const UNITS={len:[['mm',1],['cm',10],['dm',100],['m',1000],['km',1000000]],mass:[['g',1],['kg',1000],['yến',10000],['tạ',100000],['tấn',1000000]],vol:[['ml',1],['l',1000]],
+  area:[['mm²',1],['cm²',100],['dm²',10000],['m²',1000000]],area5:[['m²',1],['dam²',100],['ha',10000],['km²',1000000]],time:[['giây',1],['phút',60],['giờ',3600],['ngày',86400]]};
+function convPair(kind,allow){const U=UNITS[kind].filter(u=>!allow||allow.includes(u[0]));for(let t=0;t<50;t++){const a=RP(U),b=RP(U);if(a===b)continue;const big=a[1]>b[1]?a:b,sm=a[1]>b[1]?b:a;const ratio=big[1]/sm[1];if(ratio>100000)continue;return [big,sm,ratio];}return [U[1],U[0],U[1][1]/U[0][1]];}
+MG.conv=function(G,lv,P){const kind=P.kind||'len';const [big,sm,ratio]=convPair(kind,P.units);const n=R(2,lv===0?9:lv===1?99:20);
+  if(lv===0)return Qin('Điền số thích hợp vào ô trống.',n*ratio,{big:`${n} ${big[0]} = ? ${sm[0]}`,sk:'doluong',hints:[`1 ${big[0]} = ${fN(ratio)} ${sm[0]}.`,`${n} × ${fN(ratio)}`],explain:`1 ${big[0]} = ${fN(ratio)} ${sm[0]} nên ${n} ${big[0]} = ${fN(n*ratio)} ${sm[0]}.`});
+  if(lv===1){if(Math.random()<.5)return Qin('Điền số thích hợp vào ô trống.',n,{big:`${fN(n*ratio)} ${sm[0]} = ? ${big[0]}`,sk:'doluong',hints:[`1 ${big[0]} = ${fN(ratio)} ${sm[0]}.`,`${fN(n*ratio)} : ${fN(ratio)}`],explain:`${fN(n*ratio)} ${sm[0]} = ${n} ${big[0]} (vì 1 ${big[0]} = ${fN(ratio)} ${sm[0]}).`});
+    const m=R(1,ratio-1);if(ratio>1000||ratio<2)return MG.conv(G,0,P);return Qin('Điền số thích hợp vào ô trống.',n*ratio+m,{big:`${n} ${big[0]} ${fN(m)} ${sm[0]} = ? ${sm[0]}`,sk:'doluong',hints:[`Đổi ${n} ${big[0]} ra ${sm[0]} trước.`,`${n} ${big[0]} = ${fN(n*ratio)} ${sm[0]}`],explain:`${n} ${big[0]} = ${fN(n*ratio)} ${sm[0]}; ${fN(n*ratio)} + ${fN(m)} = ${fN(n*ratio+m)} ${sm[0]}.`});}
+  const a=n*ratio+R(-ratio+1,ratio-1),b=n;return Qsign('Chọn dấu thích hợp điền vào ô trống.',`${fN(a)} ${sm[0]} ☐ ${b} ${big[0]}`,a,b*ratio,{sk:'doluong',hints:['Đổi về cùng một đơn vị rồi so sánh.',`${b} ${big[0]} = ${fN(b*ratio)} ${sm[0]}`],explain:`${b} ${big[0]} = ${fN(b*ratio)} ${sm[0]}, mà ${fN(a)} ${sgn(a,b*ratio)} ${fN(b*ratio)}.`});};
+MG.measOp=function(G,lv,P){const u=P.unit||RP(G<=1?['cm']:G===2?['cm','kg','l','dm','m']:['mm','cm','m','g','kg','ml','l']);const mx=G<=1?99:G===2?100:1000;const a=R(5,mx-10),b=R(1,Math.min(a-1,mx-a));const plus=Math.random()<.5;
+  if(lv===2){const t=thing();const ctx={cm:['Sợi dây thứ nhất dài','sợi dây thứ hai','dài','sợi dây'],dm:['Tấm vải xanh dài','tấm vải đỏ','dài','tấm vải'],m:['Cuộn dây thứ nhất dài','cuộn dây thứ hai','dài','cuộn dây'],kg:['Bao gạo thứ nhất nặng','bao gạo thứ hai','nặng','bao'],g:['Gói kẹo thứ nhất nặng','gói kẹo thứ hai','nặng','gói'],l:['Can thứ nhất đựng','can thứ hai','đựng','can'],ml:['Chai thứ nhất đựng','chai thứ hai','đựng','chai'],mm:['Đoạn thẳng AB dài','đoạn thẳng CD','dài','đoạn']}[u];
+    return Qin(`${ctx[0]} ${a} ${u}, ${ctx[1]} ${ctx[2]} hơn ${b} ${u}. Hỏi cả hai ${ctx[3]} ${ctx[2]} bao nhiêu ${u}?`,2*a+b,{unit:u,sk:'doluong',hints:[`Tìm ${ctx[1]} trước: ${a} + ${b}.`,'Rồi cộng cả hai.'],explain:expl(`${cap(ctx[1])}: ${a} + ${b} = ${a+b} (${u})`,`Cả hai: ${a} + ${a+b} = ${2*a+b} (${u})`)});}
+  return Qin('Tính.',plus?a+b:a-b,{big:`${a} ${u} ${plus?'+':'−'} ${b} ${u} = ? ${u}`,sk:'doluong',hints:['Tính như số thường, rồi viết đơn vị.',`${a} ${plus?'+':'−'} ${b}`],explain:`${a} ${plus?'+':'−'} ${b} = ${plus?a+b:a-b}, viết kèm đơn vị: ${plus?a+b:a-b} ${u}.`});};
+/* đồng hồ */
+function clkSVG(h,m){const cx=70,cy=70,R0=60;let b=`<circle cx="${cx}" cy="${cy}" r="${R0}" fill="#fff" stroke="#1E3A8A" stroke-width="5"/>`;
+  for(let i=1;i<=12;i++){const a=i*Math.PI/6;b+=`<text x="${cx+Math.sin(a)*47}" y="${cy-Math.cos(a)*47+5}" text-anchor="middle" font-size="14" font-weight="800" fill="#1E293B">${i}</text>`;}
+  for(let i=0;i<60;i++){if(i%5)continue;const a=i*Math.PI/30;b+=`<line x1="${cx+Math.sin(a)*56}" y1="${cy-Math.cos(a)*56}" x2="${cx+Math.sin(a)*52}" y2="${cy-Math.cos(a)*52}" stroke="#94A3B8" stroke-width="2"/>`;}
+  const ha=((h%12)+m/60)*Math.PI/6,ma=m*Math.PI/30;b+=`<line x1="${cx}" y1="${cy}" x2="${cx+Math.sin(ha)*28}" y2="${cy-Math.cos(ha)*28}" stroke="#1E293B" stroke-width="6" stroke-linecap="round"/><line x1="${cx}" y1="${cy}" x2="${cx+Math.sin(ma)*44}" y2="${cy-Math.cos(ma)*44}" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="5" fill="#1E293B"/>`;
+  return SVGW(140,140,b,'Đồng hồ');}
+const tStr=(h,m)=>m===0?`${h} giờ`:`${h} giờ ${m} phút`;
+MG.clock=function(G,lv,P){const step=G<=1?60:G===2?(lv?15:30):G===3?5:1;const h=R(1,12);const m=step===60?0:R(0,59/step|0)*step%60;
+  if(lv===2&&G>=2){const add=G===2?RP([30,60,15]):RP([15,20,25,30,35,40,45,50,90]);const t=h*60+m+add;const h2=Math.floor(t/60)%12||12,m2=t%60;const opts=new Set([tStr(h2,m2)]);[[h2,(m2+5)%60],[h2%12+1,m2],[h,m],[h2,(m2+55)%60]].forEach(([a,b])=>opts.add(tStr(a,b)));
+    return Qmc(`Đồng hồ đang chỉ mấy giờ? Sau ${add>=60?Math.floor(add/60)+' giờ'+(add%60?' '+add%60+' phút':''):add+' phút'} nữa là mấy giờ?`,tStr(h2,m2),[...opts].slice(0,4),{visual:clkSVG(h,m),sk:'doluong',hints:[`Đọc giờ trên đồng hồ: kim ngắn chỉ giờ, kim dài chỉ phút.`,`Bây giờ là ${tStr(h,m)}.`],explain:expl(`Đồng hồ chỉ ${tStr(h,m)}.`,`Thêm ${add} phút được ${tStr(h2,m2)}.`)});}
+  const opts=new Set([tStr(h,m)]);const cands=[[h%12+1,m],[h===1?12:h-1,m],[m/5||12,h*5%60],[h,(m+step)%60],[h,(m+30)%60]];cands.forEach(([a,b])=>{if(opts.size<4&&a>=1&&a<=12)opts.add(tStr(a,b));});while(opts.size<4)opts.add(tStr(R(1,12),m));
+  return Qmc('Đồng hồ chỉ mấy giờ?',tStr(h,m),[...opts],{visual:clkSVG(h,m),sk:'doluong',hints:['Kim ngắn chỉ giờ, kim dài chỉ phút.','Mỗi số trên mặt đồng hồ ứng với 5 phút của kim dài.'],explain:m===0?`Kim dài chỉ số 12, kim ngắn chỉ số ${h}: ${h} giờ.`:`Kim ngắn ở giữa số ${h} và ${h%12+1}, kim dài chỉ ${m} phút: ${tStr(h,m)}.`});};
+MG.timeConv=function(G,lv,P){const t=G<=2?RP(['h-m','d-h','w-d']):G===3?RP(['h-m','m-s','d-h','y-m']):RP(['m-s','h-m','c-y','h-m2','m-s2']);const n=R(2,lv?9:5);
+  const D={'h-m':['giờ','phút',60],'d-h':['ngày','giờ',24],'w-d':['tuần','ngày',7],'m-s':['phút','giây',60],'y-m':['năm','tháng',12],'c-y':['thế kỉ','năm',100]};
+  if(t==='h-m2'||t==='m-s2'){const [A,B,k]=t==='h-m2'?['giờ','phút',60]:['phút','giây',60];const m=R(5,55);return Qin('Điền số thích hợp vào ô trống.',n*k+m,{big:`${n} ${A} ${m} ${B} = ? ${B}`,sk:'doluong',hints:[`1 ${A} = ${k} ${B}.`,`${n} × ${k} + ${m}`],explain:`${n} ${A} = ${n*k} ${B}; ${n*k} + ${m} = ${n*k+m} ${B}.`});}
+  const [A,B,k]=D[t];if(lv===1&&Math.random()<.5)return Qin('Điền số thích hợp vào ô trống.',n,{big:`${n*k} ${B} = ? ${A}`,sk:'doluong',hints:[`1 ${A} = ${k} ${B}.`,`${n*k} : ${k}`],explain:`${n*k} ${B} = ${n} ${A}.`});
+  return Qin('Điền số thích hợp vào ô trống.',n*k,{big:`${n} ${A} = ? ${B}`,sk:'doluong',hints:[`1 ${A} = ${k} ${B}.`,`${n} × ${k}`],explain:`1 ${A} = ${k} ${B} nên ${n} ${A} = ${n*k} ${B}.`});};
+const MDAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
+MG.calendar=function(G,lv,P){const t=G<=1?RP(['next','after']):RP(['after','month','date','after2']);const d0=R(0,6);
+  if(t==='next'){const next=Math.random()<.5;const ans=WD[(d0+(next?1:6))%7];return Qmc(`Hôm nay là ${WD[d0]}. ${next?'Ngày mai':'Hôm qua'} là thứ mấy?`,cap(ans),shuffle([cap(ans),cap(WD[(d0+3)%7]),cap(WD[d0]),cap(WD[(d0+(next?6:1))%7])]),{sk:'doluong',hints:['Thứ tự: thứ Hai, thứ Ba, thứ Tư, thứ Năm, thứ Sáu, thứ Bảy, Chủ nhật.',next?'Ngày mai là ngày ngay sau hôm nay.':'Hôm qua là ngày ngay trước hôm nay.'],explain:`${next?'Ngày mai':'Hôm qua'} là ${ans}.`});}
+  if(t==='month'){const mo=R(1,12);return Qin(`Tháng ${mo} có bao nhiêu ngày? (năm không nhuận)`,MDAYS[mo-1],{sk:'doluong',hints:['Đếm trên các khớp ngón tay: khớp nhô lên là tháng 31 ngày.','Tháng 2 có 28 hoặc 29 ngày.'],explain:`Tháng ${mo} có ${MDAYS[mo-1]} ngày.`});}
+  if(t==='date'){const mo=R(1,12),dd=R(1,MDAYS[mo-1]-7);const k=RP([7,14]);return Qin(`Hôm nay là ngày ${dd} tháng ${mo}. ${k===7?'Một tuần':'Hai tuần'} sau là ngày bao nhiêu của tháng ${mo}?`,dd+k,{sk:'doluong',hints:[`1 tuần có 7 ngày.`,`${dd} + ${k}`],explain:`${dd} + ${k} = ${dd+k}: ngày ${dd+k} tháng ${mo}.`});}
+  const n=t==='after2'?R(8,40):R(2,G<=1?6:13);const ans=WD[(d0+n)%7];return Qmc(`Hôm nay là ${WD[d0]}. ${n} ngày nữa là thứ mấy?`,cap(ans),shuffle([cap(ans)].concat(shuffle(WD.filter(x=>x!==ans)).slice(0,3).map(cap))),{sk:'doluong',hints:['Cứ 7 ngày lại quay về cùng một thứ.',n>=7?`${n} : 7 dư ${n%7}.`:`Đếm thêm ${n} ngày.`],explain:`${cap(WD[d0])} thêm ${n} ngày là ${ans}.`});};
+MG.money=function(G,lv,P){const notes=G<=2?[1000,2000,5000,10000]:[1000,2000,5000,10000,20000,50000];
+  if(lv===0){const k=R(2,3);const ns=[];for(let i=0;i<k;i++)ns.push(RP(notes));const s=ns.reduce((a,b)=>a+b,0);return Qin(`Có các tờ tiền: ${ns.map(x=>fN(x)+' đồng').join(', ')}. Có tất cả bao nhiêu tiền?`,s,{unit:'đồng',sk:'doluong',hints:['Cộng giá trị các tờ tiền lại.','Cộng tờ lớn trước.'],explain:`${ns.map(fN).join(' + ')} = ${fN(s)} (đồng).`});}
+  const price=R(2,G<=2?9:49)*1000,pay=Math.ceil((price+1)/10000)*10000+(G>=3&&lv===2?10000:0);return Qin(`Mua một món đồ giá ${fN(price)} đồng, đưa người bán ${fN(pay)} đồng. Người bán trả lại bao nhiêu tiền?`,pay-price,{unit:'đồng',sk:'doluong',hints:['Tiền trả lại = tiền đưa − giá tiền.',`${fN(pay)} − ${fN(price)}`],explain:`${fN(pay)} − ${fN(price)} = ${fN(pay-price)} (đồng).`});};
+MG.temp=function(G,lv,P){const a=R(15,35),d=R(2,10);const up=Math.random()<.5;return Qin(`Buổi sáng nhiệt độ là ${a} °C. Đến trưa nhiệt độ ${up?'tăng':'giảm'} ${d} °C. Hỏi buổi trưa nhiệt độ là bao nhiêu độ C?`,up?a+d:a-d,{unit:'°C',sk:'doluong',hints:[up?'Tăng thì cộng thêm.':'Giảm thì trừ đi.',`${a} ${up?'+':'−'} ${d}`],explain:`${a} ${up?'+':'−'} ${d} = ${up?a+d:a-d} (°C).`});};
+
+/* -------- HÌNH HỌC -------- */
+MG.shapeId=function(G,lv,P){const S=[['hình tam giác','3 cạnh, 3 góc','🔺'],['hình vuông','4 cạnh bằng nhau, 4 góc vuông','🟦'],['hình chữ nhật','2 cạnh dài bằng nhau, 2 cạnh ngắn bằng nhau, 4 góc vuông','▬'],['hình tròn','không có cạnh, tròn đều','⚪']];
+  const obj=RP([['Chiếc đồng hồ treo tường','hình tròn'],['Mặt bàn cờ vua','hình vuông'],['Quyển sách','hình chữ nhật'],['Biển báo cấm (tròn)','hình tròn'],['Miếng bánh mì sandwich cắt chéo','hình tam giác'],['Cửa ra vào','hình chữ nhật'],['Viên gạch bông vuông','hình vuông'],['Cái đĩa','hình tròn'],['Mặt bánh xe đạp','hình tròn'],['Lá cờ đuôi nheo','hình tam giác'],['Bảng đen trong lớp','hình chữ nhật'],['Chiếc khăn tay vuông','hình vuông'],['Mặt chiếc bánh chưng','hình vuông'],['Miếng dưa hấu bổ','hình tam giác'],['Màn hình ti vi','hình chữ nhật'],['Mặt trăng ngày rằm','hình tròn']]);
+  if(lv===0&&Math.random()<.4){const s=RP(S.slice(0,3));const n=s[0]==='hình tam giác'?3:4;const ask=RP(['cạnh','góc']);return Qin(`${cap(s[0])} có mấy ${ask}?`,n,{sk:'hinhhoc',hints:['Đếm từng cạnh của hình.',''],explain:`${cap(s[0])} có ${n} ${ask}.`});}
+  if(lv===0){const s=RP(S);return Qmc(`Hình có ${s[1]} là hình gì?`,cap(s[0]),S.map(x=>cap(x[0])),{sk:'hinhhoc',hints:['Đếm số cạnh của hình.','Hình vuông có 4 cạnh bằng nhau.'],explain:`${cap(s[0])} có ${s[1]}.`});}
+  return Qmc(`${obj[0]} có dạng hình gì?`,cap(obj[1]),S.map(x=>cap(x[0])),{sk:'hinhhoc',hints:['Tưởng tượng nhìn thẳng vào mặt đồ vật.','Đếm số cạnh và xem các cạnh có bằng nhau không.'],explain:`${obj[0]} có dạng ${obj[1]}.`});};
+MG.solid=function(G,lv,P){const L=G<=1?[['Quả bóng','khối cầu'],['Hộp phấn','khối hộp chữ nhật'],['Con xúc xắc','khối lập phương'],['Lon nước ngọt','khối trụ'],['Viên bi','khối cầu'],['Thùng các-tông','khối hộp chữ nhật'],['Quả cam','khối cầu'],['Hộp sữa','khối hộp chữ nhật'],['Khúc gỗ tròn','khối trụ'],['Hộp quà vuông','khối lập phương'],['Cái trống','khối trụ'],['Viên đá lạnh vuông','khối lập phương']]:[['Quả địa cầu','khối cầu'],['Hộp sữa giấy','khối hộp chữ nhật'],['Rubik 3×3','khối lập phương'],['Ống nước','khối trụ'],['Quả cam','khối cầu'],['Hộp bút','khối hộp chữ nhật'],['Cây nến tròn','khối trụ']];
+  const it=RP(L);if(lv===2){const roll=Math.random()<.5;return Qmc(roll?'Khối nào lăn được?':'Khối nào có 6 mặt là hình vuông bằng nhau?',roll?'Khối cầu':'Khối lập phương',['Khối cầu','Khối lập phương','Khối hộp chữ nhật'],{sk:'hinhhoc',hints:roll?['Khối có mặt cong thì lăn được.','Khối lập phương có các mặt phẳng.']:['Nghĩ tới con xúc xắc.','Khối hộp chữ nhật có các mặt là hình chữ nhật.'],explain:roll?'Khối cầu có mặt cong nên lăn được.':'Khối lập phương có 6 mặt là hình vuông bằng nhau.'});}
+  return Qmc(`${it[0]} có dạng khối gì?`,cap(it[1]),['Khối cầu','Khối trụ','Khối lập phương','Khối hộp chữ nhật'],{sk:'hinhhoc',hints:['Khối lập phương có 6 mặt là hình vuông bằng nhau.','Khối trụ có hai mặt đáy là hình tròn.'],explain:`${it[0]} có dạng ${it[1]}.`});};
+MG.position=function(G,lv,P){const E=shuffle(['🐱','🐶','🐰','🐻','🐼','🐸','🐷','🐵']);const row=E.slice(0,lv===0?3:5);const k=R(1,row.length-2);
+  const t=RP(['left','right','mid']);if(t==='mid'&&row.length===3)return Qmc('Bạn nào đứng ở giữa?',row[1],row.slice(),{emo:true,visual:emoRow(row),sk:'hinhhoc',hints:['Bạn ở giữa có bạn đứng ở cả hai bên.',''],explain:`Bạn ${row[1]} đứng ở giữa.`});
+  const ans=t==='left'?row[k-1]:row[k+1];return Qmc(`Bạn nào đứng ngay bên ${t==='left'?'trái':'phải'} bạn ${row[k]}?`,ans,row.filter(x=>x!==row[k]),{emo:true,visual:emoRow(row),sk:'hinhhoc',hints:['Bên trái là phía tay không cầm bút (tay trái).','Nhìn sát cạnh bạn được hỏi.'],explain:`Ngay bên ${t==='left'?'trái':'phải'} bạn ${row[k]} là bạn ${ans}.`});};
+MG.sizeCmp=function(G,lv,P){const pairs=[['🐘','🐭','to hơn','nhỏ hơn'],['🦒','🐶','cao hơn','thấp hơn'],['🌳','🌷','cao hơn','thấp hơn'],['🚌','🚲','to hơn','nhỏ hơn'],['🐋','🐟','to hơn','nhỏ hơn'],['🏠','🐕','to hơn','nhỏ hơn'],['🐄','🐔','to hơn','nhỏ hơn'],['🏢','🏠','cao hơn','thấp hơn'],['🐍','🐛','dài hơn','ngắn hơn'],['🚂','🚗','dài hơn','ngắn hơn'],['🦓','🐇','cao hơn','thấp hơn'],['🍉','🍒','to hơn','nhỏ hơn']];const p=RP(pairs);const big=Math.random()<.5;
+  return Qmc(`Con vật/đồ vật nào ${big?p[2]:p[3]}?`,big?p[0]:p[1],shuffle([p[0],p[1]]),{emo:true,sk:'doluong',hints:['Nghĩ tới con vật, đồ vật đó ngoài đời thật.',''],explain:`${p[0]} ${p[2]} ${p[1]}.`});};
+MG.oddOne=function(G,lv,P){const groups=[['🍎','🍌','🍇','🍓'],['🐱','🐶','🐰','🐻'],['🚗','🚌','🚲','🚂'],['⚽','🏀','🎾','🏐'],['🌸','🌻','🌷','🌹']];const gi=R(0,groups.length-1);const g=pickK(groups[gi],3);const odd=RP(groups[(gi+R(1,groups.length-1))%groups.length]);const opts=shuffle(g.concat([odd]));
+  return Qmc('Hình nào khác nhóm?',odd,opts,{emo:true,visual:emoRow(opts),sk:'so',hints:['Ba hình giống nhau ở một điểm (cùng là quả, con vật, xe…).','Tìm hình không giống ba hình kia.'],explain:`${odd} không cùng nhóm với ${g.join(' ')}.`});};
+MG.pattern=function(G,lv,P){return Object.assign(TDG.la_next(0,lv),{sk:'quyluat'});};
+MG.dayPart=function(G,lv,P){if(lv===2&&Math.random()<.5){const n=Math.random()<.5;return Qmc(n?'Lúc nào trời tối, có trăng sao?':'Lúc nào có mặt trời chiếu sáng?',n?'Ban đêm':'Ban ngày',['Ban ngày','Ban đêm'],{visual:`<div class="ht-big">${n?'🌙⭐':'☀️'}</div>`,sk:'thoigian',hints:['Mặt trời chiếu sáng vào ban ngày.',''],explain:n?'Ban đêm trời tối, có trăng sao.':'Ban ngày có mặt trời.'});}
+  const L=[['Bé thức dậy, đánh răng, ăn sáng','buổi sáng'],['Cả nhà ăn cơm trưa','buổi trưa'],['Tan học, bé đá bóng ở sân','buổi chiều'],['Cả nhà ăn tối, xem ti vi','buổi tối'],['Mặt trời mọc','buổi sáng'],['Bé đi ngủ','buổi tối'],['Bố mẹ đưa bé đến trường','buổi sáng'],['Bé ngủ trưa ở lớp','buổi trưa'],['Mặt trời lặn','buổi chiều'],['Bé tập thể dục buổi đầu ngày','buổi sáng'],['Bé nghe bà kể chuyện trước khi ngủ','buổi tối'],['Bé ăn quà chiều sau giờ ngủ trưa','buổi chiều']];const it=RP(L);
+  return Qmc(`“${it[0]}” thường diễn ra vào buổi nào?`,cap(it[1]),['Buổi sáng','Buổi trưa','Buổi chiều','Buổi tối'],{sk:'thoigian',hints:['Một ngày có: sáng, trưa, chiều, tối.','Nghĩ xem ở nhà mình việc đó làm lúc nào.'],explain:`Việc đó thường diễn ra vào ${it[1]}.`});};
+MG.polyline=function(G,lv,P){const n=R(3,lv===2?5:4);const xs=[];for(let i=0;i<n;i++)xs.push(R(G<=2?2:10,G<=2?9:99));const s=xs.reduce((a,b)=>a+b,0);const u=G<=3?'cm':'mm';const L='ABCDEF'.slice(0,n+1);
+  let pts=[],x=10,y=60;const b=[];for(let i=0;i<=n;i++){pts.push([x,y]);x+=60;y=i%2?60:15;}let svg=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#1E3A8A" stroke-width="3"/>`;
+  pts.forEach((p,i)=>{svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#2563EB"/><text x="${p[0]}" y="${p[1]+(p[1]>40?18:-8)}" text-anchor="middle" font-size="13" font-weight="800" fill="currentColor">${L[i]}</text>`;if(i<n){const q=pts[i+1];svg+=`<text x="${(p[0]+q[0])/2+(i%2?8:-8)}" y="${(p[1]+q[1])/2}" text-anchor="middle" font-size="12" font-weight="700" fill="#B45309">${xs[i]}</text>`;}});
+  if(lv===2){const miss=R(0,n-1);return Qin(`Đường gấp khúc ${L} dài ${s} ${u}. Đoạn ${L[miss]}${L[miss+1]} dài bao nhiêu ${u}?`,xs[miss],{unit:u,visual:SVGW(n*60+20,80,svg.replace(new RegExp(`>${xs[miss]}</text>`),'>?</text>'),'Đường gấp khúc'),sk:'hinhhoc',hints:['Độ dài đường gấp khúc = tổng các đoạn.','Lấy cả đường trừ các đoạn đã biết.'],explain:`${s} − (${xs.filter((_,i)=>i!==miss).join(' + ')}) = ${xs[miss]} (${u}).`});}
+  return Qin(`Tính độ dài đường gấp khúc ${L}.`,s,{unit:u,visual:SVGW(n*60+20,80,svg,'Đường gấp khúc'),sk:'hinhhoc',hints:['Độ dài đường gấp khúc bằng tổng độ dài các đoạn thẳng.',xs.join(' + ')],explain:`${xs.join(' + ')} = ${s} (${u}).`});};
+function rectSVGx(a,b,la,lb){const W=Math.min(220,40+a*12),Hh=Math.min(120,30+b*10);return SVGW(W+60,Hh+40,`<rect x="30" y="10" width="${W}" height="${Hh}" fill="#DBEAFE" stroke="#1E3A8A" stroke-width="3"/><text x="${30+W/2}" y="${Hh+30}" text-anchor="middle" font-size="13" font-weight="800" fill="currentColor">${la}</text><text x="${W+36}" y="${10+Hh/2+4}" font-size="13" font-weight="800" fill="currentColor">${lb}</text>`,'Hình chữ nhật');}
+MG.perimeter=function(G,lv,P){const u=G>=4?RP(['cm','m','dm']):'cm';
+  if(G<=2){const n=R(3,4);const xs=[];for(let i=0;i<n;i++)xs.push(R(2,15));const s=xs.reduce((a,b)=>a+b,0);return Qin(`Hình ${n===3?'tam giác':'tứ giác'} có độ dài các cạnh là ${xs.join(' cm, ')} cm. Tính chu vi hình đó.`,s,{unit:'cm',sk:'hinhhoc',hints:['Chu vi là tổng độ dài các cạnh.',xs.join(' + ')],explain:`${xs.join(' + ')} = ${s} (cm).`});}
+  const sq=Math.random()<.4;const a=R(3,G>=4?60:25),b=sq?a:R(2,a-1);
+  if(lv===2){if(sq){return Qin(`Một hình vuông có chu vi ${4*a} ${u}. Tính độ dài cạnh hình vuông đó.`,a,{unit:u,sk:'hinhhoc',hints:['Chu vi hình vuông = cạnh × 4.','Lấy chu vi chia cho 4.'],explain:`${4*a} : 4 = ${a} (${u}).`});}
+    return Qin(`Hình chữ nhật có chu vi ${2*(a+b)} ${u}, chiều dài ${a} ${u}. Tính chiều rộng.`,b,{unit:u,sk:'hinhhoc',hints:['Nửa chu vi = dài + rộng.',`${2*(a+b)} : 2 = ${a+b}`],explain:expl(`Nửa chu vi: ${2*(a+b)} : 2 = ${a+b} (${u})`,`Chiều rộng: ${a+b} − ${a} = ${b} (${u})`)});}
+  if(sq)return Qin(`Tính chu vi hình vuông có cạnh ${a} ${u}.`,4*a,{unit:u,sk:'hinhhoc',hints:['Chu vi hình vuông = cạnh × 4.',`${a} × 4`],explain:`${a} × 4 = ${4*a} (${u}).`});
+  return Qin(`Tính chu vi hình chữ nhật có chiều dài ${a} ${u}, chiều rộng ${b} ${u}.`,2*(a+b),{unit:u,visual:rectSVGx(a,b,a+' '+u,b+' '+u),sk:'hinhhoc',hints:['Chu vi hình chữ nhật = (dài + rộng) × 2.',`(${a} + ${b}) × 2`],explain:`(${a} + ${b}) × 2 = ${2*(a+b)} (${u}).`});};
+MG.area=function(G,lv,P){const u=G>=4?RP(['cm','m','dm']):'cm';const sq=Math.random()<.4;const a=R(2,G>=4?40:12),b=sq?a:R(2,a);
+  if(lv===2){if(sq)return Qin(`Một hình vuông có diện tích ${a*a} ${u}². Tính độ dài cạnh.`,a,{unit:u,sk:'hinhhoc',hints:['Diện tích hình vuông = cạnh × cạnh.','Số nào nhân với chính nó bằng diện tích?'],explain:`${a} × ${a} = ${a*a} nên cạnh là ${a} ${u}.`});
+    return Qin(`Hình chữ nhật có diện tích ${a*b} ${u}², chiều rộng ${b} ${u}. Tính chiều dài.`,a,{unit:u,sk:'hinhhoc',hints:['Diện tích = dài × rộng.',`${a*b} : ${b}`],explain:`${a*b} : ${b} = ${a} (${u}).`});}
+  if(lv===1&&!sq&&G>=3){const per=2*(a+b);return Qin(`Hình chữ nhật có chiều dài ${a} ${u}, chu vi ${per} ${u}. Tính diện tích hình chữ nhật.`,a*b,{unit:u+'²',sk:'hinhhoc',hints:['Tìm chiều rộng trước: nửa chu vi trừ chiều dài.',`${per} : 2 − ${a} = ${b}`],explain:expl(`Chiều rộng: ${per} : 2 − ${a} = ${b} (${u})`,`Diện tích: ${a} × ${b} = ${a*b} (${u}²)`)});}
+  if(sq)return Qin(`Tính diện tích hình vuông có cạnh ${a} ${u}.`,a*a,{unit:u+'²',sk:'hinhhoc',hints:['Diện tích hình vuông = cạnh × cạnh.',`${a} × ${a}`],explain:`${a} × ${a} = ${a*a} (${u}²).`});
+  return Qin(`Tính diện tích hình chữ nhật có chiều dài ${a} ${u}, chiều rộng ${b} ${u}.`,a*b,{unit:u+'²',visual:rectSVGx(a,b,a+' '+u,b+' '+u),sk:'hinhhoc',hints:['Diện tích hình chữ nhật = dài × rộng.',`${a} × ${b}`],explain:`${a} × ${b} = ${a*b} (${u}²).`});};
+function angleSVG(deg){const cx=30,cy=100,L=110;const r=deg*Math.PI/180;return SVGW(170,120,`<line x1="${cx}" y1="${cy}" x2="${cx+L}" y2="${cy}" stroke="#1E3A8A" stroke-width="4"/><line x1="${cx}" y1="${cy}" x2="${cx+Math.cos(r)*L}" y2="${cy-Math.sin(r)*L}" stroke="#1E3A8A" stroke-width="4"/><path d="M${cx+22} ${cy} A22 22 0 0 0 ${cx+Math.cos(r)*22} ${cy-Math.sin(r)*22}" fill="none" stroke="#F97316" stroke-width="3"/>`,'Góc');}
+MG.angle=function(G,lv,P){if(G<=3){const right=Math.random()<.5;const deg=right?90:RP([40,60,120,140]);return Qmc('Góc dưới đây có phải góc vuông không?',right?'Góc vuông':'Không phải góc vuông',['Góc vuông','Không phải góc vuông'],{visual:angleSVG(deg),sk:'hinhhoc',hints:['Dùng ê-ke để kiểm tra.','Góc vuông giống góc của trang vở.'],explain:right?'Đây là góc vuông.':'Góc này không vuông.'});}
+  const k=RP(['nhọn','vuông','tù','bẹt']);const deg={nhọn:R(20,80),vuông:90,tù:R(100,170),bẹt:180}[k];if(lv>=1){return Qmc(`Góc có số đo ${deg}° là góc gì?`,'Góc '+k,['Góc nhọn','Góc vuông','Góc tù','Góc bẹt'],{sk:'hinhhoc',hints:['Góc vuông = 90°, góc bẹt = 180°.','Nhọn < 90° < tù < 180°.'],explain:`${deg}° là góc ${k}.`});}
+  return Qmc('Góc dưới đây là góc gì?','Góc '+k,['Góc nhọn','Góc vuông','Góc tù','Góc bẹt'],{visual:k==='bẹt'?SVGW(170,60,'<line x1="10" y1="40" x2="160" y2="40" stroke="#1E3A8A" stroke-width="4"/><circle cx="85" cy="40" r="5" fill="#F97316"/>','Góc bẹt'):angleSVG(deg),sk:'hinhhoc',hints:['So với góc vuông (góc trang vở).','Bé hơn góc vuông là góc nhọn, lớn hơn là góc tù.'],explain:`Đây là góc ${k}.`});};
+MG.lines=function(G,lv,P){const L=[['Hai đường thẳng cắt nhau tạo thành bốn góc vuông.','Vuông góc'],['Hai đường thẳng không bao giờ cắt nhau dù kéo dài mãi.','Song song'],['Hai cạnh đối diện của hình chữ nhật.','Song song'],['Hai cạnh kề nhau của hình vuông.','Vuông góc'],['Hai mép đối diện của trang vở.','Song song'],['Hai mép kề nhau của mặt bàn hình chữ nhật.','Vuông góc'],['Hai thanh ray của đường tàu hỏa.','Song song'],['Cột cờ và mặt sân phẳng.','Vuông góc'],['Hai cạnh đáy của hình thang.','Song song'],['Hai cạnh góc vuông của ê-ke.','Vuông góc']];
+  if(lv===1&&Math.random()<.5){const n=RP([[4,'hình chữ nhật'],[4,'hình vuông']]);return Qin(`Hình chữ nhật có mấy cặp cạnh song song?`,2,{sk:'hinhhoc',hints:['Hai cạnh đối diện của hình chữ nhật song song với nhau.','Có 2 cặp cạnh đối diện.'],explain:'Hình chữ nhật có 2 cặp cạnh song song.'});}const it=RP(L);
+  if(lv===2){const s=RP([['Hình có hai cặp cạnh đối diện song song và bằng nhau.','Hình bình hành'],['Hình có bốn cạnh bằng nhau và hai cặp cạnh đối diện song song.','Hình thoi']]);return Qmc(s[0]+' Đó là hình gì?',s[1],['Hình bình hành','Hình thoi','Hình tam giác','Hình tròn'],{sk:'hinhhoc',hints:['Hình thoi có 4 cạnh bằng nhau.','Hình bình hành có 2 cặp cạnh đối song song.'],explain:`${s[0]} → ${s[1].toLowerCase()}.`});}
+  return Qmc(it[0]+' Hai đường thẳng (đoạn thẳng) đó như thế nào với nhau?',it[1],['Vuông góc','Song song','Không vuông góc, không song song'],{sk:'hinhhoc',hints:['Vuông góc: cắt nhau tạo góc vuông.','Song song: không bao giờ cắt nhau.'],explain:`Đó là hai đường ${it[1].toLowerCase()}.`});};
+MG.midpoint=function(G,lv,P){const a=R(2,20);if(Math.random()<.5)return Qin(`M là trung điểm của đoạn thẳng AB. Đoạn AM dài ${a} cm. Đoạn AB dài bao nhiêu xăng-ti-mét?`,2*a,{unit:'cm',sk:'hinhhoc',hints:['Trung điểm chia đoạn thẳng thành hai phần bằng nhau.',`AB = AM × 2`],explain:`AB = ${a} × 2 = ${2*a} (cm).`});
+  return Qin(`M là trung điểm của đoạn thẳng AB dài ${2*a} cm. Đoạn MB dài bao nhiêu xăng-ti-mét?`,a,{unit:'cm',sk:'hinhhoc',hints:['Trung điểm chia đôi đoạn thẳng.',`${2*a} : 2`],explain:`MB = ${2*a} : 2 = ${a} (cm).`});};
+MG.countShapes=function(G,lv,P){return Object.assign(TDG.shapes(Math.max(1,G),lv),{sk:'hinhhoc'});};
+MG.circle=function(G,lv,P){const d=R(2,20)*(Math.random()<.5?1:2);const r=d/2;const t=P.kind==='C'?(lv===0?RP(['C','rd']):RP(['C','Cr'])):P.kind==='S'?(lv===0?RP(['S','rd']):'S'):lv===0?RP(['C','rd']):RP(['C','S','Cr']);
+  if(t==='rd')return Qin(`Hình tròn có bán kính ${r} cm. Đường kính dài bao nhiêu xăng-ti-mét?`,d,{unit:'cm',sk:'hinhhoc',hints:['Đường kính gấp 2 lần bán kính.',`${r} × 2`],explain:`${r} × 2 = ${d} (cm).`});
+  const C=r6(d*3.14),S=r6(r*r*3.14);const val=t==='S'?S:C;const opts=[val,r6(val*2),r6(t==='S'?d*3.14:r*r*3.14),r6(val+3.14)].map(x=>fD(x)+(t==='S'?' cm²':' cm'));
+  return Qmc(t==='S'?`Tính diện tích hình tròn có bán kính ${r} cm.`:t==='Cr'?`Tính chu vi hình tròn có bán kính ${r} cm.`:`Tính chu vi hình tròn có đường kính ${d} cm.`,opts[0],opts.filter((x,i,a)=>a.indexOf(x)===i),{sk:'hinhhoc',hints:[t==='S'?'S = bán kính × bán kính × 3,14.':'C = đường kính × 3,14.',t==='Cr'?`Đường kính = ${r} × 2 = ${d}.`:''],explain:t==='S'?`${r} × ${r} × 3,14 = ${fD(S)} (cm²).`:`${d} × 3,14 = ${fD(C)} (cm).`});};
+MG.triTrap=function(G,lv,P){const tri=P.kind?P.kind==='tri':Math.random()<.5;if(tri){const a=R(2,30),h=R(2,30)*2/2;let S=a*h/2;return Qmc(`Tính diện tích hình tam giác có độ dài đáy ${a} cm và chiều cao ${h} cm.`,fD(S)+' cm²',[S,a*h,(a+h)*2,S+a].map(x=>fD(r6(x))+' cm²').filter((x,i,ar)=>ar.indexOf(x)===i),{sk:'hinhhoc',hints:['S = đáy × chiều cao : 2.',`${a} × ${h} : 2`],explain:`${a} × ${h} : 2 = ${fD(S)} (cm²).`});}
+  const a=R(5,30),b=R(2,a-1),h=R(2,20);const S=(a+b)*h/2;return Qmc(`Tính diện tích hình thang có đáy lớn ${a} cm, đáy bé ${b} cm, chiều cao ${h} cm.`,fD(S)+' cm²',[S,(a+b)*h,a*b*h/2,S+h].map(x=>fD(r6(x))+' cm²').filter((x,i,ar)=>ar.indexOf(x)===i),{sk:'hinhhoc',hints:['S = (đáy lớn + đáy bé) × chiều cao : 2.',`(${a} + ${b}) × ${h} : 2`],explain:`(${a} + ${b}) × ${h} : 2 = ${fD(S)} (cm²).`});};
+MG.volume=function(G,lv,P){const t=P.kind?RP(P.kind):lv===0?RP(['box','cube','conv']):RP(['box','cube','sxq','stp','conv']);const a=R(2,12),b=R(2,10),c=R(2,10);
+  if(t==='box')return Qin(`Tính thể tích hình hộp chữ nhật có chiều dài ${a} cm, chiều rộng ${b} cm, chiều cao ${c} cm.`,a*b*c,{unit:'cm³',sk:'hinhhoc',hints:['V = dài × rộng × cao.',`${a} × ${b} × ${c}`],explain:`${a} × ${b} × ${c} = ${a*b*c} (cm³).`});
+  if(t==='cube')return Qin(`Tính thể tích hình lập phương có cạnh ${a} cm.`,a*a*a,{unit:'cm³',sk:'hinhhoc',hints:['V = cạnh × cạnh × cạnh.',`${a} × ${a} × ${a}`],explain:`${a} × ${a} × ${a} = ${a*a*a} (cm³).`});
+  if(t==='sxq')return Qin(`Tính diện tích xung quanh hình hộp chữ nhật có chiều dài ${a} cm, chiều rộng ${b} cm, chiều cao ${c} cm.`,2*(a+b)*c,{unit:'cm²',sk:'hinhhoc',hints:['Sxq = chu vi đáy × chiều cao.',`(${a} + ${b}) × 2 × ${c}`],explain:expl(`Chu vi đáy: (${a} + ${b}) × 2 = ${2*(a+b)} (cm)`,`Sxq: ${2*(a+b)} × ${c} = ${2*(a+b)*c} (cm²)`)});
+  if(t==='stp')return Qin(`Tính diện tích toàn phần hình lập phương có cạnh ${a} cm.`,6*a*a,{unit:'cm²',sk:'hinhhoc',hints:['Stp = diện tích một mặt × 6.',`${a} × ${a} × 6`],explain:`${a} × ${a} × 6 = ${6*a*a} (cm²).`});
+  const pr=RP([['dm³','cm³',1000],['m³','dm³',1000]]);const n=R(2,30);if(lv>=1&&Math.random()<.5){const m=R(1,999);return Qin('Điền số thích hợp vào ô trống.',n*pr[2]+m,{big:`${n} ${pr[0]} ${m} ${pr[1]} = ? ${pr[1]}`,sk:'doluong',hints:[`1 ${pr[0]} = 1000 ${pr[1]}.`,`${n} × 1000 + ${m}`],explain:`${n} ${pr[0]} = ${fN(n*1000)} ${pr[1]}; ${fN(n*1000)} + ${m} = ${fN(n*1000+m)} ${pr[1]}.`});}
+  if(Math.random()<.4)return Qin('Điền số thích hợp vào ô trống.',n,{big:`${fN(n*pr[2])} ${pr[1]} = ? ${pr[0]}`,sk:'doluong',hints:[`1 ${pr[0]} = 1000 ${pr[1]}.`,`${fN(n*1000)} : 1000`],explain:`${fN(n*1000)} ${pr[1]} = ${n} ${pr[0]}.`});
+  return Qin('Điền số thích hợp vào ô trống.',n*pr[2],{big:`${n} ${pr[0]} = ? ${pr[1]}`,sk:'doluong',hints:[`1 ${pr[0]} = 1000 ${pr[1]}.`,`${n} × 1000`],explain:`${n} ${pr[0]} = ${fN(n*pr[2])} ${pr[1]}.`});};
+
+/* -------- THỐNG KÊ, KHẢ NĂNG -------- */
+function barSVG(labels,vals,unit){const W=Math.max(220,labels.length*56+40),Hh=150,mx=Math.max(...vals);let b=`<line x1="30" y1="10" x2="30" y2="${Hh}" stroke="#64748B"/><line x1="30" y1="${Hh}" x2="${W}" y2="${Hh}" stroke="#64748B"/>`;
+  labels.forEach((l,i)=>{const h=Math.round(vals[i]/mx*(Hh-30));const x=44+i*56;b+=`<rect x="${x}" y="${Hh-h}" width="34" height="${h}" rx="4" fill="${['#2563EB','#0EA5E9','#1E3A8A','#14B8A6','#6366F1'][i%5]}"/><text x="${x+17}" y="${Hh-h-5}" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor">${vals[i]}</text><text x="${x+17}" y="${Hh+16}" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">${l}</text>`;});
+  return SVGW(W,Hh+24,b,'Biểu đồ cột')+(unit?`<div class="ht-cap">${unit}</div>`:'');}
+MG.chart=function(G,lv,P){const labels=G<=2?['3A','3B','3C','3D'].map(x=>x.replace('3',String(G+1))):['T2','T3','T4','T5','T6'];const n=G<=2?4:5;const vals=[];for(let i=0;i<n;i++)vals.push(R(2,G<=2?10:40)*(G<=2?1:5));
+  const vis=barSVG(labels.slice(0,n),vals,G<=2?'Số cây mỗi lớp trồng được':'Số sách thư viện cho mượn mỗi ngày');const t=lv===0?'max':RP(['diff','sum','max','min']);
+  if(t==='max'||t==='min'){const v=t==='max'?Math.max(...vals):Math.min(...vals);if(vals.filter(x=>x===v).length>1)return MG.chart(G,lv,P);const ans=labels[vals.indexOf(v)];return Qmc(`Theo biểu đồ, ${G<=2?'lớp':'ngày'} nào ${t==='max'?'nhiều':'ít'} nhất?`,ans,labels.slice(0,n),{visual:vis,sk:'thongke',hints:['So sánh độ cao các cột.',t==='max'?'Cột cao nhất là nhiều nhất.':'Cột thấp nhất là ít nhất.'],explain:`${ans}: ${v} là ${t==='max'?'nhiều':'ít'} nhất.`});}
+  if(t==='sum'){const s=vals.reduce((a,b)=>a+b,0);return Qin(`Theo biểu đồ, tổng cộng là bao nhiêu?`,s,{visual:vis,sk:'thongke',hints:['Đọc số trên từng cột.','Cộng tất cả lại.'],explain:`${vals.join(' + ')} = ${s}.`});}
+  const i=R(0,n-1);let j=R(0,n-1);while(j===i)j=R(0,n-1);const big=vals[i]>=vals[j]?i:j,sm=big===i?j:i;return Qin(`Theo biểu đồ, ${labels[big]} nhiều hơn ${labels[sm]} bao nhiêu?`,vals[big]-vals[sm],{visual:vis,sk:'thongke',hints:['Đọc số trên hai cột cần so sánh.','Lấy số lớn trừ số bé.'],explain:`${vals[big]} − ${vals[sm]} = ${vals[big]-vals[sm]}.`});};
+MG.tally=function(G,lv,P){const n=R(3,18);const g=Math.floor(n/5),r=n%5;return Qin('Các vạch kiểm đếm dưới đây ứng với số nào? (mỗi nhóm có gạch chéo là 5)',n,{visual:`<div class="ht-big" style="font-size:34px;letter-spacing:3px">${'<s>||||</s> '.repeat(g)}${'|'.repeat(r)}</div>`,sk:'thongke',hints:['Mỗi nhóm có gạch chéo là 5.',`Có ${g} nhóm 5 và ${r} vạch lẻ.`],explain:`${g} × 5 + ${r} = ${n}.`});};
+MG.chance=function(G,lv,P){if(G>=5){const n=R(10,40),k=R(1,n-1);if(2*k===n)return MG.chance(G,lv,P);return Qmc(`Tung một đồng xu ${n} lần, có ${k} lần xuất hiện mặt sấp. Tỉ số của số lần xuất hiện mặt sấp và tổng số lần tung là:`,`${k}/${n}`,[`${k}/${n}`,`${n-k}/${n}`,`${k}/${n-k}`,`${n}/${k}`],{sk:'xacsuat',hints:['Tỉ số = số lần xuất hiện : tổng số lần.',`${k} : ${n}`],explain:`${k} lần trên ${n} lần tung: ${k}/${n}.`});}
+  const colors=[['đỏ','🔴'],['xanh','🔵'],['vàng','🟡']];const bag=RP([[3,0],[2,1],[0,3]]);const c1=colors[0],c2=colors[1];const ask=RP([c1,c2,colors[2]]);
+  const has=ask===c1?bag[0]>0:ask===c2?bag[1]>0:false;const all=(ask===c1&&bag[1]===0)||(ask===c2&&bag[0]===0);const ans=all?'Chắc chắn':has?'Có thể':'Không thể';
+  return Qmc(`Trong hộp có ${bag[0]} bi đỏ và ${bag[1]} bi xanh. Lấy ra 1 viên bi mà không nhìn. Khả năng lấy được bi ${ask[0]} là:`,ans,['Chắc chắn','Có thể','Không thể'],{sk:'xacsuat',hints:['Trong hộp có bi màu đó không?','Nếu chỉ toàn bi màu đó thì là chắc chắn.'],explain:`${ans} lấy được bi ${ask[0]}.`});};
+/* ================= BỘ ĐỀ TOÁN MỚI — phần D: phân số, số thập phân, tỉ số, chuyển động ================= */
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const lcm=(a,b)=>a/gcd(a,b)*b;
+const fr=(n,d)=>{const g=gcd(n,d);return [n/g,d/g];};
+const fS=(n,d)=>d===1?String(n):`${n}/${d}`;
+const fRed=(n,d)=>{const [a,b]=fr(n,d);return fS(a,b);};
+function fracOpts(ans,cands){const set=[ans];cands.forEach(c=>{if(c&&!set.includes(c)&&set.length<4)set.push(c);});let t=1;while(set.length<4){const [n,d]=ans.split('/').map(Number);const c=fS(n+t,d||1);if(!set.includes(c))set.push(c);t++;}return set;}
+function barFracSVG(k,n){const W=Math.min(260,n*34);const w=W/n;let b='';for(let i=0;i<n;i++)b+=`<rect x="${6+i*w}" y="6" width="${w}" height="40" fill="${i<k?'#3B82F6':'#fff'}" stroke="#1E3A8A" stroke-width="2.5"/>`;return SVGW(W+12,52,b,'Hình được chia thành các phần bằng nhau');}
+MG.fracConcept=function(G,lv,P){const n=R(2,G>=5?12:9),k=R(1,n-1);const t=lv===0?'shade':RP(['shade','div','read']);
+  if(t==='shade')return Qmc('Phân số chỉ phần đã tô màu của hình là:',`${k}/${n}`,fracOpts(`${k}/${n}`,[`${n-k}/${n}`,`${k}/${n-k}`,`${n}/${k}`]),{visual:barFracSVG(k,n),sk:'phanso',hints:['Mẫu số: hình được chia thành bao nhiêu phần bằng nhau.','Tử số: số phần được tô màu.'],explain:`Hình chia ${n} phần bằng nhau, tô ${k} phần: ${k}/${n}.`});
+  if(t==='div'){const a=R(1,20),b=R(2,12);return Qmc(`Viết thương ${a} : ${b} dưới dạng phân số.`,`${a}/${b}`,fracOpts(`${a}/${b}`,[`${b}/${a}`,`${a}/${b+1}`,`${a+b}/${b}`]),{sk:'phanso',hints:['Số bị chia là tử số, số chia là mẫu số.',''],explain:`${a} : ${b} = ${a}/${b}.`});}
+  return Qmc(`Phân số “${vnRead(k)} phần ${vnRead(n)}” viết là:`,`${k}/${n}`,fracOpts(`${k}/${n}`,[`${n}/${k}`,`${k}/${n+1}`,`${k+1}/${n}`]),{sk:'phanso',hints:['Đọc tử số trước, mẫu số sau.',''],explain:`${vnRead(k)} phần ${vnRead(n)}: ${k}/${n}.`});};
+MG.fracSimplify=function(G,lv,P){const d=R(2,12),n=R(1,d-1);const [a,b]=fr(n,d);const k=R(2,lv===2?9:5);const N=a*k,D=b*k;
+  if(lv===0||Math.random()<.5)return Qmc(`Rút gọn phân số ${N}/${D} đến tối giản.`,fS(a,b),fracOpts(fS(a,b),[`${b}/${a}`,`${a}/${b+1}`,k>2&&N%2===0&&D%2===0?fS(N/2,D/2):`${a+1}/${b}`]),{sk:'phanso',hints:['Chia cả tử số và mẫu số cho cùng một số.',`Chia cả hai cho ${gcd(N,D)}.`],explain:`Chia cả tử số và mẫu số cho ${gcd(N,D)}: ${N}/${D} = ${fS(a,b)}.`});
+  return Qin('Điền số thích hợp vào ô trống.',a*k,{big:`${a}/${b} = ?/${D}`,sk:'phanso',hints:[`${b} nhân mấy được ${D}?`,`Nhân cả tử với ${k}.`],explain:`${D} : ${b} = ${k}; ${a} × ${k} = ${a*k}. Vậy ${a}/${b} = ${a*k}/${D}.`});};
+MG.fracCompare=function(G,lv,P){let a,b,c,d;const t=lv===0?'same':lv===1?RP(['same','num','one']):'diff';
+  if(t==='same'){d=b=R(3,12);a=R(1,b-1);c=R(1,b-1);}else if(t==='num'){a=c=R(1,9);b=R(a+1,15);d=R(a+1,15);}else if(t==='one'){b=R(2,9);a=R(1,2*b);if(a===b)a++;c=d=1;}else{b=R(2,9);d=R(2,9);a=R(1,b*2-1);c=R(1,d*2-1);}
+  const va=a/b,vc=c/d;const L=t==='one'?'1':`${c}/${d}`;
+  return Qsign('Chọn dấu thích hợp.',`${a}/${b} ☐ ${L}`,a*d,c*b,{sk:'phanso',hints:[t==='same'?'Cùng mẫu số: tử số lớn hơn thì phân số lớn hơn.':t==='num'?'Cùng tử số: mẫu số bé hơn thì phân số lớn hơn.':t==='one'?'Tử số lớn hơn mẫu số thì phân số lớn hơn 1.':'Quy đồng mẫu số rồi so sánh tử số.',''],explain:`${a}/${b} ${sgn(a*d,c*b)} ${L}${t==='diff'?` (vì ${a}/${b} = ${a*d}/${b*d}, ${c}/${d} = ${c*b}/${b*d})`:''}.`});};
+MG.fracOp=function(G,lv,P){const op=P.op?RP(P.op):RP(['+','−','×',':']);let a,b,c,d;
+  if(op==='+'||op==='−'){if(lv===0){b=d=R(3,12);a=R(1,b-1);c=R(1,b-1);if(op==='−'&&a<c)[a,c]=[c,a];if(a===c&&op==='−')a++;}else{b=R(2,8);d=R(2,8);while(d===b)d=R(2,8);a=R(1,b-1);c=R(1,d-1);if(op==='−'&&a*d<c*b){[a,b,c,d]=[c,d,a,b];}}}
+  else{b=R(2,9);d=R(2,9);a=R(1,b-1);c=R(1,d-1);}
+  let n,m;if(op==='+'){n=a*d+c*b;m=b*d;}else if(op==='−'){n=a*d-c*b;m=b*d;}else if(op==='×'){n=a*c;m=b*d;}else{n=a*d;m=b*c;}
+  if(n<=0)return MG.fracOp(G,lv,P);const ans=fRed(n,m);const wrong=op==='+'?[fRed(a+c,b+d),fS(n,m),fRed(a*c,b*d)]:op==='−'?[fRed(Math.abs(a-c),Math.abs(b-d)||1),fS(n,m),fRed(a*c,b*d)]:op==='×'?[fRed(a*d,b*c),fRed(a+c,b+d),fS(n,m)]:[fRed(a*c,b*d),fRed(b*c,a*d),fS(n,m)];
+  const ex=op==='+'||op==='−'?(b===d?`Cùng mẫu: ${op==='+'?'cộng':'trừ'} tử số, giữ mẫu số: ${fS(op==='+'?a+c:a-c,b)}${fS(op==='+'?a+c:a-c,b)!==ans?' = '+ans:''}.`:`Quy đồng: ${a}/${b} = ${a*d}/${b*d}; ${c}/${d} = ${c*b}/${b*d}.\n${a*d}/${b*d} ${op} ${c*b}/${b*d} = ${fS(n,m)}${fS(n,m)!==ans?' = '+ans:''}.`):op==='×'?`Tử nhân tử, mẫu nhân mẫu: ${a} × ${c} / ${b} × ${d} = ${fS(n,m)}${fS(n,m)!==ans?' = '+ans:''}.`:`Nhân với phân số đảo ngược: ${a}/${b} × ${d}/${c} = ${fS(n,m)}${fS(n,m)!==ans?' = '+ans:''}.`;
+  return Qmc('Tính (rút gọn kết quả nếu được).',ans,fracOpts(ans,wrong),{big:`${a}/${b} ${op} ${c}/${d} = ?`,sk:'phanso',hints:[op==='+'||op==='−'?(b===d?'Cùng mẫu số: cộng (trừ) tử số, giữ nguyên mẫu số.':'Quy đồng mẫu số trước.'):op==='×'?'Tử nhân tử, mẫu nhân mẫu.':'Nhân phân số thứ nhất với phân số thứ hai đảo ngược.','Rút gọn kết quả đến tối giản.'],explain:ex});};
+MG.fracOf=function(G,lv,P){const d=R(2,9);let n=R(1,d-1);while(gcd(n,d)>1)n=R(1,d-1);const k=R(2,lv===2?30:12);const N=d*k;const t=thing();
+  if(lv===0)return Qin(`Tìm ${n}/${d} của ${N}.`,n*k,{sk:'phanso',hints:['Lấy số đó nhân với phân số.',`${N} : ${d} × ${n}`],explain:`${N} × ${n}/${d} = ${N} : ${d} × ${n} = ${n*k}.`});
+  return Qin(`Lớp có ${N} học sinh, trong đó ${n}/${d} số học sinh là nữ. Hỏi lớp có bao nhiêu học sinh nam?`,N-n*k,{sk:'phanso',hints:[`Tìm số học sinh nữ: ${N} × ${n}/${d}.`,'Lấy tổng trừ số học sinh nữ.'],explain:expl(`Nữ: ${N} × ${n}/${d} = ${n*k} (bạn)`,`Nam: ${N} − ${n*k} = ${N-n*k} (bạn)`)});};
+MG.mixed=function(G,lv,P){const d=R(2,9),w=R(1,9),n=R(1,d-1);const imp=`${w*d+n}/${d}`,mix=`${w} ${n}/${d}`;
+  if(Math.random()<.5)return Qmc(`Chuyển hỗn số ${mix} thành phân số.`,imp,fracOpts(imp,[`${w*n+d}/${d}`,`${w+n}/${d}`,`${w*d+n}/${n}`]),{sk:'phanso',hints:['Phần nguyên × mẫu số + tử số, giữ mẫu số.',`${w} × ${d} + ${n}`],explain:`${w} × ${d} + ${n} = ${w*d+n} → ${imp}.`});
+  const o=[mix,`${w+1} ${n}/${d}`,`${w} ${Math.max(1,n-1)}/${d}`,`${n} ${w}/${d}`].filter((x,i,a)=>a.indexOf(x)===i);return Qmc(`Viết phân số ${imp} thành hỗn số.`,mix,o,{sk:'phanso',hints:[`Lấy ${w*d+n} chia cho ${d}.`,'Thương là phần nguyên, số dư là tử số.'],explain:`${w*d+n} : ${d} = ${w} (dư ${n}) → ${mix}.`});};
+/* số thập phân: làm việc với số nguyên đã nhân 10^dp để tránh sai số */
+const dS=(i,dp)=>{const neg=i<0;i=Math.abs(i);let s=String(i).padStart(dp+1,'0');return (neg?'−':'')+(dp?s.slice(0,-dp)+','+s.slice(-dp):s).replace(/^(\d+)/,m=>fN(+m));};
+const dTrim=s=>s.includes(',')?s.replace(/0+$/,'').replace(/,$/,''):s;
+function decOpts(ans,cands){const set=[ans];cands.forEach(c=>{if(c&&!set.includes(c)&&set.length<4)set.push(c);});let t=1;while(set.length<4){const c=ans+t;if(!set.includes(String(c)))set.push(dTrim(String(c)));t++;}return set;}
+MG.decRead=function(G,lv,P){const dp=R(1,lv===2?3:2);const i=R(Math.pow(10,dp),Math.pow(10,dp+2));const s=dS(i,dp);const t=RP(['place','frac','read']);
+  if(t==='place'){const k=R(1,dp);const dig=+String(i).slice(-dp)[k-1];const nm=['phần mười','phần trăm','phần nghìn'][k-1];return Qmc(`Trong số ${s}, chữ số ở hàng ${nm} là:`,String(dig),numOpts(dig,[+String(i).slice(-1),Math.floor(i/Math.pow(10,dp))%10]).map(String),{sk:'stp',hints:['Sau dấu phẩy: hàng phần mười, phần trăm, phần nghìn.',''],explain:`${s}: hàng ${nm} là chữ số ${dig}.`});}
+  if(t==='frac'){const den=Math.pow(10,dp);const n=R(1,den*3);return Qmc(`Viết phân số thập phân ${n}/${den} dưới dạng số thập phân.`,dTrim(dS(n,dp)),decOpts(dTrim(dS(n,dp)),[dTrim(dS(n,Math.max(0,dp-1))),dTrim(dS(n,dp+1)),String(n)]),{sk:'stp',hints:[`Mẫu số ${den} có ${dp} chữ số 0 → phần thập phân có ${dp} chữ số.`,''],explain:`${n}/${den} = ${dTrim(dS(n,dp))}.`});}
+  const w=Math.floor(i/Math.pow(10,dp)),f=i%Math.pow(10,dp);const rd=`${vnRead(w)} phẩy ${String(f).padStart(dp,'0').startsWith('0')?String(f).padStart(dp,'0').split('').map(c=>DGV[+c]).join(' '):vnRead(f)}`;
+  return Qmc(`Số “${rd}” viết là:`,s,decOpts(s,[dS(i,dp-1>=0?dp-1:0),dS(i,dp+1),dS(i+1,dp)]),{sk:'stp',hints:['Đọc phần nguyên, rồi “phẩy”, rồi phần thập phân.',''],explain:`${rd}: ${s}.`});};
+MG.decCompare=function(G,lv,P){const a=R(100,9999),dp1=R(1,3),dp2=R(1,3);let b=a+R(-30,30);if(lv===2){b=a*Math.pow(10,dp2-dp1);}const va=a/Math.pow(10,dp1),vb=b/Math.pow(10,dp2);
+  return Qsign('Chọn dấu thích hợp.',`${dS(a,dp1)} ☐ ${dS(b,dp2)}`,Math.round(va*1e6),Math.round(vb*1e6),{sk:'stp',hints:['So sánh phần nguyên trước.','Phần nguyên bằng nhau thì so lần lượt từng hàng sau dấu phẩy.'],explain:`${dS(a,dp1)} ${sgn(Math.round(va*1e6),Math.round(vb*1e6))} ${dS(b,dp2)}.`});};
+MG.decRound=function(G,lv,P){const dp=R(2,3);const i=R(Math.pow(10,dp),Math.pow(10,dp+2));const to=lv===0?0:R(0,dp-1);const r=Math.round(i/Math.pow(10,dp-to));const ans=dS(r,to);const nm=['số tự nhiên gần nhất','hàng phần mười','hàng phần trăm'][to];
+  return Qmc(`Làm tròn số ${dS(i,dp)} đến ${nm}.`,ans,decOpts(ans,[dS(Math.floor(i/Math.pow(10,dp-to)),to),dS(r+1,to),dS(i,dp-1)]),{sk:'stp',hints:['Nhìn chữ số ngay bên phải hàng cần làm tròn.','Từ 5 trở lên thì tăng thêm 1.'],explain:`${dS(i,dp)} ≈ ${ans}.`});};
+MG.decOp=function(G,lv,P){const op=P.op?RP(P.op):RP(['+','−','×',':']);let A,B,da,db,ans,ex;
+  if(op==='+'||op==='−'){da=R(1,2);db=R(1,2);A=R(100,9999);B=R(10,999);const dp=Math.max(da,db);const a=A*Math.pow(10,dp-da),b=B*Math.pow(10,dp-db);if(op==='−'&&a<b)return MG.decOp(G,lv,P);const v=op==='+'?a+b:a-b;ans=dTrim(dS(v,dp));ex=`Đặt các dấu phẩy thẳng cột, ${op==='+'?'cộng':'trừ'} như số tự nhiên: ${dS(A,da)} ${op} ${dS(B,db)} = ${ans}.`;
+    return Qmc('Tính.',ans,decOpts(ans,[dTrim(dS(op==='+'?A+B:Math.abs(A-B),Math.max(da,db))),dTrim(dS(v,dp+1)),dTrim(dS(v+1,dp))]),{big:`${dS(A,da)} ${op} ${dS(B,db)} = ?`,sk:'stp',hints:['Đặt tính sao cho các dấu phẩy thẳng cột.','Tính như số tự nhiên rồi đặt dấu phẩy thẳng cột.'],explain:ex});}
+  if(op==='×'){da=R(1,2);A=R(11,999);const nat=lv===0||Math.random()<.4;db=nat?0:1;B=nat?R(2,9):R(11,99);const v=A*B;const dp=da+db;ans=dTrim(dS(v,dp));
+    return Qmc('Tính.',ans,decOpts(ans,[dTrim(dS(v,Math.max(0,dp-1))),dTrim(dS(v,dp+1)),dTrim(dS(v+1,dp))]),{big:`${dS(A,da)} × ${dS(B,db)} = ?`,sk:'stp',hints:['Nhân như số tự nhiên.',`Đếm tổng số chữ số ở phần thập phân của hai thừa số (${dp}) rồi đặt dấu phẩy.`],explain:`${A} × ${B} = ${v}; có ${dp} chữ số thập phân → ${ans}.`});}
+  const b=R(2,lv===2?25:9),q=R(11,999),dq=R(1,2);const a=b*q;ans=dTrim(dS(q,dq));
+  return Qmc('Tính.',ans,decOpts(ans,[dTrim(dS(q,dq+1)),dTrim(dS(q,Math.max(0,dq-1))),dTrim(dS(q+1,dq))]),{big:`${dS(a,dq)} : ${b} = ?`,sk:'stp',hints:['Chia như số tự nhiên.','Chia đến phần thập phân thì viết dấu phẩy vào thương.'],explain:`${dS(a,dq)} : ${b} = ${ans} (thử lại: ${ans} × ${b} = ${dS(a,dq)}).`});};
+MG.decTimes10=function(G,lv,P){const k=RP([10,100,1000]);const e=String(k).length-1;const mul=Math.random()<.5;const dp=R(1,3);const i=R(10,99999);const a=dS(i,dp);
+  const resDp=mul?dp-e:dp+e;const ans=dTrim(resDp>=0?dS(i,resDp):fN(i*Math.pow(10,-resDp)));const big=`${a} ${mul?'×':':'} ${fN(k)} = ?`;
+  return Qmc('Tính nhẩm.',ans,decOpts(ans,[dTrim(dS(i,Math.max(0,dp+(mul?e:-e)))),dTrim(dS(i,Math.max(0,resDp+1))),dTrim(dS(i,Math.max(0,resDp-1)))]),{big,sk:'stp',hints:[mul?`Nhân với ${fN(k)}: dời dấu phẩy sang phải ${e} chữ số.`:`Chia cho ${fN(k)}: dời dấu phẩy sang trái ${e} chữ số.`,''],explain:`${a} ${mul?'×':':'} ${fN(k)} = ${ans}.`});};
+MG.decUnit=function(G,lv,P){const kind=RP(['len','mass']);const pr=kind==='len'?RP([['m','cm',100],['km','m',1000],['m','dm',10]]):RP([['kg','g',1000],['tấn','kg',1000],['tạ','kg',100]]);const e=String(pr[2]).length-1;const i=R(pr[2]+1,pr[2]*20);const ans=dTrim(dS(i,e));
+  return Qmc('Viết số đo dưới dạng số thập phân.',`${ans} ${pr[0]}`,decOpts(ans,[dTrim(dS(i,e+1)),dTrim(dS(i,Math.max(0,e-1))),dTrim(dS(i+1,e))]).map(x=>`${x} ${pr[0]}`),{big:`${fN(i)} ${pr[1]} = ? ${pr[0]}`,sk:'doluong',hints:[`1 ${pr[0]} = ${fN(pr[2])} ${pr[1]}.`,`Chia cho ${fN(pr[2])}: dời dấu phẩy sang trái ${e} chữ số.`],explain:`${fN(i)} ${pr[1]} = ${ans} ${pr[0]}.`});};
+MG.ratio=function(G,lv,P){const t=P.kind?RP(P.kind):lv===0?'pct':RP(['pct','pctOf','find','map']);
+  if(t==='pct'){const b=RP([20,25,40,50,80,200,400]);const a=R(1,b-1);const p=a*100/b;if(!Number.isInteger(p))return MG.ratio(G,lv,P);return Qin(`Tìm tỉ số phần trăm của ${a} và ${b}.`,p,{unit:'%',sk:'tiso',hints:[`Lấy ${a} : ${b}.`,'Nhân thương với 100 rồi viết thêm %.'],explain:`${a} : ${b} = ${fD(a/b)} = ${p}%.`});}
+  if(t==='pctOf'){const p=RP([5,10,15,20,25,30,40,50,60,75]),N=R(2,40)*20;const v=N*p/100;return Qin(`Tìm ${p}% của ${fN(N)}.`,v,{sk:'tiso',hints:[`Lấy ${fN(N)} : 100 × ${p}.`,''],explain:`${fN(N)} : 100 × ${p} = ${fN(v)}.`});}
+  if(t==='find'){const p=RP([10,20,25,40,50]),N=R(2,40)*20;const v=N*p/100;return Qin(`${p}% của một số là ${fN(v)}. Tìm số đó.`,N,{sk:'tiso',hints:[`Lấy ${fN(v)} : ${p} × 100.`,''],explain:`${fN(v)} : ${p} × 100 = ${fN(N)}.`});}
+  const sc=RP([1000,2000,5000,10000,500]);const cm=R(2,15);return Qin(`Trên bản đồ tỉ lệ 1 : ${fN(sc)}, quãng đường dài ${cm} cm. Độ dài thật là bao nhiêu mét?`,cm*sc/100,{unit:'m',sk:'tiso',hints:[`Độ dài thật = ${cm} × ${fN(sc)} (cm).`,'Đổi xăng-ti-mét ra mét: chia cho 100.'],explain:`${cm} × ${fN(sc)} = ${fN(cm*sc)} cm = ${fN(cm*sc/100)} m.`});};
+MG.motion=function(G,lv,P){const v=R(4,60)*(Math.random()<.5?1:5),t=R(1,6);const s=v*t;const k=P.kind?RP(P.kind):RP(['v','s','t']);
+  if(k==='v')return Qin(`Một ô tô đi quãng đường ${s} km trong ${t} giờ. Tính vận tốc của ô tô.`,v,{unit:'km/giờ',sk:'giaitoan',hints:['v = s : t','Quãng đường chia cho thời gian.'],explain:`${s} : ${t} = ${v} (km/giờ).`});
+  if(k==='s')return Qin(`Một người đi xe máy với vận tốc ${v} km/giờ trong ${t} giờ. Tính quãng đường người đó đi được.`,s,{unit:'km',sk:'giaitoan',hints:['s = v × t',`${v} × ${t}`],explain:`${v} × ${t} = ${s} (km).`});
+  return Qin(`Quãng đường dài ${s} km, một xe đi với vận tốc ${v} km/giờ. Hỏi xe đi hết quãng đường mất bao nhiêu giờ?`,t,{unit:'giờ',sk:'giaitoan',hints:['t = s : v',`${s} : ${v}`],explain:`${s} : ${v} = ${t} (giờ).`});};
+MG.timeOp=function(G,lv,P){const h1=R(1,8),m1=R(5,55),h2=R(1,5),m2=R(5,55);const add=Math.random()<.5;let H,M,ex;
+  if(add){M=m1+m2;H=h1+h2;ex=`${h1} giờ ${m1} phút + ${h2} giờ ${m2} phút = ${H} giờ ${M} phút`;if(M>=60){ex+=` = ${H+1} giờ ${M-60} phút`;H++;M-=60;}}
+  else{const T=(h1+h2)*60+m1-(h2*60+m2);if(T<=0)return MG.timeOp(G,lv,P);H=Math.floor(T/60);M=T%60;ex=`Đổi ra phút rồi trừ: ${h1+h2} giờ ${m1} phút − ${h2} giờ ${m2} phút = ${H} giờ ${M} phút`;}
+  return Qsl('Tính.',['Giờ','Phút'],[H,M],[H+1,M+10,Math.max(0,H-1),(M+60)%100],{big:add?`${h1} giờ ${m1} phút + ${h2} giờ ${m2} phút`:`${h1+h2} giờ ${m1} phút − ${h2} giờ ${m2} phút`,bigSmall:true,sk:'doluong',hints:['Cộng (trừ) giờ với giờ, phút với phút.','Số phút từ 60 trở lên thì đổi 60 phút = 1 giờ.'],explain:ex+'.'});};
+/* ================= BỘ ĐỀ TOÁN MỚI — dạng bổ sung cho Lớp Lá và bảng bài học từng lớp ================= */
+MG.addPic=function(G,lv,P){const mx=P.max||10;const e=RP(['🍎','🍬','🎈','⭐','🍓','🐥']);const kind=P.kind||RP(['gop','them','bot']);
+  if(lv===2){const x=R(1,Math.max(1,mx-3)),y=R(1,Math.min(3,mx-x));return Qin(`Bé có một số ${e}. Mẹ cho thêm ${y} ${e} thì bé có ${x+y} ${e}. Lúc đầu bé có mấy ${e}?`,x,{visual:emoRow(Array(x+y).fill(e)),voice:[['vi',`Bé có một số đồ vật. Mẹ cho thêm ${y} thì bé có ${x+y}. Lúc đầu bé có mấy?`]],sk:'congtru',hints:['Bớt đi số mẹ vừa cho thêm.',`Che đi ${y} hình rồi đếm.`],explain:`${x+y} bớt ${y} còn ${x}.`});}
+  const a=R(1,mx-1),b=R(1,Math.max(1,(kind==='bot'?a:mx-a)));if(kind==='bot'){if(b>a)return MG.addPic(G,lv,P);return Qin(`Có ${a} ${e}, bớt đi ${b} ${e}. Còn lại mấy ${e}?`,a-b,{visual:emoRow(Array(a-b).fill(e).concat(Array(b).fill('✖️'))),voice:[['vi',`Có ${a}, bớt đi ${b}. Còn lại mấy?`]],sk:'congtru',hints:['Đếm các hình không bị gạch.',`${a} bớt ${b}.`],explain:`${a} bớt ${b} còn ${a-b}.`});}
+  if(a+b>mx)return MG.addPic(G,lv,P);return Qin(kind==='gop'?`Gộp ${a} ${e} và ${b} ${e}. Có tất cả mấy ${e}?`:`Có ${a} ${e}, thêm ${b} ${e}. Có tất cả mấy ${e}?`,a+b,{visual:emoRow(Array(a).fill(e))+emoRow(Array(b).fill(e)),voice:[['vi',kind==='gop'?`Gộp ${a} và ${b}. Có tất cả mấy?`:`Có ${a}, thêm ${b}. Có tất cả mấy?`]],sk:'congtru',hints:['Đếm hàng trên rồi đếm tiếp hàng dưới.',`Bắt đầu từ ${a}, đếm thêm ${b}.`],explain:`${a} và ${b} là ${a+b}.`});};
+MG.zero=function(G,lv,P){const e=RP(['🍎','🐟','🌸','🎈']);const t=R(0,2);if(t===0)return Qin(`Trong đĩa có mấy ${e}?`,0,{visual:'<div class="ht-big">🍽️</div>',voice:[['vi','Trong đĩa có mấy quả?']],sk:'so',hints:['Đĩa có đồ vật nào không?','Không có gì thì viết số 0.'],explain:'Đĩa trống, có 0 đồ vật.'});
+  const a=R(1,9);if(t===1)return Qin(`Có ${a} ${e}, bớt đi ${a} ${e}. Còn lại mấy ${e}?`,0,{visual:emoRow(Array(a).fill('✖️')),sk:'so',hints:['Bớt hết thì còn lại bao nhiêu?',''],explain:`${a} bớt ${a} còn 0.`});
+  return Qmc('Số nào bé nhất?','0',shuffle(['0',String(a),String(R(1,9)===a?a+1:R(1,9))]).filter((x,i,ar)=>ar.indexOf(x)===i),{sk:'so',hints:['0 là số bé nhất.',''],explain:'0 là số bé nhất.'});};
+MG.updown=function(G,lv,P){const L=[['Con chim bay','phía trên','cái cây','🐦','🌳'],['Con mèo nằm','phía dưới','cái bàn','🐱','🪑'],['Mặt trời ở','phía trên','ngôi nhà','☀️','🏠'],['Con cá bơi','bên trong','bể nước','🐟','🫙'],['Bạn thỏ đứng','bên ngoài','hàng rào','🐰','🚧'],['Quả bóng ở','phía dưới','gầm giường','⚽','🛏️']];const it=RP(L);
+  const opts=it[1].startsWith('bên')?['Bên trong','Bên ngoài']:['Phía trên','Phía dưới'];return Qmc(`${it[0]} ở phía nào của ${it[2]}?`,cap(it[1]),opts,{visual:`<div class="ht-big" style="font-size:52px">${it[3]} ${it[4]}</div>`,sk:'hinhhoc',hints:['Tưởng tượng cảnh đó ngoài đời thật.',''],explain:`${it[0]} ${it[1]} ${it[2]}.`});};
+MG.blocks=function(G,lv,P){const n=R(2,lv?9:6);const it=RP(['✏️ Bút chì','🖍️ Bút màu','📏 Thước','🥢 Đôi đũa']);return Qin(`${it.split(' ').slice(1).join(' ')} dài bằng mấy ô vuông?`,n,{visual:`<div class="ht-big" style="font-size:30px">${it.split(' ')[0]}</div><div class="ht-emo" style="gap:2px">${Array(n).fill('<span style="display:inline-block;width:26px;height:26px;border:2px solid #1E3A8A;background:#DBEAFE"></span>').join('')}</div>`,sk:'doluong',hints:['Đếm số ô vuông nằm dưới đồ vật.',''],explain:`Dài bằng ${n} ô vuông.`});};
+MG.countEmo=function(G,lv,P){const sets=[['🔺','⬜','⚪'],['🍎','🍌','🍐'],['🚗','🚲','🚌']];const s=RP(sets);const target=s[0];const n=R(1,lv?7:4);const others=Array.from({length:R(2,5)},()=>RP(s.slice(1)));const arr=shuffle(Array(n).fill(target).concat(others));
+  return Qin(`Có bao nhiêu ${target}?`,n,{visual:emoRow(arr,'wrap'),sk:G===0?'hinhhoc':'so',hints:['Chỉ đếm đúng loại hình được hỏi.','Chạm vào từng hình để đếm.'],explain:`Có ${n} ${target}.`});};
+MG.ordinal=function(G,lv,P){return Object.assign(TDG.la_pos(0,lv),{sk:'so'});};
+
+/* ---------- bảng bài: PLAN[lớp][chặng][bài] = các dạng đề [tên, tham số]; 'mix' = ôn tổng hợp cả chặng ---------- */
+const g=(n,p)=>[n,p||{}];
+const MIX='mix';
+const PLAN={
+0:[
+ [[g('count',{max:5})],[g('count',{max:5}),g('neighbor',{max:5})],[g('groups',{max:5})],[g('split',{max:5}),g('groups',{max:5})],[g('addPic',{max:5})],MIX],
+ [[g('count',{max:10})],[g('count',{max:10}),g('neighbor',{max:10})],[g('zero'),g('count',{max:10}),g('neighbor',{max:10})],[g('groups',{max:10}),g('compare',{max:10})],[g('ordinal')],MIX],
+ [[g('seq',{max:10,step:[1]}),g('count',{max:10})],[g('neighbor',{max:10}),g('seq',{max:10,step:[1]})],[g('compare',{max:10})],[g('maxmin',{max:10})],[g('order',{max:10})],MIX],
+ [[g('addPic',{max:10,kind:'gop'})],[g('addPic',{max:10,kind:'them'})],[g('addPic',{max:10,kind:'bot'})],[g('split',{max:10})],[g('split',{max:10})],MIX],
+ [[g('shapeId')],[g('shapeId')],[g('countEmo')],[g('solid')],[g('solid')],MIX],
+ [[g('updown'),g('position')],[g('position')],[g('position')],[g('position')],[g('updown'),g('position')],MIX],
+ [[g('sizeCmp')],[g('sizeCmp')],[g('blocks')],[g('pattern')],[g('oddOne')],MIX],
+ [[g('dayPart')],[g('dayPart')],[g('calendar'),g('dayPart')],[g('clock'),g('dayPart')],[g('count',{max:10}),g('compare',{max:10})],MIX]],
+1:[
+ [[g('count',{max:5}),g('neighbor',{max:5})],[g('count',{max:10}),g('neighbor',{max:10}),g('seq',{max:10,step:[1]})],[g('groups',{max:10})],[g('compare',{max:10}),g('maxmin',{max:10})],[g('split',{max:10})],MIX],
+ [[g('shapeId')],[g('countShapes'),g('countEmo')],[g('addsub',{ops:['+'],max:10,small:1})],[g('addsub',{ops:['+'],max:10,small:1}),g('missing',{max:10,small:1})],[g('wp1',{max:10})],MIX],
+ [[g('addsub',{ops:['−'],max:10,small:1})],[g('split',{max:10}),g('addsub',{ops:['−'],max:10,small:1})],[g('addsub',{max:10,small:1}),g('missing',{max:10,small:1})],[g('compare',{max:10})],[g('wp1',{max:10})],MIX],
+ [[g('solid')],[g('position')],[g('count',{max:10}),g('compare',{max:10}),g('seq',{max:10,step:[1]})],[g('addsub',{max:10,small:1}),g('missing',{max:10,small:1})],[g('shapeId'),g('solid')],MIX],
+ [[g('tens')],[g('readNum',{max:100}),g('tens')],[g('compare',{max:100})],[g('seq',{max:100}),g('neighbor',{max:100})],[g('order',{max:100}),g('maxmin',{max:100})],MIX],
+ [[g('blocks'),g('sizeCmp')],[g('measOp',{unit:'cm'})],[g('blocks')],[g('measOp',{unit:'cm'})],[g('measOp',{unit:'cm'})],MIX],
+ [[g('addsub',{ops:['+'],max:99,k:1,carry:'none'})],[g('addsub',{ops:['+'],max:99,carry:'none'})],[g('addsub',{ops:['−'],max:99,k:1,carry:'none'})],[g('addsub',{ops:['−'],max:99,carry:'none'})],[g('wp1',{max:99}),g('wpMore',{max:99})],MIX],
+ [[g('clock'),g('calendar')],[g('calendar')],[g('calendar'),g('clock')],[g('addsub',{max:10,small:1}),g('missing',{max:10,small:1})],[g('addsub',{max:99,carry:'none'}),g('compare',{max:100})],MIX]],
+2:[
+ [[g('readNum',{max:100}),g('compare',{max:100}),g('order',{max:100})],[g('seq',{max:100}),g('neighbor',{max:100})],[g('missing',{max:100})],[g('wpMore',{max:100})],[g('addsub',{max:100,carry:'none'})],MIX],
+ [[g('addsub',{ops:['+'],max:20,carry:'yes'})],[g('addsub',{ops:['+'],max:20,carry:'yes'}),g('keep',{max:20})],[g('wp1',{max:20})],[g('addsub',{ops:['−'],max:20,carry:'yes'})],[g('wpMore',{max:20})],MIX],
+ [[g('measOp',{unit:'kg'})],[g('measOp',{unit:'l'})],[g('measOp',{unit:'kg'}),g('measOp',{unit:'l'})],[g('addsub',{ops:['+'],max:100,k:1,carry:'yes'})],[g('addsub',{ops:['+'],max:100,carry:'yes'})],MIX],
+ [[g('addsub',{ops:['−'],max:100,k:1,carry:'yes'})],[g('addsub',{ops:['−'],max:100,carry:'yes'})],[g('wp2',{max:100}),g('wp1',{max:100})],[g('countShapes'),g('shapeId')],[g('polyline'),g('perimeter')],MIX],
+ [[g('timeConv'),g('clock')],[g('calendar')],[g('clock'),g('calendar')],[g('addsub',{max:100}),g('missing',{max:100}),g('compare',{max:100})],[g('polyline'),g('measOp'),g('perimeter')],MIX],
+ [[g('table',{tables:[2,5],noDiv:1})],[g('table',{tables:[2],noDiv:1})],[g('table',{tables:[5],noDiv:1})],[g('table',{tables:[2,5]}),g('missing',{mulOnly:1,tables:[2,5]})],[g('table',{tables:[2,5]}),g('wpMul',{tables:[2,5]}),g('compare',{max:100,mul:1,tables:[2,5]})],MIX],
+ [[g('solid'),g('shapeId'),g('countShapes')],[g('mental',{round:100}),g('readNum',{max:1000})],[g('readNum',{max:1000}),g('place',{max:1000}),g('decomp',{max:1000})],[g('compare',{max:1000}),g('order',{max:1000}),g('maxmin',{max:1000})],[g('conv',{kind:'len',units:['cm','dm','m','km']})],[g('money')]],
+ [[g('addsub',{ops:['+'],max:1000})],[g('addsub',{ops:['−'],max:1000})],[g('tally'),g('chart')],[g('chance'),g('tally')],[g('readNum',{max:1000}),g('addsub',{max:1000}),g('missing',{max:1000})],MIX]],
+3:[
+ [[g('readNum',{max:1000}),g('compare',{max:1000}),g('order',{max:1000}),g('seq',{max:1000})],[g('addsub',{max:1000}),g('missing',{max:1000}),g('keep',{max:1000})],[g('table',{tables:[2,5]}),g('missing',{mulOnly:1,tables:[2,5]})],[g('wp1',{max:1000}),g('wpMore',{max:1000}),g('wp2',{max:1000})],[g('polyline'),g('perimeter'),g('conv',{kind:'len',units:['cm','dm','m']})],MIX],
+ [[g('readNum',{max:1000}),g('maxmin',{max:1000}),g('seq',{max:1000,step:[3,4,6]})],[g('addsub',{max:1000,carry:'yes'}),g('expr')],[g('table',{tables:[3,4,6]}),g('keep',{tables:[3,4,6]})],[g('wpMul',{tables:[3,4,6]}),g('wp2',{max:1000})],[g('measOp'),g('clock')],MIX],
+ [[g('seq',{max:1000,step:[7,8,9]}),g('compare',{max:100,mul:1,tables:[7,8,9]})],[g('addsub',{max:1000}),g('missing',{max:1000}),g('mental',{round:100})],[g('table',{tables:[7,8,9]}),g('gap')],[g('gap'),g('wpMul',{tables:[7,8,9]}),g('wp2',{max:1000})],[g('conv',{kind:'len',units:['mm','cm','dm','m']}),g('measOp')],MIX],
+ [[g('compare',{max:1000}),g('evenOdd',{max:1000})],[g('addsub',{max:1000}),g('expr')],[g('divRem'),g('partOf')],[g('wp2',{max:1000}),g('wpMul',{tables:[2,3,4,5,6,7,8,9]})],[g('money'),g('clock')],MIX],
+ [[g('readNum',{max:1000}),g('round',{units:[10,100]})],[g('addsub',{max:1000,carry:'yes'})],[g('mulBig',{d2:1}),g('divBig',{d2:1})],[g('wpUnit'),g('wp2',{max:1000})],[g('midpoint'),g('angle'),g('perimeter'),g('area')],MIX],
+ [[g('roman'),g('seq',{max:1000})],[g('measOp')],[g('mulBig',{d2:1}),g('divBig',{d2:1})],[g('measOp'),g('money')],[g('conv',{kind:'len',units:['mm','cm','m','km']}),g('conv',{kind:'mass',units:['g','kg']}),g('conv',{kind:'vol'}),g('clock'),g('calendar'),g('timeConv'),g('temp')],MIX],
+ [[g('readNum',{max:100000}),g('place',{max:100000}),g('compare',{max:100000}),g('round',{units:[10,100,1000,10000]}),g('order',{max:100000})],[g('addsub',{max:100000}),g('mental',{round:1000})],[g('mulBig',{d2:1}),g('divBig',{d2:1})],[g('wpUnit'),g('wp2',{max:100000})],[g('area'),g('perimeter'),g('money')],MIX],
+ [[g('readNum',{max:100000}),g('compare',{max:100000}),g('maxmin',{max:100000})],[g('expr'),g('keep',{max:1000}),g('quicksum')],[g('table'),g('divRem'),g('gap')],[g('wp2',{max:1000}),g('wpUnit'),g('wpMul')],[g('chance'),g('chart'),g('area'),g('conv',{kind:'mass',units:['g','kg']})],MIX]],
+4:[
+ [[g('readNum',{max:100000}),g('place',{max:100000}),g('compare',{max:100000}),g('order',{max:100000})],[g('addsub',{max:100000}),g('mulBig',{d2:1}),g('divBig',{d2:1})],[g('evenOdd')],[g('letter')],[g('wp3'),g('wp2',{max:100000})],MIX],
+ [[g('angle')],[g('readNum',{max:999999}),g('place',{max:999999})],[g('place',{max:999999}),g('decomp',{max:999999})],[g('readNum',{max:999999}),g('compare',{max:999999})],[g('round',{units:[100,1000,10000,100000]}),g('compare',{max:999999})],[g('seq',{max:999999}),g('evenOdd'),g('maxmin',{max:999999})]],
+ [[g('conv',{kind:'mass',units:['kg','yến','tạ','tấn']})],[g('conv',{kind:'area'})],[g('timeConv')],[g('addsub',{max:999999})],[g('quicksum'),g('keep',{max:10000})],[g('wpSumDiff')]],
+ [[g('lines'),g('angle')],[g('lines'),g('angle')],[g('lines'),g('perimeter'),g('area')],[g('addsub',{max:999999}),g('mulBig',{d2:1}),g('divBig',{d2:1}),g('expr')],[g('conv',{kind:'mass',units:['kg','yến','tạ','tấn']}),g('area'),g('angle')],MIX],
+ [[g('mulBig',{d2:1})],[g('divBig',{d2:1})],[g('times10')],[g('mulProp')],[g('mulProp')],MIX],
+ [[g('mulBig',{d2:2})],[g('divBig',{d2:2})],[g('wpAvg')],[g('wpUnit')],[g('chart')],[g('tally'),g('chart')]],
+ [[g('fracConcept')],[g('fracConcept')],[g('fracSimplify')],[g('fracSimplify')],[g('fracCompare')],MIX],
+ [[g('fracOp',{op:['+']})],[g('fracOp',{op:['−']})],[g('fracOp',{op:['×']})],[g('fracOp',{op:[':']})],[g('fracOf')],MIX]],
+5:[
+ [[g('readNum',{max:999999}),g('place',{max:999999}),g('expr'),g('missing',{max:100000})],[g('fracSimplify'),g('fracCompare'),g('fracOf')],[g('decRead')],[g('fracOp',{op:['+','−']}),g('fracOp',{op:['×',':']})],[g('mixed')],[g('angle'),g('lines'),g('conv',{kind:'len'}),g('timeConv')]],
+ [[g('decRead')],[g('decCompare')],[g('decUnit')],[g('decRound')],[g('conv',{kind:'area5'})],[g('conv',{kind:'area'}),g('conv',{kind:'area5'}),g('decUnit')]],
+ [[g('decOp',{op:['+']})],[g('decOp',{op:['−']})],[g('decOp',{op:['×']})],[g('decOp',{op:[':']})],[g('decTimes10')],[g('decOp'),g('wpAvg')]],
+ [[g('triTrap',{kind:'tri'})],[g('triTrap',{kind:'trap'})],[g('circle',{kind:'C'})],[g('circle',{kind:'S'})],[g('decOp'),g('decCompare'),g('decRound')],[g('triTrap'),g('circle'),g('conv',{kind:'area'}),g('decUnit')]],
+ [[g('ratio',{kind:['pct']})],[g('ratio',{kind:['map']})],[g('wpRatio',{kind:'sum'})],[g('wpRatio',{kind:'diff'})],[g('ratio',{kind:['pct']})],[g('ratio',{kind:['pctOf','find']})]],
+ [[g('countShapes'),g('volume',{kind:['box','cube']})],[g('volume',{kind:['conv']})],[g('volume',{kind:['conv','box']})],[g('volume',{kind:['sxq']})],[g('volume',{kind:['stp']})],[g('volume',{kind:['box','cube']})]],
+ [[g('timeConv')],[g('timeOp')],[g('timeOp')],[g('motion',{kind:['v']})],[g('motion',{kind:['s','t']})],[g('motion'),g('timeOp')]],
+ [[g('chart')],[g('chart')],[g('chance')],[g('readNum',{max:999999}),g('decCompare'),g('fracOp'),g('decOp')],[g('ratio'),g('triTrap'),g('circle'),g('volume'),g('conv',{kind:'area'})],MIX]]};
+/* ================= BỘ ĐỀ TOÁN MỚI — tạo bài 15 câu: 6 cơ bản, 6 vận dụng, 3 thử thách ================= */
+function planFor(w,d){const C=(PLAN[GRADE]||[])[w];if(!C)return null;let L=C[d];if(L===MIX||!L){const all=[];C.forEach((x,i)=>{if(i!==d&&Array.isArray(x))x.forEach(s=>{if(!all.some(y=>y[0]===s[0]&&JSON.stringify(y[1])===JSON.stringify(s[1])))all.push(s);});});L=all;}return L&&L.length?L:null;}
+function mgMake(spec,lv){const [name,P]=spec;let q=null;for(let t=0;t<8&&!q;t++){try{q=MG[name](GRADE,lv,P||{});}catch(e){q=null;}}if(!q)return null;
+  const sk=skOf(q.sk||'so');delete q.sk;return Object.assign(q,{skill:sk,mg:name,mp:P||{},lv,hard:lv===2});}
+const qk=q=>q.prompt+'|'+(q.big||'')+'|'+q.answer+'|'+(q.visual||'')+'|'+(q.options||[]).slice().sort().join(',');
+const MATH_LV=[0,0,0,0,0,0,1,1,1,1,1,1,2,2,2];
+function buildMathNew(w,d){const L=planFor(w,d);if(!L)return null;const out=[],keys=new Set();let order=shuffle(L.slice());let k=0;
+  for(const lv of MATH_LV){let q=null,tries=0;while(tries<12){const spec=order[k%order.length];k++;if(k%order.length===0)order=shuffle(L.slice());q=mgMake(spec,lv);tries++;if(q&&!keys.has(qk(q)))break;}
+    if(!q||keys.has(qk(q)))continue;keys.add(qk(q));out.push(q);}
+  /* câu thử thách để cuối bài */
+  return out.filter(q=>!q.hard).concat(out.filter(q=>q.hard));}
+if(typeof buildLevel==='function'){const _bl=buildLevel;buildLevel=function(w,d){try{const qs=buildMathNew(w,d);if(qs&&qs.length>=10)return qs;}catch(e){}return _bl.apply(this,arguments);};}
+window.__HT_MATH__=1;
 /* ---------------- TOÁN TƯ DUY: NHÓM KỸ NĂNG, BÀI HỌC, THẺ KIẾN THỨC ---------------- */
 const TD_GROUPS=[
  {k:'td_quyluat',n:'Quy luật',i:'🔁',c:'#1D8CE0',cd:'#1466AB'},
@@ -3923,6 +4411,7 @@ function logQ(q,ok,chosen){const lk=curLk();if(!lk||Q.mode==='exam')return;
 
 /* ---------------- CÂU CÙNG DẠNG, ĐỔI SỐ (vòng ôn lại câu sai) ---------------- */
 function similarQ(q){
+  if(q.mg&&MG[q.mg]){const n=mgMake([q.mg,q.mp||{}],q.lv||0);if(n)return n;}
   if(q.gen&&TDG[q.gen]){const L=q.td!=null?tdLesson(q.td):null;if(L)return tdMake(L,q.lv||0);try{const n=TDG[q.gen](GRADE,q.lv||0);return Object.assign(n,{skill:q.skill,gen:q.gen,lv:q.lv,secLab:q.secLab,hard:q.hard,td:q.td});}catch(e){return null;}}
   if(isMainQ()&&typeof MATH_BANK!=='undefined'&&MATH_BANK&&!q.hard){try{const w=Math.floor(Q.level/6),d=Q.level%6;const nested=Array.isArray(MATH_BANK[w][0]);const pool=nested?MATH_BANK[w][d]:MATH_BANK[w];
     const used=new Set((Q.orig||Q.qs).map(x=>qKey(x)));const cands=pool.filter(x=>x&&x.skill===q.skill&&x.type===q.type&&!used.has(qKey(x))&&qKey(x)!==qKey(q));
@@ -3945,8 +4434,8 @@ renderAnswer=function(q){if(q&&q.type==='slots')return renderSlots(q);return _re
 /* ---------------- GỢI Ý ---------------- */
 function hintsFor(q){if(Q&&Q.mode==='exam')return null;if(q.hints&&q.hints.length)return q.hints;if(isMainQ()){const c=cardForQ(q);if(c)return [c.tip];}return null;}
 function showHint(q){const hs=hintsFor(q);if(!hs)return;q._hn=Math.min(hs.length,(q._hn||0)+1);q._hint=1;sfx.tap();
-  const body=document.querySelector('.quiz .qbody');if(!body)return;let b=$('#htBub');if(!b){b=document.createElement('div');b.className='ht-bub';b.id='htBub';const head=body.querySelector('.qhead');if(head&&head.nextSibling)body.insertBefore(b,head.nextSibling);else body.insertBefore(b,body.firstChild);}
-  const card=cardForQ(q);b.innerHTML=`<span class="ow" aria-hidden="true">🦉</span><div>${hs.slice(0,q._hn).map(h=>H(h)).join('<br>')}${card?'<br><a id="htOpenKc">Mở thẻ kiến thức →</a>':''}</div>`;
+  const body=document.querySelector('.quiz .qbody');if(!body)return;const mb=document.querySelector('.quiz .ht-mascot .bb');let b=mb||$('#htBub');if(!b){b=document.createElement('div');b.className='ht-bub';b.id='htBub';const head=body.querySelector('.qhead');if(head&&head.nextSibling)body.insertBefore(b,head.nextSibling);else body.insertBefore(b,body.firstChild);}
+  const card=cardForQ(q);const inner=`${hs.slice(0,q._hn).map((h,i)=>(i===0?'💡 ':'')+H(h)).join('<br>')}${card?'<br><a id="htOpenKc">Mở thẻ kiến thức →</a>':''}`;b.innerHTML=mb?inner:`<span class="ow" aria-hidden="true">🦉</span><div>${inner}</div>`;if(mb)b.id='htBub';
   const ok=$('#htOpenKc');if(ok)ok.onclick=()=>showCard(card,{back:'Quay lại bài làm'});
   sayVi(hs[q._hn-1]);drawHintBtn(q);}
 function drawHintBtn(q){const hs=hintsFor(q);const btn=$('#htHint');if(!btn||!hs)return;const n=q._hn||0;
@@ -3960,6 +4449,7 @@ renderQ=function(){
     if(Q.review&&q._rg!==Q.round){const n=similarQ(q);if(n){n._qid=q._qid;n._rg=Q.round;Q.qs[Q.i]=n;q=n;}else q._rg=Q.round;q._rvNew=!!n;}
     if(!q._qid)q._qid=(curLk()||'q')+'.'+(++QID)+'.'+Date.now().toString(36);}}catch(e){}
   const r=_renderQ.apply(this,arguments);
+  try{const q0=Q&&Q.qs&&Q.qs[Q.i];if(q0)htRestyleQuiz(q0);}catch(e){}
   try{const q=Q&&Q.qs&&Q.qs[Q.i];if(!q)return r;
     const pr=document.querySelector('.quiz .prompt');if(pr&&(isTdQ()||isMainQ())){const L=String(q.prompt||'').length;if(L>150)pr.classList.add('ht-long');else if(L>90)pr.classList.add('ht-mid');}
     if(Q.review&&q._rvNew){const head=document.querySelector('.quiz .qhead');if(head){const t=document.createElement('div');t.className='ht-rvnote';t.textContent='Câu cùng dạng với câu con vừa sai, số đã đổi';head.parentNode.insertBefore(t,head);}}
@@ -3977,10 +4467,7 @@ check=function(){const q=Q&&Q.qs&&Q.qs[Q.i];if(!q||Q.locked)return _check.apply(
   try{const sh=$('#sheet');const bad=!!sh&&sh.classList.contains('bad');
     if(!bad&&q._hint&&!Q.review){Q.coins=Math.max(0,(Q.coins||0)-2);const fc=sh&&sh.querySelector('.fb-coin');if(fc)fc.textContent='💡 Đã xem gợi ý nên không có xu câu này';}
     logQ(q,!bad,chosen);save();
-    if(sh){const card=cardForQ(q);const box=document.createElement('div');box.className='ht-fbx';
-      box.innerHTML=`${card&&bad?'<button type="button" id="htKc">📘 Xem thẻ kiến thức</button>':''}<button type="button" class="rp" id="htRep">⚑ Báo câu sai</button>`;
-      const nb=sh.querySelector('.btn');if(nb)sh.insertBefore(box,nb);else sh.appendChild(box);
-      const kb=$('#htKc');if(kb)kb.onclick=()=>showCard(card,{back:'Quay lại bài làm'});$('#htRep').onclick=()=>reportQ(q,chosen);}}catch(e){}
+    Q._lastBad=bad;if(sh){const card=cardForQ(q);htRestyleSheet(q,bad,card,chosen);}}catch(e){}
   return r;};
 
 /* ---------------- BÁO CÂU SAI ---------------- */
@@ -4037,8 +4524,8 @@ function finishDaily(){const ok=Q.correct>=1;const secs=Math.round((Date.now()-Q
 /* ---------------- THANH TAB: thêm "Tư duy" ---------------- */
 const _tabbar=tabbar;
 tabbar=function(a){let h=_tabbar.apply(this,arguments);try{const btn=`<button class="tab${a==='td'?' on':''}" data-act="httab" data-t="td" ${a==='td'?'aria-current="page"':''}><span aria-hidden="true">🧩</span>Tư duy</button>`;
-  const sp=h.search(/<button class="tab[^"]*" data-act="tab" data-t="speed"/);
-  h=h.replace('<div class="tabs">','<div class="tabs ht7">');h=sp>=0?h.replace(/<button class="tab[^"]*" data-act="tab" data-t="speed"/,m=>btn+m):h.replace('</div></nav>',btn+'</div></nav>');}catch(e){}return h;};
+  /* bỏ tab Siêu tốc, đặt tab Tư duy vào chỗ đó */
+  const re=/<button class="tab[^"]*" data-act="tab" data-t="speed"[^>]*>[\s\S]*?<\/button>/;h=re.test(h)?h.replace(re,btn):h.replace('</div></nav>',btn+'</div></nav>');}catch(e){}return h;};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act="httab"],[data-act="htkc"],[data-act="httd"]');if(!b)return;sfx.tap();
   if(b.dataset.act==='httab')renderTd();else if(b.dataset.act==='htkc')renderKc(b.dataset.s||'toan');else renderTd();});
 
@@ -4141,11 +4628,22 @@ function giftChildHTML(){const L=S.pg.list,c=S.coins||0,dd=lastNDaysStudied(7);
   <div class="ht-gh" style="margin-top:4px"><h2>Đổi quà của bố mẹ</h2><small>Bố mẹ đặt ở Góc phụ huynh</small></div>
   ${dd<3?`<div class="ht-warn">🔥 Để đổi quà, con cần học ít nhất 3 ngày trong 7 ngày gần nhất · con đã học ${dd}/3 ngày.</div>`:''}
   ${L.length?L.map((g,i)=>{const pct=Math.min(100,Math.round(c/g.p*100));const can=c>=g.p&&dd>=3;return `<div class="ht-gift"><span class="gi">${H(g.i||'🎁')}</span><span class="gt"><b>${H(g.n)}</b><div class="ht-bar"><i style="width:${pct}%"></i></div><small>${Math.min(c,g.p)} / ${g.p} xu${c<g.p?' · còn '+(g.p-c):''}</small></span>${can?`<button class="small-btn" data-pgget="${i}">Đổi quà</button>`:''}</div>`;}).join(''):`<div class="card empty"><div class="big-ic">🎁</div><h2>Chưa có quà</h2><p>Nhờ bố mẹ vào Góc phụ huynh để đặt phần thưởng cho con nhé!</p></div>`}`;}
-function redeemGift(i){const g=S.pg.list[i];if(!g)return;const a=rnd(6,9),b=rnd(6,9);
-  const m=modal(`<div class="big-ic">${H(g.i||'🎁')}</div><h2>Đổi “${H(g.n)}”?</h2><p>Con sẽ dùng <b>🪙 ${g.p}</b> trong ${S.coins} xu. Nhờ bố mẹ xác nhận: ${a} × ${b} = ?</p><input class="field" id="rgA" type="number" inputmode="numeric" aria-label="Kết quả"><div style="height:12px"></div><button class="btn btn-go" id="rgY">Bố mẹ đồng ý</button><button class="btn btn-soft" id="rgN">Để dành thêm</button>`);
-  m.querySelector('#rgN').onclick=()=>m.remove();
-  m.querySelector('#rgY').onclick=()=>{if(Number(m.querySelector('#rgA').value)!==a*b){toast('Chưa đúng, nhờ bố mẹ thử lại nhé.');return;}if(S.coins<g.p){toast('Con chưa đủ xu.');m.remove();return;}
-    S.coins-=g.p;S.pg.log.push({n:g.n,i:g.i,p:g.p,d:todayStr()});S.pg.log=S.pg.log.slice(-30);save();syncRewards();pgSave();m.remove();sfx.win();confetti();toast('Đã đổi quà! Con nhớ nhắc bố mẹ nhé 🎉');renderAchieve('gift');};}
+/* xác nhận của bố mẹ: có tài khoản thì nhập mật khẩu đăng nhập; dùng không đăng nhập thì làm phép nhân */
+let PG_OK_UNTIL=0;
+function parentConfirm(o){o=o||{};if(LOGGED()&&o.remember!==false&&Date.now()<PG_OK_UNTIL){o.ok();return;}
+  if(!LOGGED()){const a=rnd(6,9),b=rnd(6,9);const m=modal(`<div class="big-ic">${o.icon||'👪'}</div><h2>${o.title||'Góc phụ huynh'}</h2>${o.body||''}<p>Bố mẹ nhập kết quả của ${a} × ${b}</p><input class="field" id="pcA" type="number" inputmode="numeric" aria-label="Kết quả"><div style="height:12px"></div><button class="btn btn-go" id="pcY">${o.okText||'Vào'}</button><button class="btn btn-soft" id="pcN">Quay lại</button>`);
+    const f=m.querySelector('#pcA');setTimeout(()=>f.focus(),50);const go=()=>{if(Number(f.value)===a*b){m.remove();o.ok();}else{f.value='';toast('Chưa đúng, thử lại nhé.');}};m.querySelector('#pcY').onclick=go;f.addEventListener('keydown',e=>{if(e.key==='Enter')go();});m.querySelector('#pcN').onclick=()=>m.remove();return;}
+  const m=modal(`<div class="big-ic">${o.icon||'👪'}</div><h2>${o.title||'Góc phụ huynh'}</h2>${o.body||''}<p>Bố mẹ nhập <b>mật khẩu đăng nhập</b> của tài khoản ${H(S.name||'')} để tiếp tục.</p><input class="field" id="pcP" type="password" autocomplete="current-password" aria-label="Mật khẩu"><div id="pcE" class="ht-pcerr"></div><button class="btn btn-go" id="pcY">${o.okText||'Vào'}</button><button class="btn btn-soft" id="pcN">Quay lại</button>`);
+  const f=m.querySelector('#pcP'),er=m.querySelector('#pcE'),bt=m.querySelector('#pcY');setTimeout(()=>f.focus(),50);
+  const go=async()=>{const pw=f.value;if(!pw){er.textContent='Nhập mật khẩu nhé.';return;}bt.disabled=true;er.textContent='';
+    try{await apiPost('/x/student/verify-password',{password:pw});PG_OK_UNTIL=Date.now()+10*60*1000;m.remove();o.ok();}
+    catch(e){bt.disabled=false;f.value='';er.textContent=e&&e.message||'Mật khẩu chưa đúng.';f.focus();}};
+  bt.onclick=go;f.addEventListener('keydown',e=>{if(e.key==='Enter')go();});m.querySelector('#pcN').onclick=()=>m.remove();}
+if(typeof parentGate==='function')parentGate=function(){parentConfirm({ok:()=>renderParent()});};
+function redeemGift(i){const g=S.pg.list[i];if(!g)return;
+  parentConfirm({icon:H(g.i||'🎁'),title:`Đổi “${H(g.n)}”?`,body:`<p>Con sẽ dùng <b>🪙 ${g.p}</b> trong ${S.coins} xu.</p>`,okText:'Bố mẹ đồng ý',remember:false,ok:()=>{
+    if(S.coins<g.p){toast('Con chưa đủ xu.');return;}
+    S.coins-=g.p;S.pg.log.push({n:g.n,i:g.i,p:g.p,d:todayStr()});S.pg.log=S.pg.log.slice(-30);save();syncRewards();pgSave();sfx.win();confetti();toast('Đã đổi quà! Con nhớ nhắc bố mẹ nhé 🎉');renderAchieve('gift');}});}
 let RANK2=null,RANK2_AT=0,RANK2_LOAD=null;
 function loadRank2(force){if(!LOGGED())return Promise.resolve();if(RANK2_LOAD)return RANK2_LOAD;if(!force&&RANK2&&Date.now()-RANK2_AT<60000)return Promise.resolve();
   RANK2_LOAD=apiGet('/x/student/rank2').then(d=>{RANK2=d;RANK2_AT=Date.now();}).catch(()=>{}).finally(()=>{RANK2_LOAD=null;});return RANK2_LOAD;}
@@ -4192,6 +4690,150 @@ function htAdminDecorate(){const seg=app.querySelector('.seg[role="tablist"]');c
     body.querySelectorAll('[data-rsv]').forEach(x=>x.onclick=async()=>{try{await apiPut('/x/admin/reports/'+x.dataset.rsv,{resolved:true});draw();}catch(e){toast(e.message);}});
     body.querySelectorAll('[data-rdel]').forEach(x=>x.onclick=async()=>{try{await apiCall('DELETE','/x/admin/reports/'+x.dataset.rdel);draw();}catch(e){toast(e.message);}});};
   b.onclick=()=>{sfx.tap();draw();};}
+/* ================= GIAO DIỆN MỚI: tông navy – xanh dương, màn làm bài kiểu thẻ (giữ nguyên font) ================= */
+const THEME_CSS=`
+:root{--sky:#2563EB;--sky-d:#1E40AF;--berry:#EA580C;--berry-d:#C2410C;--hv-pri:#2563EB;--hv-pri-d:#1E40AF;--hv-navy:#1E3A8A;--hv-ok:#16A34A;--hv-bad:#EA580C;--hv-tag:#DBEAFE;--hv-tagt:#1E40AF;--hv-shadow:#C9D7EA}
+:root:not([data-theme="dark"]){--paper:#EEF4FB;--grid:#DCE6F3;--margin:#C3D5EE;--ink:#0F1E3D;--muted:#5B6B86;--line:#D6E2F0;--soft:#E3ECF8;--lock:#CBD5E1;--lock-d:#94A3B8;
+  --dln:#D6E2F0;--dln-d:#B8C8DE;--dsel-bg:#DBEAFE;--dsel-tx:#1E40AF;--dok-bg:#DCFCE7;--dok-tx:#166534;--dbad-bg:#FFEDD5;--dbad-tx:#9A3412;--db:#2563EB;--db-d:#1E40AF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hv-tag:#1E3A5F;--hv-tagt:#BFDBFE;--hv-shadow:#0B1530}}
+:root[data-theme="dark"]{--hv-tag:#1E3A5F;--hv-tagt:#BFDBFE;--hv-shadow:#0B1530}
+body .btn-go{--c:var(--hv-pri);--cd:var(--hv-pri-d)}
+body .btn-bad{--c:var(--hv-bad);--cd:#C2410C}
+body .btn-soft{color:var(--hv-pri)}
+body .tab.on{color:var(--hv-pri)}
+body .tab.on span{filter:none;opacity:1}
+.topbar{background:var(--paper)}
+.pill{border-color:var(--line)}
+/* ---- màn làm bài ---- */
+.quiz{background:var(--paper)}
+.quiz .qtop{gap:12px;padding:14px 16px 8px}
+.quiz .qtop .icon-btn{flex:none;width:52px;height:52px;border-radius:16px;background:var(--card);border:0;box-shadow:0 4px 0 var(--hv-shadow);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--muted);padding:0}
+.quiz .qtop .icon-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--hv-shadow)}
+.quiz .bar{height:14px;border-radius:99px;background:var(--line)}
+.quiz .bar i{background:#10B981;border-radius:99px}
+.quiz .bar i::after{display:none}
+.quiz .qcount{font-weight:800;color:var(--muted);font-size:16px;min-width:44px;text-align:right}
+.quiz .qbody{padding:4px 16px 12px}
+.quiz .qhead{justify-content:flex-start;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.quiz .qhead .tag{background:var(--hv-tag);color:var(--hv-tagt);text-transform:none;letter-spacing:0;font-size:14px;font-weight:800;padding:5px 12px;border-radius:999px}
+.quiz .qhead .tag-hard{background:#FEF3C7;color:#92400E}
+.ht-mascot{display:flex;align-items:center;gap:12px;margin:0 0 12px}
+.ht-mascot .ow{font-size:44px;line-height:1;flex:none;filter:drop-shadow(0 2px 0 rgba(0,0,0,.06))}
+html body .ht-mascot .bb a{display:inline-block;margin-top:6px;color:var(--hv-pri-d);font-weight:800;cursor:pointer}
+.ht-mascot .bb{flex:1;background:var(--card);border-radius:18px;padding:12px 16px;font-weight:700;font-size:16px;box-shadow:0 4px 0 var(--hv-shadow);color:var(--ink)}
+.ht-card{background:var(--card);border-radius:24px;padding:18px 18px 16px;box-shadow:0 5px 0 var(--hv-shadow);margin:0 0 14px}
+.ht-card .prompt{margin:0 0 6px;font-size:20px;line-height:1.45;font-weight:700}
+.ht-card.lab .prompt{text-align:center;color:var(--muted);font-size:17px;font-weight:700}
+.ht-card .big{font-size:44px;margin:6px 0 4px;color:var(--ink);word-spacing:2px}
+.ht-card .ht-fig{margin-top:8px}
+.ht-card .inputbox{margin-top:10px}
+.quiz .slot{display:inline-flex;align-items:center;justify-content:center;min-width:1.6em;min-height:1.25em;padding:0 .25em;border:3px dashed #93A9C9;border-radius:16px;color:transparent;background:var(--paper);vertical-align:middle;line-height:1.1}
+.quiz .slot.filled{border:3px solid var(--hv-pri);color:var(--hv-pri-d);background:var(--card)}
+.quiz .inputbox .slot{min-width:3.2em;min-height:1.5em;font-size:40px}
+.quiz .opts{grid-template-columns:1fr 1fr;gap:12px}
+.quiz .opts.short{grid-template-columns:1fr 1fr}
+.quiz .opts.ht-1col{grid-template-columns:1fr}
+.quiz .opt{min-height:68px;font-size:26px;font-weight:800;text-align:center;border-radius:20px;background:var(--card);border:2.5px solid var(--line);box-shadow:0 4px 0 var(--hv-shadow);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:8px 10px;line-height:1.25}
+.quiz .opts.ht-1col .opt{font-size:18px;text-align:left;justify-content:flex-start;min-height:56px;padding:10px 16px}
+.quiz .opts.ht-mid .opt{font-size:19px}
+.quiz .opt.sel{border-color:var(--hv-pri);background:var(--dsel-bg);color:var(--dsel-tx);box-shadow:0 4px 0 var(--hv-pri)}
+.quiz .opt.right{border-color:#10B981;background:var(--dok-bg);color:var(--dok-tx);box-shadow:0 4px 0 #10B981}
+.quiz .opt.wrong{border-color:var(--hv-bad);background:var(--dbad-bg);color:var(--dbad-tx);box-shadow:0 4px 0 var(--hv-bad)}
+.quiz .qfoot{border-top:0;padding:8px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--paper)}
+.quiz .pad.ht5{grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px}
+.quiz .pad.ht5 .key{height:62px;border-radius:18px;font-size:30px;border:2px solid var(--line);box-shadow:0 4px 0 var(--hv-shadow);background:var(--card);color:var(--ink)}
+.quiz .ht-padrow{display:grid;grid-template-columns:2fr 3fr;gap:10px}
+.quiz .ht-padrow .key{height:62px;border-radius:18px;font-size:26px;border:2px solid var(--line);box-shadow:0 4px 0 var(--hv-shadow);background:var(--card);color:var(--muted)}
+.quiz .ht-padrow #check{margin:0;height:62px;padding:0}
+.quiz #check{border-radius:18px}
+.quiz #check:disabled{background:#BFD3F2;box-shadow:0 4px 0 #A7C0E6;color:#fff;opacity:1}
+.quiz .ht-tools{margin-top:8px}
+.ht-hint{color:var(--hv-pri-d)}
+/* ---- thanh kết quả ---- */
+.quiz .sheet{border-radius:26px 26px 0 0;padding:18px 18px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 24px rgba(15,30,61,.12)}
+.quiz .sheet.good{background:#E3F7EC;color:#14532D}
+.quiz .sheet.bad{background:#FFEFE3;color:#9A3412}
+.quiz .sheet .ht-fbh{display:flex;align-items:center;gap:12px}
+.quiz .sheet .fb-title{flex:1;font-size:24px;line-height:1.2}
+.quiz .sheet .fb-title::before{background:#16A34A;color:#fff;width:42px;height:42px;font-size:24px}
+.quiz .sheet.bad .fb-title::before{content:"!";background:var(--hv-bad);color:#fff;font-weight:900}
+.quiz .sheet .fb-coin{margin:0;font-weight:800;font-size:18px;color:#15803D;white-space:nowrap}
+.quiz .sheet .ht-fbtext{font-size:16px;line-height:1.5;margin:12px 0 4px;white-space:pre-line;font-weight:600}
+.quiz .sheet .ht-fbtext b{font-weight:800}
+.quiz .sheet .ht-fbtext .more{display:block;margin-top:6px;font-weight:800}
+.quiz .sheet .fb-ans,.quiz .sheet .fb-exp{display:none}
+.quiz .sheet .ht-rep{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:inherit;opacity:.85;font-weight:800;font-size:14px;padding:6px 0;margin:2px 0 8px}
+.quiz .sheet .ht-rep i{font-style:normal;display:inline-flex;width:20px;height:20px;border-radius:50%;background:currentColor;align-items:center;justify-content:center}
+.quiz .sheet .ht-rep i::after{content:"!";color:#fff;font-size:13px;font-weight:900}
+.quiz .sheet .ht-btns{display:flex;gap:12px}
+.quiz .sheet .ht-btns .btn{flex:1;margin:0;font-size:16px;letter-spacing:.2px;text-transform:none;border-radius:18px;padding:14px 8px}
+.quiz .sheet .ht-btns .ht-kcb{--c:var(--card);--cd:var(--hv-shadow);background:var(--card);color:var(--hv-pri-d);border:0}
+.quiz .sheet .fb-combo{margin:0 0 8px}
+.quiz .sheet .ht-fbx{display:none}
+.ht-col{display:inline-block;font-variant-numeric:tabular-nums;font-weight:800;font-size:28px;line-height:1.25;text-align:right;margin:6px auto 0;padding:6px 18px;border-radius:14px;background:var(--paper)}
+.ht-col i{font-style:normal;color:var(--hv-pri);margin-right:6px}
+.ht-col .ln{border-top:3px solid var(--ink);margin-top:2px}
+.ht-card .ht-col{display:table;margin:8px auto 0}
+.ht-pcerr{color:var(--berry-d);font-weight:700;min-height:20px;margin:6px 0}
+/* ---- bản đồ, trang khác ---- */
+.notebook::before{background:var(--margin)}
+.hello .say{box-shadow:0 4px 0 var(--hv-shadow)}
+.ht-due{border-color:var(--hv-pri)}
+.ht-due .it i{background:var(--hv-pri)}
+.ht-due .it button{color:var(--hv-pri-d)}
+.ht-subseg button[aria-selected="true"]{background:var(--hv-pri)}
+.ht-row .n{color:var(--c,var(--hv-pri))}
+.ht-bar i{background:var(--c,var(--hv-pri))}
+.duo-combo{color:var(--hv-pri)}
+`;
+const thEl=document.createElement('style');thEl.id='ht-theme';thEl.textContent=THEME_CSS.replace(/(^|\n)\.quiz/g,'$1html body .quiz');document.head.appendChild(thEl);
+/* màu các chặng / bản đồ: dải navy – xanh dương – xanh ngọc */
+const MASC=[['#1E3A8A','#172554'],['#2563EB','#1E40AF'],['#0F766E','#115E59'],['#4338CA','#3730A3'],['#0369A1','#075985'],['#334155','#1E293B'],['#0891B2','#0E7490'],['#15803D','#166534'],['#1D4ED8','#1E3A8A'],['#0E7490','#155E75']];
+function recolor(arr){try{if(Array.isArray(arr))arr.forEach((c,i)=>{if(Array.isArray(c)){const m=MASC[i%MASC.length];c[0]=m[0];c[1]=m[1];}});}catch(e){}}
+try{if(typeof WCOL!=='undefined')recolor(WCOL);}catch(e){}
+try{if(typeof ECOL!=='undefined')recolor(ECOL);}catch(e){}
+try{if(typeof TCOL!=='undefined')recolor(TCOL);}catch(e){}
+try{if(typeof EXAM_SUBJ!=='undefined'){let i=0;Object.keys(EXAM_SUBJ).forEach(k=>{const E=EXAM_SUBJ[k];if(E&&E.c){const m=[['#1D4ED8','#1E3A8A'],['#0F766E','#115E59'],['#4338CA','#3730A3'],['#0369A1','#075985']][i++%4];E.c=m[0];E.cd=m[1];}});}}catch(e){}
+TD_GROUPS.forEach((g,i)=>{const m=MASC[i%MASC.length];g.c=m[0];g.cd=m[1];});TD_GROUPS_LA.forEach((g,i)=>{const m=MASC[i%MASC.length];g.c=m[0];g.cd=m[1];});
+
+/* bàn phím số 5 cột, nút xóa và nút Kiểm tra cùng hàng */
+if(typeof keypadHTML==='function')keypadHTML=function(){return `<div class="pad ht5">${[1,2,3,4,5,6,7,8,9,0].map(n=>`<button class="key" data-k="${n}">${n}</button>`).join('')}</div><div class="ht-padrow"><button class="key fn" data-k="B" aria-label="Xóa một số">⌫</button><span class="ht-chk"></span></div>`;};
+
+/* lời Cú Bông theo tình huống */
+const MAS_VI={start:['Mình cùng làm nhé!','Đọc kỹ đề rồi trả lời nha!','Con làm từ từ, không vội nhé!'],after:['Không sao, câu này mình cẩn thận hơn nhé!','Từ từ suy nghĩ nào!','Đọc lại đề thật kỹ nha!'],combo:['Con đang làm rất tốt!','Giỏi quá, tiếp tục nào!','Đúng liền mấy câu rồi đó!'],end:['Sắp về đích rồi, cố lên!','Chỉ còn vài câu nữa thôi!'],review:['Câu cùng dạng với câu con vừa sai, thử lại nhé!'],hard:['Câu thử thách đây, con dám thử không?']};
+const MAS_EN={start:['You can do it!','Read carefully!','Take your time!'],after:['No worries, try this one!','Think it through!'],combo:['Great streak!','Awesome, keep going!'],end:['Almost there!','Just a few more!'],review:['Same type as before. Try again!'],hard:['Challenge time!']};
+function mascotLine(q){const M=(typeof isEnQ==='function'&&isEnQ())?MAS_EN:MAS_VI;let k='start';
+  if(Q.review)k='review';else if(q.hard)k='hard';else if((Q.combo||0)>=3)k='combo';else if(Q._lastBad)k='after';else if(Q.i>=Q.qs.length-3&&Q.i>2)k='end';return RP(M[k]);}
+function lessonPill(q){try{if(Q.daily)return '⭐ Thử thách hôm nay';if(Q.td!=null){const L=tdLesson(Q.td);return L?L.t:'';}
+  if(isMainQ()){const w=Math.floor(Q.level/6),d=Q.level%6;const t=lessonTitleSpecific(w,d);return t?`Bài ${d+1} · ${t}`:`Chặng ${w+1} · ${(LEVEL_INFO[d]&&LEVEL_INFO[d].n)||''}`;}}catch(e){}return null;}
+/* sắp xếp lại màn làm bài sau khi app vẽ xong */
+function htRestyleQuiz(q){const quiz=document.querySelector('.quiz');if(!quiz||quiz.classList.contains('mg'))return;const body=quiz.querySelector('.qbody'),head=quiz.querySelector('.qhead'),top=quiz.querySelector('.qtop');if(!body||!head)return;
+  const sp=head.querySelector('#speakQ');if(sp&&top){top.appendChild(sp);sp.textContent='🔊';}
+  const pill=lessonPill(q);const tag=head.querySelector('.tag');if(pill&&tag)tag.textContent=pill;
+  if(!quiz.querySelector('.ht-mascot')){const m=document.createElement('div');m.className='ht-mascot';m.innerHTML=`<span class="ow" aria-hidden="true">🦉</span><div class="bb">${H(mascotLine(q))}</div>`;head.parentNode.insertBefore(m,head.nextSibling);}
+  /* thẻ đề: gom câu hỏi, phép tính, hình vẽ */
+  const pr=body.querySelector('.prompt');if(pr&&!body.querySelector('.ht-card')){const card=document.createElement('div');card.className='ht-card';pr.parentNode.insertBefore(card,pr);
+    let n=pr;const move=[];while(n&&n.id!=='ans'){move.push(n);n=n.nextElementSibling;}move.forEach(x=>card.appendChild(x));
+    const shortP=String(q.prompt||'').length<=70;if(q.big||(q.visual&&shortP&&q.type!=='slots'))card.classList.add('lab');
+    const ib=body.querySelector('#ans .inputbox');if(ib)card.appendChild(ib);}
+  /* cỡ chữ phép tính theo độ dài để không bị xuống dòng */
+  const bg=body.querySelector('.ht-card .big');if(bg&&q.big){const L=String(q.big).replace(/\s+/g,' ').length;bg.style.fontSize=(L<=9?46:L<=13?38:L<=17?32:L<=24?26:22)+'px';}
+  /* lựa chọn dài thì 1 cột */
+  const opts=body.querySelector('.opts');if(opts&&Array.isArray(q.options)){const L=Math.max(...q.options.map(o=>String(o).length));if(L>16)opts.classList.add('ht-1col');else if(L>8)opts.classList.add('ht-mid');}
+  /* nút Kiểm tra cạnh nút xóa */
+  const slot=quiz.querySelector('.ht-chk'),chk=quiz.querySelector('#check');if(slot&&chk){slot.replaceWith(chk);}}
+/* thanh kết quả: tiêu đề + xu, lời giải, báo câu sai, 2 nút */
+function htRestyleSheet(q,bad,card,chosen){const sh=$('#sheet');if(!sh)return;const title=sh.querySelector('.fb-title'),coin=sh.querySelector('.fb-coin'),ans=sh.querySelector('.fb-ans'),exp=sh.querySelector('.fb-exp'),nb=sh.querySelector('#next');if(!title||!nb)return;
+  const hd=document.createElement('div');hd.className='ht-fbh';sh.insertBefore(hd,title);hd.appendChild(title);if(coin)hd.appendChild(coin);
+  const EN=typeof isEnQ==='function'&&isEnQ();const txt=document.createElement('div');txt.className='ht-fbtext';
+  let html='';if(bad&&ans)html+=(EN?ans.innerHTML:ans.innerHTML.replace(/:\s*/,' là '))+'. ';if(exp)html+=H(exp.textContent);
+  if(bad&&!Q.review&&q.type!=='speak'&&(q.mg||q.gen||isMainQ()))html+=`<span class="more">${EN?'You will get a similar question at the end.':'Cuối bài sẽ có một câu cùng dạng (đổi số) để con luyện lại nhé.'}</span>`;
+  if(html){txt.innerHTML=html;sh.insertBefore(txt,nb);}
+  const rp=document.createElement('button');rp.type='button';rp.className='ht-rep';rp.innerHTML=`<i></i>${EN?'Report this question':'Báo câu sai'}`;rp.onclick=()=>reportQ(q,chosen);sh.insertBefore(rp,nb);
+  const row=document.createElement('div');row.className='ht-btns';sh.insertBefore(row,nb);
+  if(card&&bad){const kb=document.createElement('button');kb.type='button';kb.className='btn ht-kcb';kb.textContent='📘 Xem thẻ kiến thức';kb.onclick=()=>showCard(card,{back:'Quay lại bài làm'});row.appendChild(kb);}
+  row.appendChild(nb);const cb=sh.querySelector('.fb-combo');if(cb)sh.insertBefore(cb,row);}
+const moveCss=()=>{document.head.appendChild(stEl);document.head.appendChild(thEl);};setTimeout(moveCss,0);window.addEventListener('load',moveCss);
 /* màn hình đầu tiên đã vẽ trước khi lớp này chạy → vẽ lại để có tab Tư duy và các mục mới */
 try{if(document.querySelector('#scr')&&document.querySelector('.tab[data-t="map"].on'))renderHome();
   else{const tb=document.querySelector('nav.tabbar');if(tb){const on=tb.querySelector('.tab.on');const t=on?on.dataset.t:'';const d=document.createElement('div');d.innerHTML=tabbar(t);if(d.firstElementChild)tb.replaceWith(d.firstElementChild);}}}catch(e){}

@@ -51,11 +51,22 @@ function giftChildHTML(){const L=S.pg.list,c=S.coins||0,dd=lastNDaysStudied(7);
   <div class="ht-gh" style="margin-top:4px"><h2>Đổi quà của bố mẹ</h2><small>Bố mẹ đặt ở Góc phụ huynh</small></div>
   ${dd<3?`<div class="ht-warn">🔥 Để đổi quà, con cần học ít nhất 3 ngày trong 7 ngày gần nhất · con đã học ${dd}/3 ngày.</div>`:''}
   ${L.length?L.map((g,i)=>{const pct=Math.min(100,Math.round(c/g.p*100));const can=c>=g.p&&dd>=3;return `<div class="ht-gift"><span class="gi">${H(g.i||'🎁')}</span><span class="gt"><b>${H(g.n)}</b><div class="ht-bar"><i style="width:${pct}%"></i></div><small>${Math.min(c,g.p)} / ${g.p} xu${c<g.p?' · còn '+(g.p-c):''}</small></span>${can?`<button class="small-btn" data-pgget="${i}">Đổi quà</button>`:''}</div>`;}).join(''):`<div class="card empty"><div class="big-ic">🎁</div><h2>Chưa có quà</h2><p>Nhờ bố mẹ vào Góc phụ huynh để đặt phần thưởng cho con nhé!</p></div>`}`;}
-function redeemGift(i){const g=S.pg.list[i];if(!g)return;const a=rnd(6,9),b=rnd(6,9);
-  const m=modal(`<div class="big-ic">${H(g.i||'🎁')}</div><h2>Đổi “${H(g.n)}”?</h2><p>Con sẽ dùng <b>🪙 ${g.p}</b> trong ${S.coins} xu. Nhờ bố mẹ xác nhận: ${a} × ${b} = ?</p><input class="field" id="rgA" type="number" inputmode="numeric" aria-label="Kết quả"><div style="height:12px"></div><button class="btn btn-go" id="rgY">Bố mẹ đồng ý</button><button class="btn btn-soft" id="rgN">Để dành thêm</button>`);
-  m.querySelector('#rgN').onclick=()=>m.remove();
-  m.querySelector('#rgY').onclick=()=>{if(Number(m.querySelector('#rgA').value)!==a*b){toast('Chưa đúng, nhờ bố mẹ thử lại nhé.');return;}if(S.coins<g.p){toast('Con chưa đủ xu.');m.remove();return;}
-    S.coins-=g.p;S.pg.log.push({n:g.n,i:g.i,p:g.p,d:todayStr()});S.pg.log=S.pg.log.slice(-30);save();syncRewards();pgSave();m.remove();sfx.win();confetti();toast('Đã đổi quà! Con nhớ nhắc bố mẹ nhé 🎉');renderAchieve('gift');};}
+/* xác nhận của bố mẹ: có tài khoản thì nhập mật khẩu đăng nhập; dùng không đăng nhập thì làm phép nhân */
+let PG_OK_UNTIL=0;
+function parentConfirm(o){o=o||{};if(LOGGED()&&o.remember!==false&&Date.now()<PG_OK_UNTIL){o.ok();return;}
+  if(!LOGGED()){const a=rnd(6,9),b=rnd(6,9);const m=modal(`<div class="big-ic">${o.icon||'👪'}</div><h2>${o.title||'Góc phụ huynh'}</h2>${o.body||''}<p>Bố mẹ nhập kết quả của ${a} × ${b}</p><input class="field" id="pcA" type="number" inputmode="numeric" aria-label="Kết quả"><div style="height:12px"></div><button class="btn btn-go" id="pcY">${o.okText||'Vào'}</button><button class="btn btn-soft" id="pcN">Quay lại</button>`);
+    const f=m.querySelector('#pcA');setTimeout(()=>f.focus(),50);const go=()=>{if(Number(f.value)===a*b){m.remove();o.ok();}else{f.value='';toast('Chưa đúng, thử lại nhé.');}};m.querySelector('#pcY').onclick=go;f.addEventListener('keydown',e=>{if(e.key==='Enter')go();});m.querySelector('#pcN').onclick=()=>m.remove();return;}
+  const m=modal(`<div class="big-ic">${o.icon||'👪'}</div><h2>${o.title||'Góc phụ huynh'}</h2>${o.body||''}<p>Bố mẹ nhập <b>mật khẩu đăng nhập</b> của tài khoản ${H(S.name||'')} để tiếp tục.</p><input class="field" id="pcP" type="password" autocomplete="current-password" aria-label="Mật khẩu"><div id="pcE" class="ht-pcerr"></div><button class="btn btn-go" id="pcY">${o.okText||'Vào'}</button><button class="btn btn-soft" id="pcN">Quay lại</button>`);
+  const f=m.querySelector('#pcP'),er=m.querySelector('#pcE'),bt=m.querySelector('#pcY');setTimeout(()=>f.focus(),50);
+  const go=async()=>{const pw=f.value;if(!pw){er.textContent='Nhập mật khẩu nhé.';return;}bt.disabled=true;er.textContent='';
+    try{await apiPost('/x/student/verify-password',{password:pw});PG_OK_UNTIL=Date.now()+10*60*1000;m.remove();o.ok();}
+    catch(e){bt.disabled=false;f.value='';er.textContent=e&&e.message||'Mật khẩu chưa đúng.';f.focus();}};
+  bt.onclick=go;f.addEventListener('keydown',e=>{if(e.key==='Enter')go();});m.querySelector('#pcN').onclick=()=>m.remove();}
+if(typeof parentGate==='function')parentGate=function(){parentConfirm({ok:()=>renderParent()});};
+function redeemGift(i){const g=S.pg.list[i];if(!g)return;
+  parentConfirm({icon:H(g.i||'🎁'),title:`Đổi “${H(g.n)}”?`,body:`<p>Con sẽ dùng <b>🪙 ${g.p}</b> trong ${S.coins} xu.</p>`,okText:'Bố mẹ đồng ý',remember:false,ok:()=>{
+    if(S.coins<g.p){toast('Con chưa đủ xu.');return;}
+    S.coins-=g.p;S.pg.log.push({n:g.n,i:g.i,p:g.p,d:todayStr()});S.pg.log=S.pg.log.slice(-30);save();syncRewards();pgSave();sfx.win();confetti();toast('Đã đổi quà! Con nhớ nhắc bố mẹ nhé 🎉');renderAchieve('gift');}});}
 let RANK2=null,RANK2_AT=0,RANK2_LOAD=null;
 function loadRank2(force){if(!LOGGED())return Promise.resolve();if(RANK2_LOAD)return RANK2_LOAD;if(!force&&RANK2&&Date.now()-RANK2_AT<60000)return Promise.resolve();
   RANK2_LOAD=apiGet('/x/student/rank2').then(d=>{RANK2=d;RANK2_AT=Date.now();}).catch(()=>{}).finally(()=>{RANK2_LOAD=null;});return RANK2_LOAD;}

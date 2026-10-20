@@ -1,8 +1,8 @@
 /* ---------------- THANH TAB: thêm "Tư duy" ---------------- */
 const _tabbar=tabbar;
 tabbar=function(a){let h=_tabbar.apply(this,arguments);try{const btn=`<button class="tab${a==='td'?' on':''}" data-act="httab" data-t="td" ${a==='td'?'aria-current="page"':''}><span aria-hidden="true">🧩</span>Tư duy</button>`;
-  const sp=h.search(/<button class="tab[^"]*" data-act="tab" data-t="speed"/);
-  h=h.replace('<div class="tabs">','<div class="tabs ht7">');h=sp>=0?h.replace(/<button class="tab[^"]*" data-act="tab" data-t="speed"/,m=>btn+m):h.replace('</div></nav>',btn+'</div></nav>');}catch(e){}return h;};
+  /* bỏ tab Siêu tốc, đặt tab Tư duy vào chỗ đó */
+  const re=/<button class="tab[^"]*" data-act="tab" data-t="speed"[^>]*>[\s\S]*?<\/button>/;h=re.test(h)?h.replace(re,btn):h.replace('</div></nav>',btn+'</div></nav>');}catch(e){}return h;};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act="httab"],[data-act="htkc"],[data-act="httd"]');if(!b)return;sfx.tap();
   if(b.dataset.act==='httab')renderTd();else if(b.dataset.act==='htkc')renderKc(b.dataset.s||'toan');else renderTd();});
 

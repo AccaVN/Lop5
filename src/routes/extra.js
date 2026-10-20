@@ -2,7 +2,7 @@
 // Gắn ở /api/x (src/app.js). Tự tạo bảng/cột khi cần — không phải chạy SQL thủ công trên Neon.
 const router = require('express').Router();
 const pool = require('../db');
-const { authMiddleware, requireRole } = require('../auth');
+const { authMiddleware, requireRole, comparePassword } = require('../auth');
 
 const VN_TODAY = "(now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date";
 const EXTRA_SQL = `
@@ -72,6 +72,29 @@ student.post('/report', async (req, res) => {
       str(b.prompt, 600), str(b.big, 200), JSON.stringify(options), str(b.answer, 200), str(b.chosen, 200),
       str(b.explain, 500), reason, str(b.note, 300)]);
   res.json({ ok: true, id: rows[0].id });
+});
+
+// Cổng phụ huynh: kiểm tra mật khẩu đăng nhập của tài khoản (không tạo phiên mới, không đá thiết bị).
+// Sai 6 lần liên tiếp thì khóa 10 phút (bảng login_attempts có sẵn).
+student.post('/verify-password', async (req, res) => {
+  const key = 'pg:' + req.user.id;
+  const { rows: lk } = await pool.query('SELECT fails, locked_until FROM login_attempts WHERE key=$1', [key]).catch(() => ({ rows: [] }));
+  if (lk[0] && lk[0].locked_until && new Date(lk[0].locked_until) > new Date()) {
+    const m = Math.ceil((new Date(lk[0].locked_until) - new Date()) / 60000);
+    return res.status(429).json({ error: `Nhập sai nhiều lần. Thử lại sau ${m} phút.` });
+  }
+  const { rows } = await pool.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+  const ok = !!rows[0] && (await comparePassword(String((req.body && req.body.password) || ''), rows[0].password_hash));
+  if (ok) {
+    await pool.query('DELETE FROM login_attempts WHERE key=$1', [key]).catch(() => {});
+    return res.json({ ok: true });
+  }
+  await pool.query(
+    `INSERT INTO login_attempts (key, fails, updated_at) VALUES ($1, 1, now())
+     ON CONFLICT (key) DO UPDATE SET fails = login_attempts.fails + 1,
+       locked_until = CASE WHEN login_attempts.fails + 1 >= 6 THEN now() + interval '10 minutes' ELSE NULL END,
+       updated_at = now()`, [key]).catch(() => {});
+  res.status(403).json({ error: 'Mật khẩu chưa đúng.' });
 });
 
 // Quà do bố mẹ đặt (đổi bằng xu)

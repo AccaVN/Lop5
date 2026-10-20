@@ -15,8 +15,8 @@ renderAnswer=function(q){if(q&&q.type==='slots')return renderSlots(q);return _re
 /* ---------------- GỢI Ý ---------------- */
 function hintsFor(q){if(Q&&Q.mode==='exam')return null;if(q.hints&&q.hints.length)return q.hints;if(isMainQ()){const c=cardForQ(q);if(c)return [c.tip];}return null;}
 function showHint(q){const hs=hintsFor(q);if(!hs)return;q._hn=Math.min(hs.length,(q._hn||0)+1);q._hint=1;sfx.tap();
-  const body=document.querySelector('.quiz .qbody');if(!body)return;let b=$('#htBub');if(!b){b=document.createElement('div');b.className='ht-bub';b.id='htBub';const head=body.querySelector('.qhead');if(head&&head.nextSibling)body.insertBefore(b,head.nextSibling);else body.insertBefore(b,body.firstChild);}
-  const card=cardForQ(q);b.innerHTML=`<span class="ow" aria-hidden="true">🦉</span><div>${hs.slice(0,q._hn).map(h=>H(h)).join('<br>')}${card?'<br><a id="htOpenKc">Mở thẻ kiến thức →</a>':''}</div>`;
+  const body=document.querySelector('.quiz .qbody');if(!body)return;const mb=document.querySelector('.quiz .ht-mascot .bb');let b=mb||$('#htBub');if(!b){b=document.createElement('div');b.className='ht-bub';b.id='htBub';const head=body.querySelector('.qhead');if(head&&head.nextSibling)body.insertBefore(b,head.nextSibling);else body.insertBefore(b,body.firstChild);}
+  const card=cardForQ(q);const inner=`${hs.slice(0,q._hn).map((h,i)=>(i===0?'💡 ':'')+H(h)).join('<br>')}${card?'<br><a id="htOpenKc">Mở thẻ kiến thức →</a>':''}`;b.innerHTML=mb?inner:`<span class="ow" aria-hidden="true">🦉</span><div>${inner}</div>`;if(mb)b.id='htBub';
   const ok=$('#htOpenKc');if(ok)ok.onclick=()=>showCard(card,{back:'Quay lại bài làm'});
   sayVi(hs[q._hn-1]);drawHintBtn(q);}
 function drawHintBtn(q){const hs=hintsFor(q);const btn=$('#htHint');if(!btn||!hs)return;const n=q._hn||0;
@@ -30,6 +30,7 @@ renderQ=function(){
     if(Q.review&&q._rg!==Q.round){const n=similarQ(q);if(n){n._qid=q._qid;n._rg=Q.round;Q.qs[Q.i]=n;q=n;}else q._rg=Q.round;q._rvNew=!!n;}
     if(!q._qid)q._qid=(curLk()||'q')+'.'+(++QID)+'.'+Date.now().toString(36);}}catch(e){}
   const r=_renderQ.apply(this,arguments);
+  try{const q0=Q&&Q.qs&&Q.qs[Q.i];if(q0)htRestyleQuiz(q0);}catch(e){}
   try{const q=Q&&Q.qs&&Q.qs[Q.i];if(!q)return r;
     const pr=document.querySelector('.quiz .prompt');if(pr&&(isTdQ()||isMainQ())){const L=String(q.prompt||'').length;if(L>150)pr.classList.add('ht-long');else if(L>90)pr.classList.add('ht-mid');}
     if(Q.review&&q._rvNew){const head=document.querySelector('.quiz .qhead');if(head){const t=document.createElement('div');t.className='ht-rvnote';t.textContent='Câu cùng dạng với câu con vừa sai, số đã đổi';head.parentNode.insertBefore(t,head);}}
@@ -47,10 +48,7 @@ check=function(){const q=Q&&Q.qs&&Q.qs[Q.i];if(!q||Q.locked)return _check.apply(
   try{const sh=$('#sheet');const bad=!!sh&&sh.classList.contains('bad');
     if(!bad&&q._hint&&!Q.review){Q.coins=Math.max(0,(Q.coins||0)-2);const fc=sh&&sh.querySelector('.fb-coin');if(fc)fc.textContent='💡 Đã xem gợi ý nên không có xu câu này';}
     logQ(q,!bad,chosen);save();
-    if(sh){const card=cardForQ(q);const box=document.createElement('div');box.className='ht-fbx';
-      box.innerHTML=`${card&&bad?'<button type="button" id="htKc">📘 Xem thẻ kiến thức</button>':''}<button type="button" class="rp" id="htRep">⚑ Báo câu sai</button>`;
-      const nb=sh.querySelector('.btn');if(nb)sh.insertBefore(box,nb);else sh.appendChild(box);
-      const kb=$('#htKc');if(kb)kb.onclick=()=>showCard(card,{back:'Quay lại bài làm'});$('#htRep').onclick=()=>reportQ(q,chosen);}}catch(e){}
+    Q._lastBad=bad;if(sh){const card=cardForQ(q);htRestyleSheet(q,bad,card,chosen);}}catch(e){}
   return r;};
 
 /* ---------------- BÁO CÂU SAI ---------------- */

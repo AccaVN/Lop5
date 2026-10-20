@@ -255,3 +255,17 @@ node tools/hocthem/test/gen_test.js 500             # kiểm thử bộ sinh đ�
 - **Bảng xếp hạng**: thêm “Tuần này” (điểm các bài làm trong tuần) và “Chăm chỉ” (số ngày học trong tháng, chuỗi ngày).
 - API mới ở `src/routes/extra.js` (gắn `/api/x`): `POST /x/student/report`, `GET|PUT /x/student/gifts`,
   `GET /x/student/rank2`, `GET|PUT|DELETE /x/admin/reports`. Bảng/cột mới tự tạo khi chạy, **không cần chạy SQL tay**.
+
+## Cập nhật 20/10/2026 (lần 2) — Bộ đề Toán mới, giao diện mới, bỏ Siêu tốc
+
+- **Bộ đề Toán làm lại toàn bộ** (`tools/hocthem/src/25-math-*.js`, bảng bài `26-plan.js`): giữ nguyên chặng/bài theo SGK,
+  mọi câu do máy tự sinh, mỗi bài 15 câu (6 cơ bản, 6 vận dụng, 3 thử thách), có lời giải từng bước và gợi ý.
+  Dạng mới: điền số không cần tính (giữ nguyên tổng/hiệu/tích), so sánh hai biểu thức, toán hai – ba bước, đặt tính,
+  kéo số vào ô (thương – số dư, giờ – phút), đồng hồ, biểu đồ cột, phân số, số thập phân, tỉ số phần trăm, chuyển động…
+  Làm sai thì cuối bài có câu cùng dạng nhưng đổi số. Ngân hàng câu cũ vẫn giữ làm dự phòng; Luyện đề không đổi.
+  Kiểm thử: `node tools/hocthem/test/math_test.js 30` (sinh hàng chục nghìn bài, tự tính lại đáp án).
+- **Giao diện mới tông navy – xanh dương** cho cả app (giữ nguyên font): màn làm bài có Cú Bông nói, thẻ đề lớn,
+  bàn phím 5 cột, thanh kết quả có lời giải + “Báo câu sai” + 2 nút “Xem thẻ kiến thức / Tiếp tục”; bản đồ chặng đổi màu.
+- **Bỏ tab Siêu tốc** (tính nhẩm 60 giây, khỉ nhảy đảo); tab Tư duy thay vào chỗ đó. Mini game giữa bài vẫn giữ.
+- **Góc phụ huynh vào bằng mật khẩu đăng nhập của tài khoản** (API `POST /api/x/student/verify-password`,
+  sai 6 lần khóa 10 phút, không làm đăng xuất con); xác nhận đổi quà cũng dùng mật khẩu. Dùng không đăng nhập thì vẫn làm phép nhân.
