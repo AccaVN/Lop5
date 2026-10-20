@@ -229,3 +229,29 @@ python3 tools/duolingo/inject.py public/index.html
 - **Làm lại câu sai**: hết bài, các câu làm sai (Toán, Chữ cái, English) được hỏi lại; câu nào vẫn sai thì sang vòng
   tiếp theo, đến khi đúng hết mới hiện kết quả. Sao/điểm/xu/thống kê chỉ tính theo **lần làm đầu tiên**; vòng ôn lại không
   cộng điểm. Không áp dụng cho Luyện đề thi và Luyện nói.
+
+## Cập nhật 20/10/2026 — Toán tư duy, thẻ kiến thức, ôn tập thông minh
+
+Lớp tính năng dùng chung cho cả 6 app Học Vui, nằm ở `tools/hocthem/` (nguồn trong `src/*.js`) và được chèn
+vào `public/index.html` giữa `<!--HT:START-->` … `<!--HT:END-->`, ngay trước khối Duolingo. Sửa nguồn rồi chạy:
+
+```bash
+python3 tools/hocthem/inject.py public/index.html   # tự ghép src/*.js thành hocthem.js rồi chèn
+node tools/hocthem/test/gen_test.js 500             # kiểm thử bộ sinh đề (giải lại đáp án độc lập)
+```
+
+- **🧩 Tab Toán tư duy**: 7 nhóm (Quy luật, Đếm và tổ hợp, Suy luận lô-gic, Sơ đồ đoạn thẳng, Tính ngược và thử chọn,
+  Hình và không gian, Tính nhanh) — 21 bài, Lớp Lá có 6 bài riêng. Đề máy tự sinh theo lớp, mỗi bài 10 câu
+  (4 cơ bản, 4 vận dụng, 2 nâng cao), có hình vẽ (sơ đồ đoạn thẳng, hình ghép ô vuông, khối lập phương…),
+  dạng kéo số vào ô, gợi ý nhiều bước. Điểm lưu vào `progress` với `level_key = td_<số bài>`, tính vào điểm tích lũy.
+- **⭐ Thử thách hôm nay**: 1 câu đố mỗi ngày, +4 xu nếu đúng ngay lần đầu.
+- **📘 Thẻ kiến thức** cho Toán (theo nội dung câu hỏi) và Tư duy: mở từ trang chủ, khi xem gợi ý, hoặc khi làm sai.
+- **💡 Gợi ý** khi làm bài Toán/Tư duy (xem gợi ý thì câu đó không được xu “đúng ngay lần đầu”).
+- **⚑ Báo câu sai**: học sinh gửi, admin xem ở Quản trị → ⚑ Báo lỗi (bảng `question_reports`, tự tạo).
+- **Ôn câu sai bằng câu cùng dạng nhưng đổi số** (bài Tư duy sinh câu mới; bài Toán lấy câu cùng kỹ năng trong ngân hàng đề).
+- **🔁 Cần ôn lại**: bài làm dưới 80% được nhắc ôn sau 1 – 3 – 7 ngày, hiện trên trang chủ Toán và trang Tư duy.
+- **Góc phụ huynh**: Nhận xét tuần, Dạng bài con hay sai (đã sửa/chưa sửa), mục tiêu phút mỗi ngày,
+  🎁 Phần thưởng do bố mẹ đặt — con đổi bằng xu ở Thành tích → 🎁 Quà (cần học ≥ 3/7 ngày, bố mẹ xác nhận).
+- **Bảng xếp hạng**: thêm “Tuần này” (điểm các bài làm trong tuần) và “Chăm chỉ” (số ngày học trong tháng, chuỗi ngày).
+- API mới ở `src/routes/extra.js` (gắn `/api/x`): `POST /x/student/report`, `GET|PUT /x/student/gifts`,
+  `GET /x/student/rank2`, `GET|PUT|DELETE /x/admin/reports`. Bảng/cột mới tự tạo khi chạy, **không cần chạy SQL tay**.

@@ -22,6 +22,8 @@ app.use('/api/student', require('./routes/student'));
 // /api/parent: đã bỏ tài khoản phụ huynh (10/2026)
 app.use('/api/parent', (req, res) => res.status(410).json({ error: 'Không còn tài khoản phụ huynh. Vui lòng đăng nhập lại.' }));
 app.use('/api/admin', require('./routes/admin'));
+// 10/2026: báo câu sai, quà bố mẹ đặt, xếp hạng tuần / chăm chỉ (src/routes/extra.js)
+app.use('/api/x', require('./routes/extra'));
 app.use('/api/tts', require('./routes/tts').router);
 
 app.get('/', (req, res) => res.json({ ok: true, service: 'hocvui-backend' }));
