@@ -2830,34 +2830,58 @@ const enSkel=w=>w.replace(/ph/g,'f').replace(/th/g,'t').replace(/sh|ch|j|z|ce|ci
 /* Chấm chặt: từ phải đọc đúng (chỉ tha lỗi rất nhỏ), đúng thứ tự, và KHÔNG được thiếu/thừa âm s cuối (book ≠ books). */
 const endsS=w=>w.length>1&&/s$/.test(w);
 const sPair=(a,b)=>a!==b&&(a===b+'s'||b===a+'s'||a===b+'es'||b===a+'es');
-function wordSim(a,b){if(a===b)return 1;const A=enCanon(a),B=enCanon(b);if(A===B)return 1;
-  if(sPair(a,b)||endsS(a)!==endsS(b))return 0;                                   // thiếu/thừa s cuối → sai
-  const L=Math.max(a.length,b.length);if(L<=3)return 0;                           // từ ngắn phải đúng hẳn
-  const q=1-levW(a,b)/L;if(q>=.8)return .8;if(q>=.7)return .6;
-  const sa=enSkel(a),sb=enSkel(b);if(sa.length>=3&&sa===sb)return .5;return 0;}
-function lcsWords(a,b){const m=a.length,n=b.length;const d=Array.from({length:m+1},()=>new Array(n+1).fill(0));const sm=Array.from({length:m},(_,i)=>b.map(w=>wordSim(a[i],w)));
-  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const x=sm[i-1][j-1];d[i][j]=Math.max(d[i-1][j],d[i][j-1],x?d[i-1][j-1]+x:0);}
-  const hit=new Set(),sim=new Map(),usedH=new Set();let i=m,j=n;while(i&&j){const x=sm[i-1][j-1];if(x&&Math.abs(d[i][j]-(d[i-1][j-1]+x))<1e-9){hit.add(i-1);sim.set(i-1,x);usedH.add(j-1);i--;j--;}else if(d[i-1][j]>=d[i][j-1])i--;else j--;}return{len:d[m][n],hit,sim,usedH};}
-function scoreSpeech(target,alts){const T=normEn(target);let best={r:0,heard:'',hit:new Set(),sim:new Map(),sErr:new Set(),oo:0};
-  (alts||[]).forEach(h=>{const H=normEn(h);if(!H.length)return;const {len,hit,sim,usedH}=lcsWords(T,H);
+/* Chế độ “giọng Việt” (soft — dùng cho Luyện nói đoạn văn): máy nhận dạng en-US hay nghe nhầm giọng người Việt dù con đọc đúng:
+   rớt/đổi phụ âm cuối (cat→car, dog→dock, pets→pet), lẫn phụ âm đầu (think→sink, very→berry), tách/ghép từ (classroom→class room),
+   bỏ sót mạo từ a/the. Những từ đó vẫn được tính “gần đúng” (màu cam) thay vì bị coi là sai hẳn. */
+const vnCore=w=>{w=w.replace(/ph/g,'f').replace(/th/g,'t').replace(/sh|ch|j|z|x|c(?=[eiy])/g,'s').replace(/ck|q|c|g/g,'k').replace(/d/g,'t').replace(/b/g,'p').replace(/v/g,'f').replace(/wh?/g,'');
+  if(w.length>2)w=w.replace(/e$/,'');return w.replace(/([aeiouy])[aeiouy]+/g,'$1').replace(/([aeiouy])[^aeiouy]+$/,'$1').replace(/(.)\1+/g,'$1');};
+const EN_LIGHT=new Set(['a','an','the']);
+function wordSim0(a,b,soft){if(a===b)return 1;const A=enCanon(a),B=enCanon(b);if(A===B)return 1;
+  if(sPair(a,b))return soft?.6:0;                                                 // thiếu/thừa s cuối → sai (đoạn văn: trừ điểm, vẫn nhắc)
+  if(!soft&&endsS(a)!==endsS(b))return 0;
+  const L=Math.max(a.length,b.length);
+  if(L>3){const q=1-levW(a,b)/L;if(q>=.8)return .8;if(q>=.7)return .6;          // từ ngắn phải đúng hẳn
+    const sa=enSkel(a),sb=enSkel(b);if(sa.length>=3&&sa===sb)return .5;
+    if(soft&&q>=.6&&a[0]===b[0])return .5;}
+  if(soft){const ca=vnCore(a),cb=vnCore(b);if(ca.length>=2&&ca===cb)return .5;}
+  return 0;}
+/* nhớ kết quả so từ (đoạn văn dài được chấm lại liên tục khi con đang nói) */
+const WS_MEMO=new Map();
+function wordSim(a,b,soft){const k=(soft?'1':'0')+a+'|'+b;let v=WS_MEMO.get(k);if(v===undefined){v=wordSim0(a,b,soft);if(WS_MEMO.size>50000)WS_MEMO.clear();WS_MEMO.set(k,v);}return v;}
+function lcsWords(a,b,soft){const m=a.length,n=b.length;const d=Array.from({length:m+1},()=>new Array(n+1).fill(0));const sm=Array.from({length:m},(_,i)=>b.map(w=>wordSim(a[i],w,soft)));
+  const wt=a.map(w=>soft&&EN_LIGHT.has(w)?.5:1);// đoạn văn: sót a/the chỉ trừ nửa (máy hay nuốt mất các từ này)
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const x=sm[i-1][j-1];d[i][j]=Math.max(d[i-1][j],d[i][j-1],x?d[i-1][j-1]+x*wt[i-1]:0);}
+  const hit=new Set(),sim=new Map(),usedH=new Set(),pair=new Map();let i=m,j=n;while(i&&j){const x=sm[i-1][j-1];if(x&&Math.abs(d[i][j]-(d[i-1][j-1]+x*wt[i-1]))<1e-9){hit.add(i-1);sim.set(i-1,x);usedH.add(j-1);pair.set(i-1,j-1);i--;j--;}else if(d[i-1][j]>=d[i][j-1])i--;else j--;}
+  return{len:d[m][n],hit,sim,usedH,pair,tot:wt.reduce((s,v)=>s+v,0)};}
+/* máy tách/ghép từ khác câu mẫu: “class room” ↔ classroom, “everyday” ↔ every day */
+function vnJoin(H,T){const TS=new Set(T),out=[];for(let j=0;j<H.length;j++){const w=H[j],nx=H[j+1];
+    if(nx&&TS.has(w+nx)&&!(TS.has(w)&&TS.has(nx))){out.push(w+nx);j++;continue;}
+    if(!TS.has(w)&&w.length>=4){let k=2;for(;k<=w.length-2;k++)if(TS.has(w.slice(0,k))&&TS.has(w.slice(k)))break;if(k<=w.length-2){out.push(w.slice(0,k),w.slice(k));continue;}}
+    out.push(w);}return out;}
+function scoreSpeech(target,alts,opts){const soft=!!(opts&&opts.soft);const T=normEn(target);let best={r:0,heard:'',hit:new Set(),sim:new Map(),sErr:new Set(),oo:0};
+  (alts||[]).forEach(h=>{let H=normEn(h);if(!H.length)return;if(soft)H=vnJoin(H,T);const {len,hit,sim,usedH,pair,tot}=lcsWords(T,H,soft);
     // Từ có đọc nhưng sai vị trí (sai thứ tự) và từ thiếu/thừa s cuối
     const freeH=H.map((x,j)=>usedH.has(j)?null:x);let oo=0;const sErr=new Set();
-    T.forEach((t,i)=>{if(hit.has(i))return;const j=freeH.findIndex(x=>x&&wordSim(t,x)>=.6);if(j>=0){oo++;freeH[j]=null;return;}
+    if(soft)hit.forEach(i=>{if(sPair(T[i],H[pair.get(i)]))sErr.add(i);});
+    T.forEach((t,i)=>{if(hit.has(i))return;const j=freeH.findIndex(x=>x&&wordSim(t,x,soft)>=.6);if(j>=0){oo++;freeH[j]=null;return;}
       const k=freeH.findIndex(x=>x&&sPair(t,x));if(k>=0){sErr.add(i);freeH[k]=null;}});
-    const extra=Math.max(0,H.length-T.length);const r=Math.min(1,len/(T.length+extra*.5+oo*.5));
+    const extra=Math.max(0,H.length-T.length);const r=Math.min(1,len/(tot+extra*(soft?.25:.5)+oo*.5));
     const better=r>best.r+1e-9||(Math.abs(r-best.r)<1e-9&&(!best.heard||sErr.size+oo<best.sErr.size+best.oo));
     if(better)best={r,heard:h,hit,sim,sErr,oo};});
   const allExact=T.length>0&&T.every((_,i)=>best.sim.get(i)===1);
   const stars=best.r>=.95&&allExact?5:best.r>=.85?4:best.r>=.65?3:best.r>=.4?2:best.heard?1:0;return{...best,stars,words:T};}
 /* Ghép các đoạn nhận dạng (mỗi đoạn có vài phương án) thành các câu ứng viên để chấm. Xử lý cả lỗi lặp chữ của Android/iOS. */
-function srCandidates(segs){segs=segs.filter(a=>a&&a.length&&a[0]);if(!segs.length)return[];const top=segs.map(a=>a[0]);const out=new Set();const J=x=>x.join(' ').replace(/\s+/g,' ').trim();
+function srCandidates(segs,target){segs=segs.filter(a=>a&&a.length&&a[0]);if(!segs.length)return[];const top=segs.map(a=>a[0]);const out=new Set();const J=x=>x.join(' ').replace(/\s+/g,' ').trim();
   out.add(J(top));
+  /* giọng Việt: phương án thứ 2–5 của máy thường đúng hơn phương án đầu → ở mỗi đoạn chọn phương án khớp câu mẫu nhất */
+  if(target&&segs.some(a=>a.length>1)){const TS=new Set(normEn(target).map(enCanon));const fit=x=>normEn(x).reduce((s,w)=>s+(TS.has(enCanon(w))?1:-.3),0);
+    out.add(J(segs.map(a=>a.reduce((b,x)=>fit(x)>fit(b)?x:b,a[0]))));}
   const dd=[];top.forEach(t=>{const n=normEn(t).join(' '),pv=dd.length?normEn(dd[dd.length-1]).join(' '):null;if(pv!==null&&n.startsWith(pv))dd[dd.length-1]=t;else if(pv!==null&&pv.startsWith(n)){}else dd.push(t);});out.add(J(dd));
   segs.slice(-8).forEach((alts,ii)=>{const i=segs.length-Math.min(8,segs.length)+ii;alts.slice(1,5).forEach(a=>{const c=top.slice();c[i]=a;out.add(J(c));});});
   segs.forEach(a=>a.forEach(x=>out.add(String(x).trim())));if(top.length>1)out.add(J(top.slice(-2)));
   return[...out].filter(Boolean).slice(0,80);}
 function markTarget(target,res){const hit=res.hit||new Set(),sim=res.sim||new Map(),se=res.sErr||new Set();const toks=String(target).split(/\s+/);let k=0;
-  return toks.map(w=>{const n=normEn(w);let c='w-ok';n.forEach(()=>{const i=k++;const v=!hit.has(i)?(se.has(i)?'w-s':'w-miss'):sim.get(i)<1?'w-near':'w-ok';if(v!=='w-ok'&&c!=='w-miss')c=v;});return `<span class="${c}">${esc(w)}</span>`;}).join(' ');}
+  return toks.map(w=>{const n=normEn(w);let c='w-ok';n.forEach(()=>{const i=k++;const v=!hit.has(i)?(se.has(i)?'w-s':'w-miss'):se.has(i)?'w-s':sim.get(i)<1?'w-near':'w-ok';if(v!=='w-ok'&&c!=='w-miss')c=v;});return `<span class="${c}">${esc(w)}</span>`;}).join(' ');}
 function recTips(target,res){const t=[];const toks=normEn(target);if(res.sErr&&res.sErr.size)t.push(`🔤 Con quên/đọc sai âm <b>s</b> cuối từ: <b>${[...res.sErr].map(i=>esc(toks[i])).join(', ')}</b>`);
   if(res.oo)t.push('🔀 Con đọc chưa đúng thứ tự các từ trong câu.');if(res.sim&&[...res.sim.values()].some(v=>v<1))t.push('🟠 Từ màu cam: đọc gần đúng, con đọc rõ hơn nhé.');
   return t.length?`<div class="rec-tips">${t.map(x=>`<div>${x}</div>`).join('')}</div>`:'';}
@@ -2865,7 +2889,7 @@ let recSeq=false;try{recSeq=localStorage.getItem('hv_rec_seq')==='1';}catch(e){}
 const REC={active:null};
 function stopRec(){if(REC.active)REC.active.stop();}
 /* Ghi âm + nhận dạng. cb({stars,heard,url,noScore,error}) */
-async function recordAndScore(target,cb,btn){
+async function recordAndScore(target,cb,btn,opts){
   if(REC.active){REC.active.stop();return;}
   stopVoice();let stream=null,mr=null,chunks=[],srDone=!SR_API,mrDone=true,finished=false,timer=null,silTimer=null,srErr='',fatal=false,userStop=false,srRunning=false,restarts=0,heardAt=0,srRetry=false,srRetried=false,dropRec=false,micErr='';
   const segs=[];let sess=[];// segs: các đoạn đã chốt (qua nhiều lần khởi động lại); sess: đoạn của lần nghe hiện tại
@@ -2876,9 +2900,9 @@ async function recordAndScore(target,cb,btn){
     relMic();
     AUDIO_REC=false;setTimeout(()=>{if(!AUDIO_REC){setAudioSession(IS_IOS?'playback':'auto');}},300);
     const url=chunks.length&&!dropRec?URL.createObjectURL(new Blob(chunks,{type:(mr&&mr.mimeType)||'audio/webm'})):null;
-    const alts=srCandidates(segs.concat(sess));
+    const alts=srCandidates(segs.concat(sess),target);
     if(!SR_API||(srErr&&!alts.length&&srErr!=='no-speech'&&srErr!=='aborted')){cb({noScore:true,url,error:srErr||micErr});return;}
-    const r=scoreSpeech(target,alts);cb({...r,url});};
+    const r=scoreSpeech(target,alts,opts);cb({...r,url});};
   const endAll=()=>{srDone=true;if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(_){mrDone=true;}}finish();};
   const stopAll=()=>{userStop=true;clearTimeout(silTimer);if(srRunning){try{sr.stop();}catch(e){srRunning=false;endAll();}}else endAll();};
   const wantRecord=typeof MediaRecorder!=='undefined'&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&!(SR_API&&recSeq);
@@ -2888,7 +2912,7 @@ async function recordAndScore(target,cb,btn){
   let sr=null;
   /* Nghe liên tục: không dừng khi con ngắt hơi giữa câu (vd. “I'm Robert. … I go to work…”).
      Chỉ dừng khi: con bấm dừng, đã đọc đủ câu, im lặng ~3 giây sau khi đã nói, hoặc hết giờ. */
-  const covered=()=>{const r=scoreSpeech(target,srCandidates(segs.concat(sess)));return r.stars>=5&&r.hit.size>=r.words.length;};
+  const covered=()=>{const r=scoreSpeech(target,srCandidates(segs.concat(sess),target),opts);return r.stars>=5&&r.hit.size>=r.words.length;};
   const startSR=()=>{sr=new SR_API();sr.lang='en-US';sr.interimResults=true;sr.maxAlternatives=5;sr.continuous=true;
     sr.onresult=e=>{const cur=[];for(let i=0;i<e.results.length;i++){const R=e.results[i],a=[];for(let k=0;k<R.length;k++){const tx=String(R[k].transcript||'').trim();if(tx)a.push(tx);}if(a.length)cur.push(a);}
       sess=cur;if(!cur.length)return;heardAt=Date.now();if(srErr==='no-speech')srErr='';clearTimeout(silTimer);
@@ -5482,7 +5506,7 @@ function paAllCount(){let d=0,t=0;const n=(typeof EN_UNITS!=='undefined'?EN_UNIT
 /* chữ hiển thị: tô màu theo kết quả; mode 1 che ~1/3 từ nội dung (đã nói đúng thì hiện ra) */
 function paHide(text){const toks=String(text).split(/\s+/);let c=0;return toks.map((w,i)=>{const core=w.replace(/[^A-Za-z']/g,'');if(core.length<3||i===0)return false;c++;return c%3===1;});}
 function paMark(text,res,mode){const hide=mode===1?paHide(text):null;const hit=res&&res.hit||new Set(),sim=res&&res.sim||new Map(),se=res&&res.sErr||new Set();const toks=String(text).split(/\s+/);let k=0;
-  return toks.map((w,ti)=>{const n=normEn(w);let c=res?'w-ok':'';n.forEach(()=>{const i=k++;if(!res)return;const v=!hit.has(i)?(se.has(i)?'w-s':'w-miss'):sim.get(i)<1?'w-near':'w-ok';if(v!=='w-ok'&&c!=='w-miss')c=v;});
+  return toks.map((w,ti)=>{const n=normEn(w);let c=res?'w-ok':'';n.forEach(()=>{const i=k++;if(!res)return;const v=!hit.has(i)?(se.has(i)?'w-s':'w-miss'):se.has(i)?'w-s':sim.get(i)<1?'w-near':'w-ok';if(v!=='w-ok'&&c!=='w-miss')c=v;});
     if(res&&res.live&&c!=='w-ok'&&c!=='w-near')c='';
     if(hide&&hide[ti]){const m=w.match(/^(\W*)(.*?)(\W*)$/);return `${H(m[1])}<span class="w-hide ${c}">${H(m[2])}</span>${H(m[3])}`;}
     return c?`<span class="${c}">${H(w)}</span>`:H(w);}).join(' ');}
@@ -5498,9 +5522,9 @@ async function recLong(target,cb,btn,onLive){
   const finish=()=>{if(finished||!srDone||!mrDone)return;finished=true;clearTimeout(timer);clearTimeout(silTimer);REC.active=null;if(btn)btn.classList.remove('rec-on');relMic();
     AUDIO_REC=false;setTimeout(()=>{if(!AUDIO_REC)setAudioSession(IS_IOS?'playback':'auto');},300);
     const url=chunks.length&&!dropRec?URL.createObjectURL(new Blob(chunks,{type:(mr&&mr.mimeType)||'audio/webm'})):null;
-    const alts=srCandidates(segs.concat(sess));
+    const alts=srCandidates(segs.concat(sess),target);
     if(!SR_API||(srErr&&!alts.length&&srErr!=='no-speech'&&srErr!=='aborted')){cb({noScore:true,url,error:srErr||micErr});return;}
-    const r=scoreSpeech(target,alts);cb({...r,stars:paStars(r),url});};
+    const r=scoreSpeech(target,alts,{soft:true});cb({...r,stars:paStars(r),url});};
   const endAll=()=>{srDone=true;if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(_){mrDone=true;}}finish();};
   const stopAll=()=>{userStop=true;clearTimeout(silTimer);if(srRunning){try{sr.stop();}catch(e){srRunning=false;endAll();}}else endAll();};
   const useRec=typeof MediaRecorder!=='undefined'&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&!(SR_API&&recSeq);
@@ -5508,8 +5532,8 @@ async function recLong(target,cb,btn,onLive){
     catch(e){micErr=e&&e.name==='NotAllowedError'?'not-allowed':'audio-capture';relMic();if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast(micErr==='not-allowed'?'Con cần cho phép dùng micro để ghi âm nhé!':'Không mở được micro. Con tắt ứng dụng khác đang dùng micro rồi thử lại nhé!');return;}mr=null;mrDone=true;}}
   else if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast('Thiết bị này chưa hỗ trợ ghi âm. Con mở bằng Chrome nhé!');return;}
   let sr=null;
-  const cur=()=>scoreSpeech(target,srCandidates(segs.concat(sess)));
-  const startSR=()=>{sr=new SR_API();sr.lang='en-US';sr.interimResults=true;sr.maxAlternatives=3;sr.continuous=true;
+  const cur=()=>scoreSpeech(target,srCandidates(segs.concat(sess),target),{soft:true});
+  const startSR=()=>{sr=new SR_API();sr.lang='en-US';sr.interimResults=true;sr.maxAlternatives=5;sr.continuous=true;
     sr.onresult=e=>{const c=[];for(let i=0;i<e.results.length;i++){const R=e.results[i],a=[];for(let k=0;k<R.length;k++){const tx=String(R[k].transcript||'').trim();if(tx)a.push(tx);}if(a.length)c.push(a);}
       sess=c;if(!c.length)return;heardAt=Date.now();if(srErr==='no-speech')srErr='';clearTimeout(silTimer);
       let r=null;if(Date.now()-liveT>350){liveT=Date.now();try{r=cur();onLive&&onLive(r);}catch(_){}}
@@ -5571,7 +5595,7 @@ function renderPara(u,k,mode){stopVoice();stopRec();k=k||0;mode=mode||0;const L=
     app.querySelectorAll('.pa-sent').forEach(x=>x.classList.toggle('on',x===row));
     recordAndScore(t,res=>{const box=row.querySelector('.res');box.innerHTML=recResultHTML(res,t);
       if(!res.noScore){const prev=s.s[i]||0;if(res.stars>prev){s.s[i]=res.stars;addSpeakPoints(res.stars-prev,`p.ps${p.key.slice(2)}.${p.kk}_${i}`,res.stars);save();let m=row.querySelector('.mini');if(!m){row.querySelector('.tx').insertAdjacentHTML('afterend','<span class="mini"></span>');m=row.querySelector('.mini');}m.textContent=s.s[i]+'★';}
-        res.stars>=3?sfx.ok():sfx.bad();speak([['en',praiseFor(res.stars)]],{silent:true});}},b);});
+        res.stars>=3?sfx.ok():sfx.bad();speak([['en',praiseFor(res.stars)]],{silent:true});}},b,{soft:true});});
   $('#paPrev').onclick=()=>{if(mode>0)renderPara(u,k,mode-1);};
   $('#paNext').onclick=()=>{stopRec();if(mode<2)renderPara(u,k,mode+1);else if(k<L.length-1)renderPara(u,k+1,0);else if(!isX)renderPara(u,-1,0);else renderParaHome();};}
 
@@ -5584,7 +5608,7 @@ function paSentBind(u){const U=EN_UNITS[u];const st=pcS(u);
   app.querySelectorAll('[data-crec]').forEach(b=>b.onclick=()=>{const i=+b.dataset.crec,t=U.c[i][0],row=b.closest('.pa-sent');app.querySelectorAll('.pa-sent').forEach(x=>x.classList.toggle('on',x===row));
     recordAndScore(t,res=>{row.querySelector('.res').innerHTML=recResultHTML(res,t);
       if(!res.noScore){const prev=st[i]||0;if(res.stars>prev){st[i]=res.stars;addSpeakPoints(res.stars-prev,`p.pc${u}.${i}`,res.stars);save();let m=row.querySelector('.mini');if(!m){row.querySelector('.tx').insertAdjacentHTML('afterend','<span class="mini"></span>');m=row.querySelector('.mini');}m.textContent=st[i]+'★';}
-        res.stars>=3?sfx.ok():sfx.bad();speak([['en',praiseFor(res.stars)]],{silent:true});}},b);});}
+        res.stars>=3?sfx.ok():sfx.bad();speak([['en',praiseFor(res.stars)]],{silent:true});}},b,{soft:true});});}
 
 /* ---------- danh sách tất cả đoạn văn ---------- */
 function renderParaHome(){stopVoice();stopRec();const n=EN_UNITS.length;const[d,t]=paAllCount();
