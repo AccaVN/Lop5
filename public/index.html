@@ -3318,6 +3318,9 @@ const CSS=`
 .ht-emo{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;font-size:34px;line-height:1.1;margin:6px 0 10px}
 .ht-emo.wrap{max-width:330px;margin-left:auto;margin-right:auto}
 .ht-big{font-size:64px;text-align:center;line-height:1}
+.ht-two{display:flex;gap:10px;justify-content:center}.ht-two svg{width:120px;height:auto}
+.ht-eqs{display:grid;gap:6px;justify-items:center;margin:6px 0}.ht-eq{font-size:26px;font-weight:800;background:var(--card,#fff);border:2px solid var(--line,#D6E2F0);border-radius:14px;padding:6px 14px;letter-spacing:1px}
+.ht-mach span.hd{font-size:13px;font-weight:800;background:var(--soft,#EEF4FB)}
 .ht-grid{display:grid;gap:6px;max-width:240px;margin:6px auto 10px}
 .ht-grid span{border:2px solid var(--line);border-radius:12px;background:var(--card);font-weight:800;font-size:20px;text-align:center;padding:10px 4px}
 .ht-grid span.hid{border-color:var(--berry);color:var(--berry-d);background:var(--soft)}
@@ -3797,6 +3800,210 @@ TDG.la_add=function(G,lv){const e=RP(['🍎','🍬','🎈','⭐','🍓']);
   const a=R(1,5),b=R(1,lv===0?3:5);const sub=lv===1&&Math.random()<.5&&a>b;
   if(sub)return Qin(`Bé có ${a} ${e}, bé cho bạn ${b} ${e}. Bé còn mấy ${e}?`,a-b,{visual:emoRow(Array(a).fill(e)),voice:[['vi',`Bé có ${a} quả, bé cho bạn ${b} quả. Bé còn mấy quả?`]],hints:[`Che đi ${b} hình.`,'Đếm số hình còn lại.'],explain:`${a} bớt ${b} còn ${a-b}.`});
   return Qin(`Bé có ${a} ${e}, mẹ cho thêm ${b} ${e}. Bé có tất cả mấy ${e}?`,a+b,{visual:emoRow(Array(a).fill(e))+emoRow(Array(b).fill(e)),voice:[['vi',`Bé có ${a} quả, mẹ cho thêm ${b} quả. Bé có tất cả mấy quả?`]],hints:['Đếm hàng trên rồi đếm tiếp hàng dưới.',`Bắt đầu từ ${a}, đếm thêm ${b}.`],explain:`${a} thêm ${b} là ${a+b}.`});};
+/* ---------------- TOÁN TƯ DUY: BỘ SINH ĐỀ MỞ RỘNG (10/2026, lần 3) ---------------- */
+const tdEq=lines=>`<div class="ht-eqs">${lines.map(l=>`<div class="ht-eq">${l}</div>`).join('')}</div>`;
+const tdTab=(rows,hid)=>`<div class="ht-grid ht-mach" style="grid-template-columns:repeat(${rows[0].length},1fr)">${rows.map((r,i)=>r.map((v,j)=>{const h=hid&&hid[0]===i&&hid[1]===j;return `<span class="${h?'hid':j===0?'hd':''}">${h?'?':typeof v==='number'?fN(v):esc(v)}</span>`;}).join('')).join('')}</div>`;
+const binom=(n,k)=>{let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r);};
+
+/* 21. Que diêm xếp hình */
+function matchSVG(kind,k){const U=34;let b='',x0=6,W=0;const ln=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#B45309" stroke-width="4" stroke-linecap="round"/>`;
+  for(let f=1;f<=3;f++){let w=0;if(kind==='sq'){for(let i=0;i<f;i++){const x=x0+i*U;b+=ln(x,10,x+U,10)+ln(x,10+U,x+U,10+U)+ln(x,10,x,10+U);}b+=ln(x0+f*U,10,x0+f*U,10+U);w=f*U;}
+    else{const h=30;for(let i=0;i<f;i++){const x=x0+i*U/2;if(i%2===0)b+=ln(x,10+h,x+U/2,10)+ln(x+U/2,10,x+U,10+h)+ln(x,10+h,x+U,10+h);else b+=ln(x,10,x+U,10);}w=(f+1)*U/2;}
+    b+=`<text x="${x0+w/2}" y="${10+U+18}" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor">Hình ${f}</text>`;x0+=w+26;W=x0;}
+  return SVGW(W,10+U+26,b,'Que diêm xếp hình');}
+TDG.matchSeq=function(G,lv){const kind=RP(['sq','tri']);const a=kind==='sq'?4:3,d=kind==='sq'?3:2;const shape=kind==='sq'?'hình vuông':'hình tam giác';
+  const vis=matchSVG(kind,3);const head=`An xếp que diêm thành các ${shape} như hình. Hình 1 dùng ${a} que, Hình 2 dùng ${a+d} que, Hình 3 dùng ${a+2*d} que.`;
+  const nMax=G===1?6:G===2?10:G===3?20:40;
+  if(lv===2&&G>=2){const n=R(5,nMax);const T=a+(n-1)*d;return Qin(`${head} Với ${T} que diêm, An xếp được đúng hình thứ mấy?`,n,{visual:vis,hints:[`Mỗi hình sau thêm ${d} que.`,`Bớt ${a} que của Hình 1: ${T} − ${a} = ${T-a}. Chia cho ${d} để biết đã thêm mấy lần.`],explain:`(${T} − ${a}) : ${d} = ${(T-a)/d}. Thêm ${(T-a)/d} lần sau Hình 1 nên là Hình ${n}.`});}
+  const n=lv===0?R(4,G===1?5:6):R(G===1?5:7,nMax);const T=a+(n-1)*d;
+  return Qin(`${head} Hình ${n} dùng bao nhiêu que?`,T,{visual:vis,hints:[`Mỗi hình sau thêm ${d} que: ${a}, ${a+d}, ${a+2*d}, …`,G===1?`Đếm thêm ${d} que cho đến Hình ${n}.`:`Hình ${n} = ${a} + (${n} − 1) × ${d}.`],explain:G===1?`${Array.from({length:n},(_,i)=>a+i*d).join(', ')}. Hình ${n} dùng ${T} que.`:`${a} + (${n} − 1) × ${d} = ${a} + ${(n-1)*d} = ${T} que.`});};
+
+/* 22. Máy biến số */
+TDG.machine=function(G,lv){const rules=G===1?['add','sub']:G===2?['add','sub','mul']:['mul','muladd','mulsub','add'];
+  for(let t=0;t<40;t++){const k=lv===0?rules[R(0,Math.min(1,rules.length-1))]:RP(rules);const a=k==='add'||k==='sub'?1:R(2,G<=2?5:G===3?9:12),b=k==='mul'?0:R(1,G===1?9:G===2?20:G===3?30:50);
+    const f=x=>k==='add'?x+b:k==='sub'?x-b:k==='mul'?a*x:k==='muladd'?a*x+b:a*x-b;const xmax=G===1?20:G===2?30:G===3?50:100;
+    const xs=new Set();while(xs.size<4)xs.add(R(k==='sub'||k==='mulsub'?Math.ceil((b+1)/a):1,xmax));const X=[...xs];const Y=X.map(f);
+    if(Y.some(y=>y<0||y>(G===1?100:999999)))continue;const desc=k==='add'?`cộng ${b}`:k==='sub'?`trừ ${b}`:k==='mul'?`nhân ${a}`:k==='muladd'?`nhân ${a} rồi cộng ${b}`:`nhân ${a} rồi trừ ${b}`;
+    const back=lv===2&&G>=2;const hid=back?[0,4]:[1,4];const vis=tdTab([['Số vào',...X],['Số ra',...Y]],hid);const ans=back?X[3]:Y[3];
+    return Qin(back?'Máy biến số làm cùng một phép tính với mọi số cho vào. Số nào đã được cho vào?':'Máy biến số làm cùng một phép tính với mọi số cho vào. Số ra còn thiếu là bao nhiêu?',ans,{visual:vis,hints:['So sánh số vào và số ra ở từng cột: thêm, bớt hay gấp lên?',`Máy ${desc}.`],explain:back?`Máy ${desc}. Làm ngược lại với ${fN(Y[3])}: được ${fN(X[3])}.`:`Máy ${desc}: ${fN(X[3])} → ${fN(Y[3])}.`});}
+  return null;};
+
+/* 23. Quy luật chữ cái */
+const ABC='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+TDG.letters=function(G,lv){const kind=lv===0?'step':lv===1?RP(G===1?['step','num']:['step','num','back']):RP(G===1?['num','step']:['alt','num2','back']);
+  let seq=[],ans,why;
+  if(kind==='step'||kind==='back'){const d=R(1,G===1?2:3)*(kind==='back'?-1:1);const len=G===1?12:26;const st=d>0?R(0,len-1-4*d):R(-4*d,25);for(let i=0;i<4;i++)seq.push(ABC[st+i*d]);ans=ABC[st+4*d];why=d>0?`Mỗi chữ cách nhau ${d} chữ cái (nhảy ${d}).`:`Dãy đi ngược bảng chữ cái, mỗi lần lùi ${-d} chữ.`;}
+  else if(kind==='num'){const d=R(1,2),e=R(1,G===1?2:3);const st=R(0,10),n0=R(1,5);for(let i=0;i<4;i++)seq.push(ABC[st+i*d]+(n0+i*e));ans=ABC[st+4*d]+(n0+4*e);why=`Chữ cái nhảy ${d}, số tăng thêm ${e} mỗi lần.`;}
+  else if(kind==='num2'){const d=R(1,2);const st=R(0,12),m=R(2,3);for(let i=0;i<4;i++)seq.push(ABC[st+i*d]+(m*(i+1)));ans=ABC[st+4*d]+(m*5);why=`Chữ cái nhảy ${d}, số là bảng nhân ${m}.`;}
+  else{const st=R(0,6);for(let i=0;i<3;i++){seq.push(ABC[st+i]);seq.push(ABC[25-st-i]);}seq=seq.slice(0,5);ans=ABC[25-st-2];why='Hai dãy đan xen: một dãy đi xuôi từ đầu bảng chữ cái, một dãy đi ngược từ cuối.';}
+  const wrong=new Set();const near=c=>{const m=/^([A-Z])(\d*)$/.exec(c);const i=ABC.indexOf(m[1]);const alt=[ABC[(i+1)%26],ABC[(i+25)%26],ABC[(i+2)%26]];return m[2]?[alt[0]+m[2],m[1]+(+m[2]+1),alt[1]+m[2],m[1]+Math.max(0,+m[2]-1)]:alt;};
+  near(ans).forEach(x=>{if(x!==ans&&wrong.size<3)wrong.add(x);});
+  return Qmc('Chữ (hoặc chữ và số) tiếp theo là gì?',ans,shuffle([ans,...wrong]),{big:seq.join(', ')+', ?',hints:['Viết bảng chữ cái A B C D E… ra giấy rồi đánh dấu các chữ trong dãy.',why],explain:`${why} Đáp án: ${ans}.`});};
+
+/* 24. Đếm đường đi trên lưới */
+function pathSVG(m,n){const U=40,X=24,Y=18;let b='';for(let i=0;i<=m;i++)b+=`<line x1="${X}" y1="${Y+i*U}" x2="${X+n*U}" y2="${Y+i*U}" stroke="#334155" stroke-width="3"/>`;for(let j=0;j<=n;j++)b+=`<line x1="${X+j*U}" y1="${Y}" x2="${X+j*U}" y2="${Y+m*U}" stroke="#334155" stroke-width="3"/>`;
+  b+=`<circle cx="${X}" cy="${Y}" r="7" fill="#2563EB"/><text x="${X-12}" y="${Y-4}" font-size="15" font-weight="800" fill="#2563EB">A</text><circle cx="${X+n*U}" cy="${Y+m*U}" r="7" fill="#DC2626"/><text x="${X+n*U+6}" y="${Y+m*U+18}" font-size="15" font-weight="800" fill="#DC2626">B</text>`;
+  return SVGW(X+n*U+28,Y+m*U+26,b,'Lưới ô vuông từ A đến B');}
+TDG.paths=function(G,lv){const P=lv===0?[[1,1],[1,2],[1,3],[2,2]]:lv===1?(G<=3?[[2,2],[1,4],[2,3]]:[[2,3],[3,3],[1,5],[2,4]]):(G<=3?[[2,3],[3,3]]:[[3,3],[2,4],[3,4],[2,5]]);let [m,n]=RP(P);if(Math.random()<.5)[m,n]=[n,m];
+  const c=binom(m+n,m);return Qin(`Kiến đi từ A đến B theo các cạnh của lưới (${m} hàng, ${n} cột ô vuông). Mỗi bước kiến chỉ đi sang phải hoặc đi xuống. Có bao nhiêu đường đi khác nhau?`,c,{visual:pathSVG(m,n),hints:['Ở mỗi điểm trên cạnh trên cùng và cạnh bên trái chỉ có 1 cách đi tới.','Số cách đi tới một điểm = số cách tới điểm bên trái nó + số cách tới điểm phía trên nó.'],explain:`Ghi số cách đi tới từng điểm, cộng dần từ A. Tới B có ${c} đường.`});};
+
+/* 25. Số cách trả tiền */
+function waysPay(N,vals){let c=0;const go=(i,left)=>{if(i===vals.length){if(left===0)c++;return;}for(let k=0;k*vals[i]<=left;k++)go(i+1,left-k*vals[i]);};go(0,N);return c;}
+TDG.coins=function(G,lv){const sets=lv===0?[[1,2]]:lv===1?[[1,2,5],[2,5],[1,5]]:[[1,2,5],[2,5,10],[1,2,10]];for(let t=0;t<30;t++){const V=RP(sets);const N=lv===0?R(4,G<=2?8:10):lv===1?R(G<=2?6:8,G<=2?10:14):R(10,G<=3?15:20);
+  const c=waysPay(N,V);if(c<2||c>30)continue;const list=V.join(' nghìn, ')+' nghìn đồng';
+  return Qin(`Mẹ có rất nhiều tờ tiền loại ${list}. Có bao nhiêu cách lấy ra đúng ${N} nghìn đồng? (Chỉ quan tâm mỗi loại lấy mấy tờ.)`,c,{hints:[`Bắt đầu từ tờ mệnh giá lớn nhất (${V[V.length-1]} nghìn): lấy 0 tờ, 1 tờ, 2 tờ…`,'Với mỗi cách lấy tờ lớn, đếm số cách lấy phần còn lại bằng tờ nhỏ hơn.'],explain:`Liệt kê lần lượt theo số tờ ${V[V.length-1]} nghìn, ta được ${c} cách.`});}return null;};
+
+/* 26. Đếm số theo chữ số */
+TDG.digitSum=function(G,lv){const two=[];for(let n=10;n<=99;n++)two.push(n);
+  if(lv===2&&G>=3){const S=R(2,G===3?5:8);let c=0;for(let n=100;n<=999;n++){const s=String(n).split('').reduce((a,x)=>a+ +x,0);if(s===S)c++;}return Qin(`Có bao nhiêu số có ba chữ số mà tổng các chữ số bằng ${S}?`,c,{hints:['Chữ số hàng trăm phải khác 0.','Lần lượt cho hàng trăm là 1, 2, 3… rồi đếm cách chọn hai chữ số còn lại.'],explain:`Đếm theo chữ số hàng trăm, cộng lại được ${c} số.`});}
+  const kind=lv===0?'sum':RP(G===1?['sum','diff']:['sum','diff','prod']);
+  if(kind==='sum'){const S=R(lv?9:3,lv?17:10);const L=two.filter(n=>Math.floor(n/10)+n%10===S);return Qin(`Có bao nhiêu số có hai chữ số mà tổng hai chữ số bằng ${S}?`,L.length,{hints:['Chữ số hàng chục phải khác 0.','Thử lần lượt chữ số hàng chục là 1, 2, 3…'],explain:`Đó là các số ${L.join(', ')}: có ${L.length} số.`});}
+  if(kind==='diff'){const d=R(1,7);const L=two.filter(n=>Math.floor(n/10)-n%10===d);return Qin(`Có bao nhiêu số có hai chữ số mà chữ số hàng chục hơn chữ số hàng đơn vị ${d}?`,L.length,{hints:['Hàng đơn vị nhỏ nhất là 0.',`Hàng chục = hàng đơn vị + ${d}, không được quá 9.`],explain:`Đó là các số ${L.join(', ')}: có ${L.length} số.`});}
+  const Pp=RP([6,8,12,18,24,36]);const L=two.filter(n=>Math.floor(n/10)*(n%10)===Pp);return Qin(`Có bao nhiêu số có hai chữ số mà tích hai chữ số bằng ${Pp}?`,L.length,{hints:[`Tìm các cặp chữ số nhân với nhau bằng ${Pp}.`,'Mỗi cặp hai chữ số khác nhau cho ta 2 số (đổi chỗ).'],explain:`Đó là các số ${L.join(', ')}: có ${L.length} số.`});};
+
+/* 27. Cân bằng hình — mỗi hình là một số */
+const FRU=['🍎','🍌','🍇','🍐','🍓','🍊','🥝'];
+function eqSolve(eqs,syms,max){const out=[];const val={};const go=i=>{if(out.length>1)return;if(i===syms.length){if(eqs.every(e=>e.l.reduce((a,s)=>a+(typeof s==='number'?s:val[s]),0)===e.r.reduce((a,s)=>a+(typeof s==='number'?s:val[s]),0)))out.push({...val});return;}for(let v=1;v<=max;v++){val[syms[i]]=v;go(i+1);}};go(0);return out;}
+TDG.balance=function(G,lv){const E=shuffle(FRU);const mx=G===1?10:G===2?20:G===3?50:100;
+  for(let t=0;t<40;t++){let eqs,ask,vals;
+    if(lv===0){const k=R(2,G===1?3:4),v=R(2,Math.floor((G===1?20:mx*2)/k));eqs=[{l:Array(k).fill(E[0]),r:[k*v]}];ask=E[0];vals={[E[0]]:v};}
+    else if(lv===1){const v=R(2,Math.floor(mx/3));eqs=[{l:[E[0],E[0]],r:[E[1]]},{l:[E[1],E[0]],r:[3*v]}];vals={[E[0]]:v,[E[1]]:2*v};ask=RP([E[0],E[1]]);}
+    else{const a=R(2,mx/2|0),b=R(2,mx/2|0),c=R(2,mx/2|0);if(new Set([a,b,c]).size<3)continue;if(G<=2){eqs=[{l:[E[0],E[1]],r:[a+b]},{l:[E[0]],r:[E[1],a-b]}];if(a<=b)continue;vals={[E[0]]:a,[E[1]]:b};}else{eqs=[{l:[E[0],E[1]],r:[a+b]},{l:[E[1],E[2]],r:[b+c]},{l:[E[0],E[2]],r:[a+c]}];vals={[E[0]]:a,[E[1]]:b,[E[2]]:c};}ask=RP(Object.keys(vals));}
+    const syms=Object.keys(vals);if(syms.length<3&&eqSolve(eqs,syms,lv===2?mx:mx*2).length!==1)continue;
+    const show=s=>s.map(x=>typeof x==='number'?fN(x):x).join(' + ');const lines=eqs.map(e=>`${show(e.l)} = ${show(e.r)}`);
+    const hints=lv===0?[`${eqs[0].l.length} hình ${ask} bằng nhau có tổng ${eqs[0].r[0]}.`,`Lấy ${eqs[0].r[0]} chia cho ${eqs[0].l.length}.`]:lv===1?[`Thay ${E[1]} ở dòng 2 bằng ${E[0]} + ${E[0]}.`,`Ba hình ${E[0]} có tổng ${3*vals[E[0]]}.`]:syms.length===3?['Cộng cả ba dòng: mỗi hình được tính hai lần.','Tổng ba hình bằng một nửa tổng ba dòng; trừ đi dòng không chứa hình cần tìm.']:[`Dòng 2: ${E[0]} hơn ${E[1]} ${a_of(eqs)}.`,'Đây là bài toán tổng và hiệu.'];
+    return Qin(`Mỗi hình thay cho một số (hình giống nhau là số giống nhau). Tìm số của ${ask}.`,vals[ask],{visual:tdEq(lines),hints,explain:`${syms.map(s=>s+' = '+fN(vals[s])).join(', ')}. Thử lại: các dòng đều đúng.`});}
+  return null;};
+const a_of=eqs=>eqs[1].r[1];
+
+/* 28. Ai thích gì (bảng suy luận) */
+function perms(a){if(a.length<=1)return[a];const out=[];a.forEach((x,i)=>perms(a.slice(0,i).concat(a.slice(i+1))).forEach(p=>out.push([x,...p])));return out;}
+TDG.whoWhat=function(G,lv){const T=RP([['nuôi',['con mèo','con chó','con thỏ','con vẹt']],['thích màu',['đỏ','xanh','vàng','tím']],['chơi',['cờ vua','bóng đá','cầu lông','bơi lội']],['học đàn',['piano','ghi-ta','trống','sáo']]]);
+  const k=lv===2&&G>=4?4:3;const P=names(k),I=shuffle(T[1]).slice(0,k);const sol=shuffle(I.slice());
+  for(let t=0;t<60;t++){const cands=[];P.forEach((p,i)=>I.forEach(it=>{if(sol[i]===it)cands.push({p,it,pos:true});else cands.push({p,it,pos:false});}));
+    const pool=shuffle(cands.filter(c=>!c.pos)).concat(shuffle(cands.filter(c=>c.pos)).slice(0,lv===0?1:0));const chosen=[];const ok=cl=>perms(I).filter(pm=>cl.every(c=>(pm[P.indexOf(c.p)]===c.it)===c.pos));
+    for(const c of shuffle(pool)){if(ok(chosen).length===1)break;chosen.push(c);}
+    while(chosen.length>1){let removed=false;for(let i=0;i<chosen.length;i++){const tr=chosen.slice(0,i).concat(chosen.slice(i+1));if(ok(tr).length===1){chosen.splice(i,1);removed=true;break;}}if(!removed)break;}
+    if(ok(chosen).length!==1)continue;const askI=shuffle(P.map((_,i)=>i)).find(i=>!chosen.some(c=>c.pos&&c.p===P[i]));if(askI==null)continue;
+    const text=shuffle(chosen).map(c=>`${c.p} ${c.pos?'':'không '}${T[0]} ${c.it}.`).join(' ');
+    return Qmc(`${P.join(', ')} mỗi bạn ${T[0]} một thứ khác nhau: ${I.join(', ')}. ${text} Hỏi ${P[askI]} ${T[0]} gì?`,sol[askI],shuffle(I.slice()),{hints:['Kẻ bảng: hàng là tên bạn, cột là các thứ. Điều “không” thì đánh dấu ✗.','Hàng hoặc cột nào chỉ còn một ô trống thì đó là ✓.'],explain:P.map((p,i)=>`${p} ${T[0]} ${sol[i]}`).join('; ')+'.'});}
+  return null;};
+
+/* 29. Lấy ít nhất để chắc chắn */
+TDG.pigeon=function(G,lv){const C=['đỏ','xanh','vàng','trắng'];const kind=lv===0?RP(['one','both']):lv===1?RP(['both','pair','one']):(G>=4?'k':RP(['pair','both']));
+  const a=R(3,12),b=R(3,12);let p,ans,ex;
+  if(kind==='one'){p=`Trong hộp có ${a} viên bi đỏ và ${b} viên bi xanh. Không nhìn vào hộp, phải lấy ra ít nhất bao nhiêu viên để chắc chắn có ít nhất 1 viên bi đỏ?`;ans=b+1;ex=`Xui nhất là lấy hết ${b} viên xanh trước. Lấy thêm 1 viên nữa chắc chắn là đỏ: ${b} + 1 = ${ans}.`;}
+  else if(kind==='both'){if(a===b)return null;p=`Trong hộp có ${a} viên bi đỏ và ${b} viên bi xanh. Không nhìn vào hộp, phải lấy ra ít nhất bao nhiêu viên để chắc chắn có đủ cả hai màu?`;ans=Math.max(a,b)+1;ex=`Xui nhất là lấy hết ${Math.max(a,b)} viên ${a>b?'đỏ':'xanh'} trước. Thêm 1 viên nữa thì có đủ hai màu: ${ans}.`;}
+  else if(kind==='pair'){const c=R(2,G>=4?4:3);const cs=C.slice(0,c);p=`Trong túi có rất nhiều viên bi các màu ${cs.join(', ')}. Không nhìn vào túi, phải lấy ra ít nhất bao nhiêu viên để chắc chắn có 2 viên cùng màu?`;ans=c+1;ex=`Xui nhất là ${c} viên đầu mỗi viên một màu. Viên thứ ${c+1} chắc chắn trùng màu một viên đã lấy.`;}
+  else{const c=R(2,4),k=R(3,5);const cs=C.slice(0,c);p=`Trong túi có rất nhiều viên bi các màu ${cs.join(', ')} (mỗi màu nhiều hơn ${k} viên). Không nhìn vào túi, phải lấy ra ít nhất bao nhiêu viên để chắc chắn có ${k} viên cùng màu?`;ans=c*(k-1)+1;ex=`Xui nhất là mỗi màu lấy được ${k-1} viên: ${c} × ${k-1} = ${c*(k-1)} viên. Thêm 1 viên nữa: ${ans}.`;}
+  return Qin(p,ans,{hints:['Hãy nghĩ đến trường hợp xui xẻo nhất.','Sau trường hợp xui nhất, lấy thêm 1 viên là chắc chắn.'],explain:ex});};
+
+/* 30. Bài toán tuổi */
+TDG.age=function(G,lv){const [A]=names(1);const pr=RP([['mẹ','con'],['bố','con'],['ông','cháu']]);
+  if(lv===0){const a=R(5,10),D=pr[0]==='ông'?R(50,60):R(24,34),n=R(2,9);return Qin(`Năm nay ${A} ${a} tuổi, ${pr[0]} của ${A} ${a+D} tuổi. Hỏi khi ${A} ${a+n} tuổi thì ${pr[0]} bao nhiêu tuổi?`,a+D+n,{hints:['Mỗi năm ai cũng thêm 1 tuổi.',`${pr[0]} luôn hơn ${A} ${D} tuổi.`],explain:`${pr[0]} hơn ${A}: ${a+D} − ${a} = ${D} tuổi. Khi ${A} ${a+n} tuổi, ${pr[0]}: ${a+n} + ${D} = ${a+D+n} tuổi.`});}
+  if(lv===1){const c=R(5,12),D=R(22,34),n=G>=4&&Math.random()<.5?R(2,6):0;const S=2*c+D+2*n;
+    return Qin(n?`${cap(pr[0])} hơn ${pr[1]} ${D} tuổi. Sau ${n} năm nữa, tổng số tuổi hai ${pr[0]} ${pr[1]} là ${S}. Tuổi ${pr[1]} hiện nay là bao nhiêu?`:`${cap(pr[0])} hơn ${pr[1]} ${D} tuổi. Tổng số tuổi hai ${pr[0]} ${pr[1]} hiện nay là ${S}. Tuổi ${pr[1]} hiện nay là bao nhiêu?`,c,{hints:n?[`Tổng tuổi hiện nay: ${S} − 2 × ${n}.`,'Rồi giải bài toán tổng và hiệu.']:['Bài toán tổng và hiệu.',`Tuổi ${pr[1]} = (tổng − hiệu) : 2.`],explain:n?`Tổng tuổi hiện nay: ${S} − ${2*n} = ${S-2*n}. Tuổi ${pr[1]}: (${S-2*n} − ${D}) : 2 = ${c}.`:`Tuổi ${pr[1]}: (${S} − ${D}) : 2 = ${c}.`});}
+  const k=R(3,G>=4?7:5),c=R(4,10),D=(k-1)*c;return Qin(`Năm nay tuổi ${pr[0]} gấp ${k} lần tuổi ${pr[1]}, ${pr[0]} hơn ${pr[1]} ${D} tuổi. Tuổi ${pr[1]} năm nay là bao nhiêu?`,c,{visual:tapeSVG([{n:cap(pr[1]),parts:1},{n:cap(pr[0]),parts:k}],''),hints:[`${cap(pr[1])} 1 phần, ${pr[0]} ${k} phần. Hiệu ứng với ${k} − 1 phần.`,`Một phần: ${D} : ${k-1}.`],explain:`Hiệu số phần: ${k} − 1 = ${k-1}. Tuổi ${pr[1]}: ${D} : ${k-1} = ${c}.`});};
+
+/* 31. Ba số */
+TDG.sum3=function(G,lv){const [A,B,C]=names(3);const th=RP(['cái kẹo','viên bi','quyển vở','bông hoa']);const top=G===2?20:G===3?100:1000;
+  if(lv===0){const a=R(2,top),b=R(2,top),c=R(2,top);const S=a+b+c;return Qin(`Ba bạn ${A}, ${B}, ${C} có tất cả ${fN(S)} ${th}. ${A} có ${fN(a)} ${th}, ${B} có ${fN(b)} ${th}. ${C} có bao nhiêu ${th}?`,c,{hints:['Lấy tổng trừ đi số của hai bạn đã biết.',`${fN(S)} − ${fN(a)} − ${fN(b)}.`],explain:`${C}: ${fN(S)} − ${fN(a)} − ${fN(b)} = ${fN(c)} ${th}.`});}
+  if(lv===2&&G>=3){const T=R(10,top),a=R(1,2*T),b=R(1,2*T);const c=3*T-a-b;if(c<0)return null;return Qin(`Trung bình cộng của ba số là ${fN(T)}. Số thứ nhất là ${fN(a)}, số thứ hai là ${fN(b)}. Tìm số thứ ba.`,c,{hints:['Tổng ba số = trung bình cộng × 3.',`Tổng: ${fN(T)} × 3 = ${fN(3*T)}.`],explain:`Tổng ba số: ${fN(T)} × 3 = ${fN(3*T)}. Số thứ ba: ${fN(3*T)} − ${fN(a)} − ${fN(b)} = ${fN(c)}.`});}
+  const c=R(2,Math.floor(top/3)),d2=R(1,Math.floor(top/4)),d1=R(1,Math.floor(top/4));const S=3*c+2*d2+d1;
+  return Qin(`Ba bạn ${A}, ${B}, ${C} có tất cả ${fN(S)} ${th}. ${A} có nhiều hơn ${B} ${fN(d1)} ${th}, ${B} có nhiều hơn ${C} ${fN(d2)} ${th}. ${C} có bao nhiêu ${th}?`,c,{visual:tapeSVG([{n:A,parts:1,extra:.9,exLab:'+'},{n:B,parts:1,extra:.45},{n:C,parts:1}],fN(S),{u:60}),hints:[`Bớt phần hơn để cả ba bằng ${C}: ${B} bớt ${fN(d2)}, ${A} bớt ${fN(d1)} + ${fN(d2)}.`,`Ba lần số của ${C} = ${fN(S)} − ${fN(d2)} − ${fN(d1+d2)}.`],explain:`Ba lần số của ${C}: ${fN(S)} − ${fN(d2)} − ${fN(d1+d2)} = ${fN(3*c)}. ${C}: ${fN(3*c)} : 3 = ${fN(c)} ${th}.`});};
+
+/* 32. Tổng – tỉ, hiệu – tỉ dạng phân số */
+TDG.fracRatio=function(G,lv){for(let t=0;t<30;t++){const q=R(2,9),p=R(1,q-1);if(gcdT(p,q)!==1)continue;const u=R(2,G===4?50:300);const sm=p*u,lg=q*u;
+  if(lv<2){const S=sm+lg;if(lv===0)return Qin(`Tổng hai số là ${fN(S)}. Số bé bằng ${p}/${q} số lớn. Tìm số bé.`,sm,{visual:tapeSVG([{n:'Số bé',parts:p},{n:'Số lớn',parts:q}],fN(S),{u:Math.max(16,Math.floor(180/q))}),hints:[`Số bé ${p} phần, số lớn ${q} phần như nhau.`,`Tổng số phần: ${p} + ${q} = ${p+q}.`],explain:`Một phần: ${fN(S)} : ${p+q} = ${fN(u)}. Số bé: ${fN(u)} × ${p} = ${fN(sm)}.`});
+    return Qsl(`Tổng hai số là ${fN(S)}. Số bé bằng ${p}/${q} số lớn. Tìm hai số.`,['Số bé','Số lớn'],[sm,lg],[u,S-u,lg+u,Math.max(1,sm-u)],{visual:tapeSVG([{n:'Số bé',parts:p},{n:'Số lớn',parts:q}],fN(S),{u:Math.max(16,Math.floor(180/q))}),hints:[`Tổng số phần: ${p} + ${q} = ${p+q}.`,`Một phần: ${fN(S)} : ${p+q}.`],explain:`Một phần: ${fN(u)}. Số bé: ${fN(sm)}. Số lớn: ${fN(lg)}.`});}
+  const D=lg-sm;return Qin(`Hiệu hai số là ${fN(D)}. Số bé bằng ${p}/${q} số lớn. Tìm số lớn.`,lg,{visual:tapeSVG([{n:'Số bé',parts:p},{n:'Số lớn',parts:q}],'',{u:Math.max(16,Math.floor(180/q))}),hints:[`Số lớn hơn số bé ${q} − ${p} = ${q-p} phần.`,`Một phần: ${fN(D)} : ${q-p}.`],explain:`Một phần: ${fN(D)} : ${q-p} = ${fN(u)}. Số lớn: ${fN(u)} × ${q} = ${fN(lg)}.`});}return null;};
+const gcdT=(a,b)=>b?gcdT(b,a%b):a;
+
+/* 33. Ốc sên leo cột */
+TDG.snail=function(G,lv){for(let t=0;t<30;t++){const a=R(lv===0?2:3,G<=2?4:6),b=R(1,a-1),H=R(a+2,G===1?12:G===2?15:G===3?25:40);let h=0,d=0;while(true){d++;h+=a;if(h>=H)break;h-=b;}
+  if(lv===0&&d>8)continue;return Qin(`Một con ốc sên leo lên cột cao ${H} m. Ban ngày ốc leo được ${a} m, ban đêm lại tụt xuống ${b} m. Hỏi đến ngày thứ mấy ốc sên lên tới đỉnh cột?`,d,{hints:[`Mỗi ngày đêm ốc lên được ${a} − ${b} = ${a-b} m.`,`Ngày cuối ốc leo ${a} m là tới đỉnh, không bị tụt nữa: trước ngày cuối ốc chỉ cần lên tới ${H-a} m.`],explain:`Trước ngày cuối cần lên ${H} − ${a} = ${H-a} m, mỗi ngày đêm lên ${a-b} m nên mất ${d-1} ngày đêm. Ngày thứ ${d} ốc tới đỉnh.`});}return null;};
+
+/* 34. Mỗi lần một nửa (tính ngược) */
+TDG.half=function(G,lv){const [A,B,C]=names(3);const top=G===2?20:G===3?100:500;
+  if(lv===0){const r=R(2,top/2|0),x=R(1,top/4|0);const s=2*(r+x);return Qin(`${A} có một số viên bi. ${A} cho ${B} một nửa số bi, rồi cho ${C} ${x} viên thì còn lại ${r} viên. Lúc đầu ${A} có bao nhiêu viên bi?`,s,{hints:['Đi ngược từ cuối: trước khi cho C thì có thêm bấy nhiêu viên.',`Trước khi cho ${C}: ${r} + ${x} = ${r+x} viên — đây là một nửa số bi.`],explain:`Trước khi cho ${C}: ${r} + ${x} = ${r+x}. Lúc đầu: ${r+x} × 2 = ${s} viên.`});}
+  if(lv===1){const r=R(2,top/2|0),x=R(1,top/5|0);const s=2*(r+x);return Qin(`Một cửa hàng có một số quả trứng. Buổi sáng bán một nửa số trứng và thêm ${x} quả thì còn lại ${r} quả. Lúc đầu cửa hàng có bao nhiêu quả trứng?`,s,{hints:[`Nếu không bán thêm ${x} quả thì còn ${r} + ${x} quả.`,'Số đó là một nửa số trứng lúc đầu.'],explain:`${r} + ${x} = ${r+x} là một nửa. Lúc đầu: ${r+x} × 2 = ${s} quả.`});}
+  const r=R(1,top/8|0),x=R(1,5),y=R(1,5);const m=2*(r+y),s=2*(m+x);return Qin(`Một cửa hàng có một số quả trứng. Ngày thứ nhất bán một nửa số trứng và thêm ${x} quả. Ngày thứ hai bán một nửa số trứng còn lại và thêm ${y} quả thì còn ${r} quả. Lúc đầu cửa hàng có bao nhiêu quả trứng?`,s,{hints:[`Ngược ngày thứ hai: (${r} + ${y}) × 2 = ${m}.`,`Ngược ngày thứ nhất: (${m} + ${x}) × 2.`],explain:`Sau ngày thứ nhất còn (${r} + ${y}) × 2 = ${m} quả. Lúc đầu: (${m} + ${x}) × 2 = ${s} quả.`});};
+
+/* 35. Tìm số có hai chữ số */
+TDG.digits2=function(G,lv){for(let t=0;t<40;t++){const n=R(10,99),a=Math.floor(n/10),b=n%10;const S=a+b;let p,f,ex;
+  if(lv===0){if(a<=b)continue;p=`Tìm số có hai chữ số, biết chữ số hàng chục hơn chữ số hàng đơn vị ${a-b} và tổng hai chữ số bằng ${S}.`;f=m=>Math.floor(m/10)-m%10===a-b&&Math.floor(m/10)+m%10===S;ex=`Hàng đơn vị: (${S} − ${a-b}) : 2 = ${b}. Hàng chục: ${b} + ${a-b} = ${a}. Số đó là ${n}.`;}
+  else if(lv===1){if(!b||a%b||a===b)continue;const k=a/b;p=`Tìm số có hai chữ số, biết chữ số hàng chục gấp ${k} lần chữ số hàng đơn vị và tổng hai chữ số bằng ${S}.`;f=m=>m%10&&Math.floor(m/10)===k*(m%10)&&Math.floor(m/10)+m%10===S;ex=`Hàng đơn vị 1 phần, hàng chục ${k} phần: ${S} : ${k+1} = ${b}. Hàng chục: ${a}. Số đó là ${n}.`;}
+  else{if(a<=b||!b)continue;const D=9*(a-b);p=`Tìm số có hai chữ số, biết tổng hai chữ số bằng ${S} và nếu đổi chỗ hai chữ số thì được số mới bé hơn số cũ ${D} đơn vị.`;f=m=>m%10&&Math.floor(m/10)+m%10===S&&m-(m%10*10+Math.floor(m/10))===D;ex=`Đổi chỗ bé đi ${D} nghĩa là hàng chục hơn hàng đơn vị ${D} : 9 = ${a-b}. Hàng đơn vị: (${S} − ${a-b}) : 2 = ${b}. Số đó là ${n}.`;}
+  let c=0;for(let m=10;m<=99;m++)if(f(m))c++;if(c!==1)continue;
+  return Qin(p,n,{hints:lv===2?['Số ab − số ba = 9 × (a − b).','Biết tổng và hiệu hai chữ số thì tìm được từng chữ số.']:['Gọi hai chữ số là hàng chục và hàng đơn vị, thử lần lượt các khả năng.','Thử lại: số tìm được phải đúng cả hai điều kiện.'],explain:ex});}return null;};
+
+/* 36. Đếm hình chữ nhật trên lưới */
+function rgridSVG(m,n){const U=34;let b='';for(let i=0;i<m;i++)for(let j=0;j<n;j++)b+=`<rect x="${6+j*U}" y="${6+i*U}" width="${U}" height="${U}" fill="#E0ECFF" stroke="#1E3A8A" stroke-width="3"/>`;return SVGW(n*U+12,m*U+12,b,'Lưới ô vuông');}
+TDG.rects=function(G,lv){const P=lv===0?[[1,2],[1,3],[1,4]]:lv===1?[[2,2],[2,3],[1,5]]:(G<=3?[[2,3],[2,4]]:[[3,3],[2,4],[3,4]]);let [m,n]=RP(P);if(Math.random()<.4)[m,n]=[n,m];
+  const c=(m*(m+1)/2)*(n*(n+1)/2);return Qin(`Hình bên là lưới ${m} hàng, ${n} cột ô vuông. Có tất cả bao nhiêu hình chữ nhật (kể cả hình vuông)?`,c,{visual:rgridSVG(m,n),hints:['Đếm theo kích thước: hình 1 ô, hình 2 ô, hình 3 ô…',`Mỗi hình chữ nhật được tạo bởi 2 đường dọc và 2 đường ngang. Có ${n+1} đường dọc, ${m+1} đường ngang.`],explain:`Cách chọn 2 đường dọc: ${n*(n+1)/2}, chọn 2 đường ngang: ${m*(m+1)/2}. Số hình: ${n*(n+1)/2} × ${m*(m+1)/2} = ${c}.`});};
+
+/* 37. Kim đồng hồ */
+TDG.clockAng=function(G,lv){const vis=h=>typeof clkSVG==='function'?clkSVG(h,0):'';
+  if(lv===0||(lv===1&&G===3)){const h=RP([1,2,3,4,5,6,7,8,9,10,11]);const deg=30*Math.min(h,12-h);
+    if(G===3){const ans=deg===90?'Góc vuông':'Góc không vuông';return Qmc(`Lúc ${h} giờ đúng, kim giờ và kim phút tạo thành góc gì?`,ans,['Góc vuông','Góc không vuông'],{visual:vis(h),hints:['Kim phút chỉ số 12.','Góc vuông khi kim giờ chỉ số 3 hoặc số 9.'],explain:`Lúc ${h} giờ, hai kim tạo ${deg===90?'góc vuông':'góc không vuông'}.`});}
+    const ans=deg===90?'Góc vuông':deg===180?'Góc bẹt':deg<90?'Góc nhọn':'Góc tù';return Qmc(`Lúc ${h} giờ đúng, kim giờ và kim phút tạo thành góc gì?`,ans,['Góc nhọn','Góc vuông','Góc tù','Góc bẹt'],{visual:vis(h),hints:['Mỗi khoảng giữa hai số liền nhau trên mặt đồng hồ là 30°.',`Từ số 12 đến số ${h} (đi đường ngắn) có ${Math.min(h,12-h)} khoảng.`],explain:`Góc giữa hai kim: ${Math.min(h,12-h)} × 30° = ${deg}°, là ${ans.toLowerCase()}.`});}
+  if(lv===1){const h=R(1,11);const deg=30*Math.min(h,12-h);return Qin(`Lúc ${h} giờ đúng, góc nhỏ tạo bởi kim giờ và kim phút bằng bao nhiêu độ?`,deg,{visual:vis(h),hints:['Cả vòng đồng hồ là 360°, chia 12 khoảng.','Mỗi khoảng 30°.'],explain:`${Math.min(h,12-h)} khoảng × 30° = ${deg}°.`});}
+  if(G===3||Math.random()<.5){const h1=R(1,6),h2=R(h1+2,h1+6);return Qin(`Từ ${h1} giờ đến ${h2} giờ cùng buổi, kim phút quay được mấy vòng?`,h2-h1,{hints:['Mỗi giờ kim phút quay đúng 1 vòng.','Đếm số giờ đã trôi qua.'],explain:`${h2} − ${h1} = ${h2-h1} giờ, kim phút quay ${h2-h1} vòng.`});}
+  const n=R(2,10);return Qin(`Trong ${n} giờ, kim giờ quay được một góc bằng bao nhiêu độ?`,30*n,{hints:['12 giờ kim giờ quay 1 vòng = 360°.','1 giờ kim giờ quay 360° : 12 = 30°.'],explain:`${n} × 30° = ${30*n}°.`});};
+
+/* 38. Gấp và cắt giấy */
+TDG.fold=function(G,lv){const kind=lv===0?'hole':lv===1?RP(['hole','rope']):RP(G>=3?['cut4','rope']:['rope','hole']);
+  if(kind==='hole'){const k=R(1,lv===0?2:G<=2?3:4);return Qin(`Gấp đôi một tờ giấy ${k} lần (lần sau gấp đôi tờ đã gấp), rồi đục một lỗ xuyên qua. Mở tờ giấy ra có mấy lỗ?`,2**k,{hints:['Mỗi lần gấp đôi, số lớp giấy tăng gấp đôi.','Đục 1 lỗ xuyên qua tất cả các lớp.'],explain:`Số lớp: ${Array.from({length:k},()=>2).join(' × ')} = ${2**k}. Có ${2**k} lỗ.`});}
+  if(kind==='rope'){const k=R(1,G<=2?2:3);return Qin(`Gấp đôi một sợi dây ${k} lần, rồi cắt một nhát ngang ở giữa bó dây. Được mấy đoạn dây?`,2**k+1,{hints:[`Sau khi gấp có ${2**k} sợi nằm chồng lên nhau, nhát cắt cắt qua tất cả.`,'Vẽ thử với gấp 1 lần: cắt ở giữa được 3 đoạn.'],explain:`Có ${2**k} sợi bị cắt, tạo ${2**k} điểm cắt trên sợi dây: ${2**k} + 1 = ${2**k+1} đoạn.`});}
+  const n=R(2,G===3?6:12);return Qin(`Cắt một tờ giấy thành 4 mảnh. Lấy 1 mảnh cắt tiếp thành 4 mảnh. Cứ làm như vậy, tổng cộng ${n} lần cắt. Có tất cả bao nhiêu mảnh giấy?`,1+3*n,{hints:['Mỗi lần cắt, 1 mảnh thành 4 mảnh: thêm 3 mảnh.','Lúc đầu có 1 mảnh.'],explain:`1 + ${n} × 3 = ${1+3*n} mảnh.`});};
+
+/* 39. Tổng dãy cách đều */
+TDG.sumSeq=function(G,lv){for(let t=0;t<30;t++){const d=lv===0?RP(G===2?[1,2]:[1,2,5]):R(1,G===2?3:G===3?5:9),a=R(1,G===2?5:G===3?20:100),n=lv===0?R(6,10):lv===1?R(8,G===2?10:20):R(15,G<=3?25:60);const b=a+(n-1)*d;const S=(a+b)*n/2;
+  if(G===2&&S>200)continue;if(String(S).length>6)continue;return Qin('Tính nhanh tổng dãy số cách đều.',S,{big:`${fN(a)} + ${fN(a+d)} + ${fN(a+2*d)} + … + ${fN(b)} = ?`,hints:[`Ghép số đầu với số cuối: ${fN(a)} + ${fN(b)} = ${fN(a+b)}.`,`Dãy có (${fN(b)} − ${fN(a)}) : ${d} + 1 = ${n} số.`],explain:`Số số hạng: ${n}. Tổng: (${fN(a)} + ${fN(b)}) × ${n} : 2 = ${fN(S)}.`});}return null;};
+
+/* 40. Nhân nhẩm nhanh */
+TDG.mulTrick=function(G,lv){const kinds=G===3?['9','5','4','9']:G===4?['11','99','25','5','9']:['11','99','101','25','125'];const k=lv===0?kinds[R(0,1)]:RP(kinds);let n,ex,hint;
+  if(k==='9'){n=R(12,lv?199:99);ex=`${n} × 9 = ${n} × 10 − ${n} = ${n*10} − ${n} = ${n*9}.`;hint='Nhân 9 = nhân 10 rồi trừ đi chính số đó.';}
+  else if(k==='5'){n=2*R(6,lv?250:49);ex=`${n} × 5 = ${n} × 10 : 2 = ${n*10} : 2 = ${n*5}.`;hint='Nhân 5 = nhân 10 rồi chia 2.';}
+  else if(k==='4'){n=R(12,lv?240:99);ex=`${n} × 4 = ${n} × 2 × 2 = ${n*2} × 2 = ${n*4}.`;hint='Nhân 4 = gấp đôi hai lần.';}
+  else if(k==='11'){n=R(12,lv===2?999:99);ex=`${n} × 11 = ${n} × 10 + ${n} = ${n*10} + ${n} = ${n*11}.`;hint=n<100?'Số có hai chữ số × 11: viết tổng hai chữ số vào giữa (nhớ nếu tổng ≥ 10).':'Nhân 11 = nhân 10 rồi cộng chính số đó.';}
+  else if(k==='99'){n=R(12,lv===2?999:99);ex=`${n} × 99 = ${n} × 100 − ${n} = ${n*100} − ${n} = ${n*99}.`;hint='Nhân 99 = nhân 100 rồi trừ đi chính số đó.';}
+  else if(k==='101'){n=R(12,999);ex=`${n} × 101 = ${n} × 100 + ${n} = ${n*101}.`;hint='Nhân 101 = nhân 100 rồi cộng chính số đó.';}
+  else if(k==='25'){n=4*R(3,lv?250:25);ex=`${n} × 25 = ${n} : 4 × 100 = ${n/4} × 100 = ${n*25}.`;hint='Nhân 25 = chia 4 rồi nhân 100 (vì 25 × 4 = 100).';}
+  else{n=8*R(2,lv?120:12);ex=`${n} × 125 = ${n} : 8 × 1000 = ${n/8} × 1000 = ${n*125}.`;hint='Nhân 125 = chia 8 rồi nhân 1 000 (vì 125 × 8 = 1 000).';}
+  const ans=n*+k;if(String(ans).length>6)return null;return Qin('Tính nhẩm nhanh.',ans,{big:`${fN(n)} × ${k} = ?`,hints:[hint,ex.split('=').slice(0,2).join('=')+' = …'],explain:ex});};
+
+/* 41. Chữ số tận cùng */
+TDG.lastDigit=function(G,lv){const kind=lv===0?RP(['pow','oddprod']):RP(['pow','sum','oddprod','pow']);let p,ans,ex,hints;
+  if(kind==='pow'){const k=RP([2,3,4,7,8,9]),n=R(lv===0?4:8,lv===2?60:20);let r=1;const cyc=[];for(let i=1;i<=n;i++){r=r*k%10;if(i<=4)cyc.push(r);}ans=r;p=`Tích ${k} × ${k} × … × ${k} (có ${n} thừa số ${k}) có chữ số tận cùng là mấy?`;hints=['Chỉ cần nhân các chữ số tận cùng với nhau.',`Chữ số tận cùng lặp lại theo chu kì: ${cyc.join(', ')}, …`];ex=`Tận cùng lặp lại ${cyc.join(', ')}. ${n} thừa số → tận cùng ${ans}.`;}
+  else if(kind==='oddprod'){const m=R(3,lv?60:15)*2+1;ans=5;p=`Tích các số lẻ 1 × 3 × 5 × 7 × … × ${m} có chữ số tận cùng là mấy?`;hints=['Tích có thừa số 5.','Số lẻ nhân với 5 thì tận cùng là 5.'],ex='Tích các số lẻ có thừa số 5 nên tận cùng là 5 (không có thừa số chẵn để thành 0).';}
+  else{const n=R(10,lv===2?200:60);const S=n*(n+1)/2;ans=S%10;p=`Tổng 1 + 2 + 3 + … + ${n} có chữ số tận cùng là mấy?`;hints=['Tính tổng bằng cách ghép đầu với cuối.',`Tổng = ${n} × ${n+1} : 2.`];ex=`Tổng = ${n} × ${n+1} : 2 = ${fN(S)}, tận cùng là ${ans}.`;}
+  const opts=new Set([String(ans)]);while(opts.size<4)opts.add(String(R(0,9)));return Qmc(p,String(ans),shuffle([...opts]),{hints,explain:ex});};
+
+/* 42. Ghép cặp tròn chục */
+TDG.pairTen=function(G,lv){const T=G===1?10:G===2?RP([10,20]):100;const k=lv===0?2:lv===1?(G===1?2:3):3;const terms=[];for(let i=0;i<k;i++){const a=G===3?R(11,89):R(1,T-1);terms.push(a,T-a);}
+  if(lv===2)terms.push(G===3?R(1,99):R(1,9));const sh=shuffle(terms);const S=terms.reduce((a,b)=>a+b,0);
+  return Qin('Tính nhanh bằng cách ghép cặp.',S,{big:sh.join(' + ')+' = ?',hints:[`Tìm các cặp số cộng lại bằng ${T}.`,`Có ${k} cặp tròn ${T===100?'trăm':'chục'}${lv===2?' và một số lẻ ra':''}.`],explain:`Ghép cặp được ${k} × ${T}${lv===2?' + '+terms[terms.length-1]:''} = ${S}.`});};
+
+/* ========== LỚP LÁ: thêm 6 bài ========== */
+TDG.la_seqnum=function(G,lv){let seq,ans;if(lv===0){const s=R(1,6);seq=[s,s+1,s+2];ans=s+3;}else if(lv===1){const s=R(4,10);seq=[s,s-1,s-2];ans=s-3;}else{const s=RP([1,2]);seq=[s,s+2,s+4];ans=s+6;}
+  return Qmc('Số tiếp theo là số mấy?',String(ans),shuffle([String(ans),String(ans+1),String(Math.max(0,ans-1)===ans?ans+2:ans-1)]),{big:seq.join(', ')+', ?',voice:[['vi',`Đếm tiếp nhé: ${seq.join(', ')}. Số tiếp theo là số mấy?`]],hints:['Đọc to các số rồi đếm tiếp.',lv===1?'Các số đang bé dần: đếm lùi.':lv===2?'Mỗi lần nhảy 2 số.':'Mỗi lần thêm 1.'],explain:`${seq.join(', ')}, ${ans}.`});};
+const LA_SIZE=[['🐘','con voi'],['🦒','hươu cao cổ'],['🐄','con bò'],['🐶','con chó'],['🐱','con mèo'],['🐭','con chuột'],['🐜','con kiến']];
+TDG.la_big=function(G,lv){const k=lv===2?3:2;const idx=shuffle(LA_SIZE.map((_,i)=>i)).slice(0,k).sort((a,b)=>a-b);const big=lv!==1||Math.random()<.5;const ans=big?LA_SIZE[idx[0]][0]:LA_SIZE[idx[idx.length-1]][0];
+  const w=k===3?(big?'to nhất':'nhỏ nhất'):(big?'to hơn':'nhỏ hơn');return Qmc(`Con nào ${w}?`,ans,shuffle(idx.map(i=>LA_SIZE[i][0])),{emo:true,voice:[['vi',`Con nào ${w}?`]],hints:['Nghĩ xem con vật đó ngoài đời to hay nhỏ.','So sánh từng cặp con vật.'],explain:`${cap(LA_SIZE[idx.find(i=>LA_SIZE[i][0]===ans)][1])} ${w}.`});};
+const LA_SH=[['🔺','hình tam giác'],['🟦','hình vuông'],['🟡','hình tròn'],['⭐','ngôi sao']];
+TDG.la_shape=function(G,lv){const S=shuffle(LA_SH);const n=R(lv===0?2:3,lv===0?4:lv===1?6:8);const others=[];const m=R(2,lv?6:4);for(let i=0;i<m;i++)others.push(RP(S.slice(1,lv?4:2))[0]);const arr=shuffle(Array(n).fill(S[0][0]).concat(others));
+  return Qin(`Có mấy ${S[0][1]} ${S[0][0]}?`,n,{visual:emoRow(arr,'wrap'),voice:[['vi',`Có mấy ${S[0][1]}?`]],hints:[`Chỉ đếm ${S[0][1]}.`,'Chạm tay vào từng hình và đếm to.'],explain:`Có ${n} ${S[0][1]}.`});};
+const LA_GRP=[['quả',['🍎','🍌','🍇','🍓','🍊']],['con vật',['🐶','🐱','🐰','🐻','🐸']],['xe',['🚗','🚌','🚲','🚂','🚑']],['quần áo',['👕','👗','👖','🧢','🧦']]];
+TDG.la_odd=function(G,lv){const [g1,g2]=shuffle(LA_GRP);const k=lv===0?2:3;const same=shuffle(g1[1]).slice(0,k);const odd=RP(g2[1]);
+  return Qmc('Hình nào khác nhóm?',odd,shuffle(same.concat([odd])),{emo:true,voice:[['vi','Hình nào không cùng nhóm với các hình còn lại?']],hints:['Gọi tên từng hình.',`Ba hình là ${g1[0]}, còn một hình thì không.`],explain:`Các hình khác đều là ${g1[0]}, ${odd} thuộc nhóm ${g2[0]}.`});};
+TDG.la_scale=function(G,lv){const e=RP(['🍎','🍊','🥚','🧱','🍐']);let a=R(1,5),b=R(1,5);while(a===b)b=R(1,5);
+  const vis=`<div class="ht-eqs"><div class="ht-eq">Bên trái: ${Array(a).fill(e).join('')}</div><div class="ht-eq">Bên phải: ${Array(b).fill(e).join('')}</div></div>`;
+  if(lv===2){if(a<b)[a,b]=[b,a];const v2=`<div class="ht-eqs"><div class="ht-eq">Bên trái: ${Array(a).fill(e).join('')}</div><div class="ht-eq">Bên phải: ${Array(b).fill(e).join('')}</div></div>`;return Qin(`Cần đặt thêm mấy ${e} vào bên phải để hai bên cân bằng?`,a-b,{visual:v2,voice:[['vi','Cần đặt thêm mấy quả vào bên phải để hai bên bằng nhau?']],hints:['Hai bên cân bằng khi số quả bằng nhau.','Đếm xem bên phải còn thiếu mấy quả.'],explain:`Bên trái ${a}, bên phải ${b}: thêm ${a-b}.`});}
+  const hv=lv===0||Math.random()<.5;const w=hv?'nặng':'nhẹ';const ans=(a>b)===hv?'Bên trái':'Bên phải';return Qmc(`Các ${e} nặng bằng nhau. Bên nào ${w} hơn?`,ans,['Bên trái','Bên phải'],{fixed:['Bên trái','Bên phải'],visual:vis,voice:[['vi',`Các quả nặng bằng nhau. Bên nào ${w} hơn?`]],hints:[`Bên nào có ${hv?'nhiều':'ít'} quả hơn thì ${w} hơn.`,'Đếm số quả mỗi bên.'],explain:`Bên trái ${a}, bên phải ${b}: ${ans.toLowerCase()} ${w} hơn.`});};
+const LA_BF=[['🥚','🐣','quả trứng','gà con nở ra'],['🌱','🌳','cây non','cây to'],['🧦','👟','đi tất','đi giày'],['🛁','👕','tắm','mặc áo'],['🍳','🍽️','nấu ăn','ăn cơm'],['🌧️','🌈','trời mưa','cầu vồng'],['🌅','🌙','buổi sáng','buổi tối'],['🪥','🛏️','đánh răng','đi ngủ']];
+TDG.la_before=function(G,lv){const it=RP(LA_BF);const first=lv===1?Math.random()<.5:true;const ans=first?it[0]:it[1];
+  return Qmc(first?'Việc nào có trước?':'Việc nào có sau?',ans,shuffle([it[0],it[1]]),{emo:true,voice:[['vi',(first?'Việc nào có trước? ':'Việc nào có sau? ')+it[2]+' hay '+it[3]+'?']],hints:['Nghĩ xem ở nhà mình thường làm thế nào.',`${cap(it[2])} rồi mới đến ${it[3]}.`],explain:`${cap(it[2])} trước, ${it[3]} sau.`});};
 /* ================= BỘ ĐỀ TOÁN MỚI (máy tự sinh) — phần A: tiện ích, số, cộng trừ =================
    Mỗi dạng: MG.ten(G, lv, P) → câu hỏi. G = lớp (0 = Lá), lv = 0 cơ bản · 1 vận dụng · 2 thử thách,
    P = tham số của bài (phạm vi số, bảng nhân…). Lời giải viết từng bước, cách nhau bằng xuống dòng. */
@@ -4199,6 +4406,108 @@ MG.timeOp=function(G,lv,P){const h1=R(1,8),m1=R(5,55),h2=R(1,5),m2=R(5,55);const
   if(add){M=m1+m2;H=h1+h2;ex=`${h1} giờ ${m1} phút + ${h2} giờ ${m2} phút = ${H} giờ ${M} phút`;if(M>=60){ex+=` = ${H+1} giờ ${M-60} phút`;H++;M-=60;}}
   else{const T=(h1+h2)*60+m1-(h2*60+m2);if(T<=0)return MG.timeOp(G,lv,P);H=Math.floor(T/60);M=T%60;ex=`Đổi ra phút rồi trừ: ${h1+h2} giờ ${m1} phút − ${h2} giờ ${m2} phút = ${H} giờ ${M} phút`;}
   return Qsl('Tính.',['Giờ','Phút'],[H,M],[H+1,M+10,Math.max(0,H-1),(M+60)%100],{big:add?`${h1} giờ ${m1} phút + ${h2} giờ ${m2} phút`:`${h1+h2} giờ ${m1} phút − ${h2} giờ ${m2} phút`,bigSmall:true,sk:'doluong',hints:['Cộng (trừ) giờ với giờ, phút với phút.','Số phút từ 60 trở lên thì đổi 60 phút = 1 giờ.'],explain:ex+'.'});};
+/* ================= BỘ ĐỀ TOÁN — phần E (10/2026, lần 3): thêm dạng bài =================
+   Đúng/Sai, điền dấu phép tính, tia số, chữ số còn thiếu, so sánh biểu thức, gia đình phép tính,
+   ước lượng, chọn đơn vị, thời gian trôi qua, phần trăm giảm giá, toán nhiều bước, mảng nhân. */
+const OPF={'+':(a,b)=>a+b,'−':(a,b)=>a-b,'×':(a,b)=>a*b,':':(a,b)=>b&&a%b===0?a/b:NaN};
+function pickOp(G,lv,P,op){const mx=lim(G,P);if(op==='+'){const [a,b]=pickAdd(G,P,lv);return [a,b,a+b];}if(op==='−'){const [a,b]=pickSub(G,P);return [a,b,a-b];}
+  const T=P.tables||(G<=2?[2,5]:[2,3,4,5,6,7,8,9]);if(op==='×'){const a=P.big?R(12,G>=4?999:99):R(2,10),b=RP(T);return [a,b,a*b];}
+  const b=RP(T),q=P.big?R(12,G>=4?999:99):R(2,10);return [b*q,b,q];}
+const opsFor=(G,P)=>P.ops||(P.mul?['×',':']:G<=1?['+','−']:G===2?['+','−']:['+','−','×',':']);
+
+/* 1. Đúng hay sai */
+MG.trueFalse=function(G,lv,P){const op=RP(opsFor(G,P));const [a,b,c]=pickOp(G,lv,P,op);const ok=Math.random()<.5;let shown=c;
+  if(!ok){const d=lv===0?R(1,G<=1?2:10):RP([1,10,100,2].filter(x=>x<=Math.max(2,c)));shown=Math.random()<.5||c-d<0?c+d:c-d;if(op==='+'&&hasCarry(a,b)&&lv>0&&Math.random()<.5)shown=c-10>=0?c-10:c+1;}
+  if(shown===c&&!ok)shown=c+1;const ans=shown===c?'Đúng':'Sai';
+  const vis=G===0?emoRow(Array(a).fill('🍎'))+emoRow(Array(b).fill('🍎')):'';
+  return Qmc('Phép tính sau đúng hay sai?',ans,['Đúng','Sai'],{big:`${fN(a)} ${op} ${fN(b)} = ${fN(shown)}`,fixed:['Đúng','Sai'],visual:vis,sk:op==='+'||op==='−'?'congtru':'nhanchia',hints:['Con tự tính lại phép tính ở bên trái dấu =.',`Kết quả đúng là ${fN(a)} ${op} ${fN(b)} = …, so với số bên phải.`],explain:`${fN(a)} ${op} ${fN(b)} = ${fN(c)}. ${ans==='Đúng'?'Phép tính đúng.':`Không phải ${fN(shown)}, nên phép tính sai.`}`});};
+
+/* 2. Điền dấu phép tính */
+MG.chooseOp=function(G,lv,P){const L=opsFor(G,P);for(let t=0;t<30;t++){const op=RP(L);const [a,b,c]=pickOp(G,lv,P,op);const fit=L.filter(o=>OPF[o](a,b)===c);if(fit.length!==1)continue;
+  return Qmc(`Điền dấu ${L.join(', ')} thích hợp vào ô trống.`,op,L.slice(),{big:`${fN(a)} ☐ ${fN(b)} = ${fN(c)}`,fixed:L.slice(),sk:op==='+'||op==='−'?'congtru':'nhanchia',hints:[c>a?'Kết quả lớn hơn số thứ nhất: thử dấu cộng hoặc nhân.':'Kết quả bé hơn số thứ nhất: thử dấu trừ hoặc chia.','Thử từng dấu rồi tính xem có đúng không.'],explain:`${fN(a)} ${op} ${fN(b)} = ${fN(c)}.`});}return null;};
+
+/* 3. Tia số */
+function nlSVG(s,d,k,pos,lab){const n=10,U=28,X=14;let b=`<line x1="${X-8}" y1="40" x2="${X+n*U+14}" y2="40" stroke="#1E3A8A" stroke-width="3"/><path d="M${X+n*U+14} 34 l10 6 l-10 6z" fill="#1E3A8A"/>`;
+  for(let i=0;i<=n;i++){const x=X+i*U;b+=`<line x1="${x}" y1="33" x2="${x}" y2="47" stroke="#1E3A8A" stroke-width="2"/>`;if(lab.includes(i))b+=`<text x="${x}" y="66" text-anchor="middle" font-size="${String(s+n*d).length>4?10:12}" font-weight="800" fill="currentColor">${fN(s+i*d)}</text>`;}
+  const x=X+pos*U;b+=`<path d="M${x} 28 l-7 -12 h14z" fill="#DC2626"/><text x="${x}" y="12" text-anchor="middle" font-size="12" font-weight="800" fill="#DC2626">?</text>`;
+  return `<div class="ht-fig"><svg viewBox="0 0 ${X+n*U+30} 74" width="320" role="img" aria-label="Tia số" data-nl="${s},${d},${pos}">${b}</svg></div>`;}
+MG.numberLine=function(G,lv,P){const mx=lim(G,P);const steps=G<=1?(mx<=10?[1]:[1,2,5,10]):G===2?[2,5,10,100]:G===3?[5,10,50,100,1000]:[100,1000,5000,10000];
+  for(let t=0;t<40;t++){const d=lv===0?steps[0]:RP(steps);if(10*d>mx)continue;const s=Math.floor(R(0,mx-10*d)/d)*d;const pos=R(1,9);const wide=String(s+10*d).length>=4;const lab=lv===2?[0,10]:lv===1||wide?[0,5,10]:[0,1,2,10];if(lab.includes(pos))continue;
+    const v=s+pos*d;if(String(v).length>6)continue;return Qin('Số ở chỗ mũi tên là số nào?',v,{visual:nlSVG(s,d,10,pos,lab),sk:'so',hints:[lv===0?'Đếm tiếp từ các số đã có.':'Tìm khoảng cách giữa hai vạch liền nhau trước.',`Mỗi vạch cách nhau ${fN(d)}.`],explain:`Hai vạch liền nhau cách ${fN(d)}. Mũi tên ở vạch thứ ${pos} kể từ ${fN(s)}: ${fN(s)} + ${pos} × ${fN(d)} = ${fN(v)}.`});}return null;};
+
+/* 4. Chữ số còn thiếu trong phép tính */
+MG.missingDigit=function(G,lv,P){const mul=P.mul;for(let t=0;t<40;t++){let a,b,c,op;if(mul){op='×';a=R(12,G>=4?999:99);b=R(2,9);c=a*b;}else{op=RP(['+','−']);[a,b,c]=pickOp(G,lv,P,op);if(a<10||b<10)continue;}
+  const parts=[String(a),String(b),String(c)];const which=lv===2?R(0,2):R(0,1);const s=parts[which];const pi=R(0,s.length-1);if(s.length>1&&pi===0&&s[0]==='0')continue;
+  const masked=parts.slice();masked[which]=s.slice(0,pi)+'?'+s.slice(pi+1);const ans=+s[pi];
+  // chỉ một chữ số đúng
+  let cnt=0;for(let dgt=0;dgt<=9;dgt++){if(pi===0&&dgt===0&&s.length>1)continue;const v=+(s.slice(0,pi)+dgt+s.slice(pi+1));const x=[a,b,c];x[which]=v;if(OPF[op](x[0],x[1])===x[2])cnt++;}if(cnt!==1)continue;
+  return Qin('Tìm chữ số thích hợp thay cho dấu ?',ans,{big:`${masked[0]} ${op} ${masked[1]} = ${masked[2]}`,sk:mul?'nhanchia':'congtru',hints:['Đặt tính theo cột cho thẳng hàng.',which===2?'Tính phép tính rồi so với kết quả.':op==='+'?'Lấy tổng trừ đi số hạng đã biết.':op==='−'?(which===0?'Số bị trừ = hiệu + số trừ.':'Số trừ = số bị trừ − hiệu.'):'Thử từng chữ số từ 0 đến 9.'],explain:`${fN(a)} ${op} ${fN(b)} = ${fN(c)}. Chữ số cần điền là ${ans}.`});}return null;};
+
+/* 5. So sánh hai biểu thức */
+MG.exprCmp=function(G,lv,P){const mx=lim(G,P);const L=opsFor(G,P);for(let t=0;t<40;t++){const o1=RP(L),o2=RP(L);const [a,b,c]=pickOp(G,lv,P,o1);const [x,y,z]=pickOp(G,lv,P,o2);let r=z;
+  if(Math.random()<.35){// cho bằng nhau
+    if(o2==='+'){const y2=c-x;if(y2<0)continue;r=c;var Lb=`${fN(x)} + ${fN(y2)}`;}else if(o2==='−'){const x2=c+y;if(x2>mx*1.2)continue;r=c;var Lb=`${fN(x2)} − ${fN(y)}`;}else continue;}
+  else var Lb=`${fN(x)} ${o2} ${fN(y)}`;
+  if(Math.abs(c-r)>Math.max(10,mx/5)&&lv>0)continue;return Qsign('Điền dấu >, <, = thích hợp vào ô trống.',`${fN(a)} ${o1} ${fN(b)} ☐ ${Lb}`,c,r,{sk:'congtru',hints:['Tính giá trị từng vế.','So sánh hai kết quả.'],explain:`Vế trái: ${fN(c)}. Vế phải: ${fN(r)}. ${fN(c)} ${sgn(c,r)} ${fN(r)}.`});}return null;};
+
+/* 6. Gia đình phép tính */
+MG.factFamily=function(G,lv,P){const mul=P.mul||(G>=2&&Math.random()<.4&&!P.ops);let a,b,c,ops;
+  if(mul){const T=P.tables||[2,3,4,5,6,7,8,9];a=RP(T);b=R(2,G<=2?5:10);if(a===b)b++;c=a*b;ops=['×',':'];}else{const mx=lim(G,P);a=R(1,Math.max(2,Math.floor(mx/2)));b=R(1,Math.max(2,Math.floor(mx/2)));if(a===b)b++;c=a+b;ops=['+','−'];}
+  const F=e=>`${fN(e[0])} ${e[1]} ${fN(e[2])} = ${fN(e[3])}`;
+  const rightE=mul?RP([[c,':',a,b],[c,':',b,a],[b,'×',a,c]]):RP([[c,'−',a,b],[c,'−',b,a],[b,'+',a,c]]);
+  const wrongE=(mul?[[a,':',c,b],[b,':',a,c],[c,'×',a,b],[a,'×',b,c+a]]:[[a,'−',c,b],[b,'−',a,c],[a,'+',c,b],[c,'+',b,a]]).filter(e=>OPF[e[1]](e[0],e[2])!==e[3]);
+  const right=F(rightE);const opts=[right,...shuffle(wrongE).slice(0,3).map(F)];
+  return Qmc(`Từ phép tính ${mul?`${fN(a)} × ${fN(b)} = ${fN(c)}`:`${fN(a)} + ${fN(b)} = ${fN(c)}`}, phép tính nào dưới đây cũng đúng?`,right,shuffle(opts),{sk:mul?'nhanchia':'congtru',hints:[mul?'Lấy tích chia cho một thừa số thì được thừa số kia.':'Lấy tổng trừ đi một số hạng thì được số hạng kia.','Tính thử từng phép tính.'],explain:`${right} là phép tính đúng.`});};
+
+/* 7. Ước lượng */
+MG.estimate=function(G,lv,P){const u=G===3?(lv===2?10:100):G===4?1000:RP([100,1000]);const rd=x=>Math.round(x/u)*u;for(let t=0;t<40;t++){let a,b,op,exact,est;
+  if(P.mul){a=R(11,G>=4?999:99);b=R(2,9);op='×';const au=G>=4?100:10;est=Math.round(a/au)*au*b;exact=a*b;const opts=numOpts(est,[est+au*b,est-au*b,exact,est*10]);if(opts.length<4)continue;
+    return Qmc(`Ước lượng: ${fN(a)} × ${b} khoảng bao nhiêu?`,String(est),opts,{sk:'nhanchia',hints:[`Làm tròn ${fN(a)} đến hàng ${au===10?'chục':'trăm'}.`,`${fN(Math.round(a/au)*au)} × ${b} = …`],explain:`${fN(a)} ≈ ${fN(Math.round(a/au)*au)}. ${fN(Math.round(a/au)*au)} × ${b} = ${fN(est)} (kết quả đúng là ${fN(exact)}).`});}
+  op=RP(['+','−']);a=R(u*2,u*9+u-1);b=R(u,u*5);if(op==='−'&&b>a)continue;exact=OPF[op](a,b);est=OPF[op](rd(a),rd(b));if(est===exact)continue;
+  const opts=[...new Set([est,est+u,Math.max(0,est-u),est+2*u].map(String))];if(opts.length<4||opts.includes(String(exact)))continue;
+  return Qmc(`Ước lượng: ${fN(a)} ${op} ${fN(b)} khoảng bao nhiêu? (làm tròn từng số đến hàng ${u===10?'chục':u===100?'trăm':'nghìn'})`,String(est),shuffle(opts),{sk:'congtru',hints:[`Làm tròn: ${fN(a)} ≈ ${fN(rd(a))}, ${fN(b)} ≈ ${fN(rd(b))}.`,'Rồi tính với hai số tròn.'],explain:`${fN(rd(a))} ${op} ${fN(rd(b))} = ${fN(est)} (kết quả đúng là ${fN(exact)}).`});}return null;};
+
+/* 8. Chọn đơn vị thích hợp */
+const UNITQ=[[1,'len','Chiếc bút chì dài khoảng 15 …','cm'],[1,'len','Cái bàn học dài khoảng 1 …','m'],[1,'len','Gang tay của em dài khoảng 12 …','cm'],[2,'len','Quãng đường từ Hà Nội đến Hải Phòng dài khoảng 100 …','km'],[2,'len','Chiều cao của cửa ra vào khoảng 2 …','m'],[3,'len','Con kiến dài khoảng 5 …','mm'],[3,'len','Bề dày quyển sách khoảng 2 …','cm'],
+ [2,'mass','Bao gạo nặng khoảng 25 …','kg'],[2,'mass','Quả trứng gà nặng khoảng 50 …','g'],[3,'mass','Gói kẹo nặng khoảng 200 …','g'],[2,'mass','Con mèo nặng khoảng 4 …','kg'],[4,'mass','Con voi nặng khoảng 5 …','tấn'],[4,'mass','Con lợn nặng khoảng 1 …','tạ'],
+ [2,'vol','Chai nước mắm chứa khoảng 1 …','l'],[3,'vol','Thìa thuốc chứa khoảng 5 …','ml'],[3,'vol','Xô nước chứa khoảng 10 …','l'],[3,'vol','Cốc sữa chứa khoảng 200 …','ml'],
+ [3,'area','Diện tích con tem khoảng 6 …','cm²'],[4,'area','Diện tích lớp học khoảng 60 …','m²'],[4,'area','Diện tích nước Việt Nam khoảng 331 000 …','km²'],[4,'area','Diện tích mặt bàn học khoảng 50 …','dm²'],
+ [2,'time','Em ngủ mỗi đêm khoảng 9 …','giờ'],[2,'time','Em đánh răng khoảng 3 …','phút'],[3,'time','Chớp mắt một cái mất khoảng 1 …','giây'],[2,'time','Một năm học kéo dài khoảng 9 …','tháng']];
+const UNITS_OF={len:['mm','cm','m','km'],mass:['g','kg','tạ','tấn'],vol:['ml','l'],area:['cm²','dm²','m²','km²'],time:['giây','phút','giờ','ngày','tháng']};
+MG.unitChoose=function(G,lv,P){const L=UNITQ.filter(x=>x[0]<=Math.max(1,G)&&(!P.kind||P.kind===x[1]));const it=RP(L);let opts=UNITS_OF[it[1]].slice();if(it[1]==='mass'&&G<4)opts=['g','kg'];if(it[1]==='len'&&G<=1)opts=['cm','m'];if(it[1]==='area'&&G<4)opts=['cm²','m²'];if(it[1]==='time')opts=shuffle(opts.filter(u=>u!==it[3])).slice(0,2).concat([it[3]]);
+  if(!opts.includes(it[3]))return null;return Qmc(`Chọn đơn vị thích hợp: ${it[2]}`,it[3],opts,{fixed:opts.slice(),sk:'doluong',hints:['Hãy hình dung đồ vật đó ngoài đời.','Thử ghép từng đơn vị vào câu xem có hợp lí không.'],explain:`${it[2].replace('…',it[3])}.`});};
+
+/* 9. Thời gian trôi qua */
+MG.clockElapsed=function(G,lv,P){const [A]=NM.length?names(1):['An'];const act=RP(['làm bài tập','đọc truyện','tập đàn','đá bóng','vẽ tranh','dọn phòng']);
+  const step=G===2?(lv?15:30):5;const h=R(6,G===2?10:16);const m=R(0,59/step|0)*step%60;const dur=G===2?RP(lv?[15,30,45,60]:[30,60]):lv===0?R(2,9)*5:R(5,lv===2?23:11)*5;const t=h*60+m+dur;const h2=Math.floor(t/60),m2=t%60;
+  const ts=(x,y)=>y?`${x} giờ ${y} phút`:`${x} giờ`;
+  if(lv===2&&G>=3){return Qmc(`${A} bắt đầu ${act} lúc ${ts(h,m)} và ${act} trong ${dur} phút. ${A} xong lúc mấy giờ?`,ts(h2,m2),shuffle([...new Set([ts(h2,m2),ts(h2,(m2+10)%60),ts(h2+1,m2),ts(h,(m+dur)%60===m2?(m2+5)%60:(m+dur)%60)])].slice(0,4)),{sk:'doluong',hints:[`Cộng ${dur} phút vào ${ts(h,m)}.`,'Đủ 60 phút thì đổi thành 1 giờ.'],explain:`${ts(h,m)} + ${dur} phút = ${ts(h2,m2)}.`});}
+  return Qin(`${A} bắt đầu ${act} lúc ${ts(h,m)}, xong lúc ${ts(h2,m2)}. ${A} ${act} trong bao nhiêu phút?`,dur,{visual:typeof clkSVG==='function'?`<div class="ht-two">${clkSVG(h%12||12,m)}${clkSVG(h2%12||12,m2)}</div>`:'',sk:'doluong',hints:['Đếm từ lúc bắt đầu đến giờ tròn gần nhất, rồi đếm tiếp.','1 giờ = 60 phút.'],explain:`Từ ${ts(h,m)} đến ${ts(h2,m2)} là ${dur} phút.`});};
+
+/* 10. Phần trăm: giảm giá, tăng thêm */
+MG.percentWp=function(G,lv,P){for(let t=0;t<40;t++){const p=RP(lv===0?[10,20,25,50]:[5,10,15,20,25,30,40]);const price=R(2,lv===2?40:20)*(lv===0?10000:5000);const off=price*p/100;if(off%1000)continue;
+  if(lv===2){const k=RP(['up','off2']);if(k==='up'){const v=price+off;return Qin(`Một cửa hàng nhập một chiếc ba lô giá ${fN(price)} đồng, rồi bán lãi ${p}% giá nhập. Giá bán chiếc ba lô là bao nhiêu đồng?`,v,{sk:'tiso',hints:[`Tiền lãi = ${fN(price)} × ${p} : 100.`,'Giá bán = giá nhập + tiền lãi.'],explain:`Tiền lãi: ${fN(price)} × ${p} : 100 = ${fN(off)} đồng. Giá bán: ${fN(price)} + ${fN(off)} = ${fN(v)} đồng.`});}
+    const v=price-off;return Qin(`Sau khi giảm giá ${p}%, một chiếc cặp có giá ${fN(v)} đồng. Hỏi lúc chưa giảm, chiếc cặp giá bao nhiêu đồng?`,price,{sk:'tiso',hints:[`Giá sau khi giảm bằng ${100-p}% giá cũ.`,`Giá cũ = ${fN(v)} : ${100-p} × 100.`],explain:`${fN(v)} : ${100-p} × 100 = ${fN(price)} đồng.`});}
+  const v=price-off;return lv===0?Qin(`Một chiếc áo giá ${fN(price)} đồng, được giảm ${p}%. Hỏi được giảm bao nhiêu tiền?`,off,{sk:'tiso',hints:[`Tìm ${p}% của ${fN(price)}.`,`${fN(price)} : 100 × ${p}.`],explain:`${fN(price)} × ${p} : 100 = ${fN(off)} đồng.`}):Qin(`Một chiếc áo giá ${fN(price)} đồng, được giảm ${p}%. Giá chiếc áo sau khi giảm là bao nhiêu đồng?`,v,{sk:'tiso',hints:[`Số tiền được giảm: ${fN(price)} × ${p} : 100.`,'Lấy giá cũ trừ số tiền được giảm.'],explain:`Được giảm ${fN(off)} đồng. Giá mới: ${fN(price)} − ${fN(off)} = ${fN(v)} đồng.`});}return null;};
+
+/* 11. Toán nhiều bước (có lời văn) */
+MG.wpChain=function(G,lv,P){const mx=lim(G,P);const [A,B]=names(2);const [th]=thing();for(let t=0;t<40;t++){const a=R(Math.ceil(mx/5),Math.floor(mx/2)),b=R(1,Math.floor(mx/4)),c=R(1,Math.floor(mx/3));
+  const k=lv===0?'+-':RP(['+-','--','++']);let v,p,ex;
+  if(k==='+-'){v=a+b-c;p=`${A} có ${fN(a)} ${th}. ${B} cho ${A} thêm ${fN(b)} ${th}. Sau đó ${A} cho em ${fN(c)} ${th}. Hỏi ${A} còn lại bao nhiêu ${th}?`;ex=expl(`${fN(a)} + ${fN(b)} = ${fN(a+b)}`,`${fN(a+b)} − ${fN(c)} = ${fN(v)} ${th}`);}
+  else if(k==='--'){v=a-b-c;p=`Thùng có ${fN(a)} ${th}. Buổi sáng lấy ra ${fN(b)} ${th}, buổi chiều lấy ra ${fN(c)} ${th}. Hỏi thùng còn lại bao nhiêu ${th}?`;ex=expl(`${fN(a)} − ${fN(b)} = ${fN(a-b)}`,`${fN(a-b)} − ${fN(c)} = ${fN(v)} ${th}`);}
+  else{v=a+b+c;p=`Ngày thứ nhất ${A} gấp được ${fN(a)} ${th}, ngày thứ hai gấp được ${fN(b)} ${th}, ngày thứ ba gấp được ${fN(c)} ${th}. Cả ba ngày ${A} gấp được bao nhiêu ${th}?`;ex=expl(`${fN(a)} + ${fN(b)} = ${fN(a+b)}`,`${fN(a+b)} + ${fN(c)} = ${fN(v)} ${th}`);}
+  if(v<0||v>mx||(k==='+-'&&c>a+b))continue;return Qin(p,v,{sk:'giaitoan',hints:['Tóm tắt: có bao nhiêu, thêm hay bớt bao nhiêu, mấy lần.','Làm từng bước theo thứ tự trong đề.'],explain:ex});}return null;};
+
+/* 12. Mảng nhân (hàng × cột) */
+MG.arrayMul=function(G,lv,P){const T=P.tables||[2,3,4,5];const r=RP(T),c=R(2,lv?(G<=2?5:9):5);const e=RP(['🍎','🌸','⭐','🍬','🐟']);const rows=Array.from({length:r},()=>emoRow(Array(c).fill(e))).join('');
+  if(lv===2)return Qmc(`Có ${r} hàng, mỗi hàng ${c} ${e}. Phép tính nào cho biết có tất cả bao nhiêu ${e}?`,`${c} × ${r}`,shuffle([`${c} × ${r}`,`${c} + ${r}`,`${r} + ${r}`,`${c} × ${c}`].filter((x,i,a)=>a.indexOf(x)===i)),{visual:rows,sk:'nhanchia',hints:[`${c} được lấy ${r} lần.`,'Lấy số hình mỗi hàng nhân với số hàng.'],explain:`${c} được lấy ${r} lần: ${c} × ${r} = ${c*r}.`});
+  return Qin(`Có ${r} hàng, mỗi hàng ${c} ${e}. Có tất cả bao nhiêu ${e}?`,r*c,{visual:rows,sk:'nhanchia',hints:[`Mỗi hàng có ${c} hình, có ${r} hàng như thế.`,`${c} × ${r} = …`],explain:`${c} × ${r} = ${r*c} ${e}.`});};
+
+/* 13. Đúng hay sai với số thập phân (lớp 5) */
+MG.decTF=function(G,lv,P){const op=RP(P.op||['+','−','×']);const d1=R(1,2),d2=R(1,2);const a=R(11,lv?9999:999)/10**d1,b=op==='×'?R(2,9):R(11,lv?999:99)/10**d2;
+  let x=a,y=b;if(op==='−'&&y>x)[x,y]=[y,x];const c=r6(op==='+'?x+y:op==='−'?x-y:x*y);const ok=Math.random()<.5;
+  const wrongs=[r6(c*10),r6(c/10),r6(c+1),r6(op==='+'?x+y*10:c+0.1)].filter(v=>v>0&&v!==c);const shown=ok?c:RP(wrongs);const ans=shown===c?'Đúng':'Sai';
+  return Qmc('Phép tính sau đúng hay sai?',ans,['Đúng','Sai'],{big:`${fD(x)} ${op} ${fD(y)} = ${fD(shown)}`,fixed:['Đúng','Sai'],sk:'stp',hints:['Đặt tính: các dấu phẩy thẳng cột với nhau.',op==='×'?'Nhân như số tự nhiên rồi đếm số chữ số ở phần thập phân.':'Thêm chữ số 0 cho phần thập phân dài bằng nhau.'],explain:`${fD(x)} ${op} ${fD(y)} = ${fD(c)}. ${ans==='Đúng'?'Phép tính đúng.':'Phép tính sai.'}`});};
 /* ================= BỘ ĐỀ TOÁN MỚI — dạng bổ sung cho Lớp Lá và bảng bài học từng lớp ================= */
 MG.addPic=function(G,lv,P){const mx=P.max||10;const e=RP(['🍎','🍬','🎈','⭐','🍓','🐥']);const kind=P.kind||RP(['gop','them','bot']);
   if(lv===2){const x=R(1,Math.max(1,mx-3)),y=R(1,Math.min(3,mx-x));return Qin(`Bé có một số ${e}. Mẹ cho thêm ${y} ${e} thì bé có ${x+y} ${e}. Lúc đầu bé có mấy ${e}?`,x,{visual:emoRow(Array(x+y).fill(e)),voice:[['vi',`Bé có một số đồ vật. Mẹ cho thêm ${y} thì bé có ${x+y}. Lúc đầu bé có mấy?`]],sk:'congtru',hints:['Bớt đi số mẹ vừa cho thêm.',`Che đi ${y} hình rồi đếm.`],explain:`${x+y} bớt ${y} còn ${x}.`});}
@@ -4272,6 +4581,30 @@ const PLAN={
  [[g('countShapes'),g('volume',{kind:['box','cube']})],[g('volume',{kind:['conv']})],[g('volume',{kind:['conv','box']})],[g('volume',{kind:['sxq']})],[g('volume',{kind:['stp']})],[g('volume',{kind:['box','cube']})]],
  [[g('timeConv')],[g('timeOp')],[g('timeOp')],[g('motion',{kind:['v']})],[g('motion',{kind:['s','t']})],[g('motion'),g('timeOp')]],
  [[g('chart')],[g('chart')],[g('chance')],[g('readNum',{max:999999}),g('decCompare'),g('fracOp'),g('decOp')],[g('ratio'),g('triTrap'),g('circle'),g('volume'),g('conv',{kind:'area'})],MIX]]};
+/* ================= THÊM DẠNG BÀI MỚI VÀO BẢNG BÀI HỌC (10/2026, lần 3) =================
+   Mỗi bài (trừ bài Ôn tập tổng hợp) được thêm tối đa 2 dạng mới hợp với nội dung đang học. */
+(function(){const has=(L,n)=>L.find(s=>s[0]===n);
+  const rules=(G,L)=>{const out=[];const add=(n,p)=>{if(!out.some(s=>s[0]===n)&&!L.some(s=>s[0]===n))out.push(g(n,p||{}));};
+    const as=has(L,'addsub');if(as){const P=as[1]||{};const mx=P.max||lim(G,P);const ops=P.ops&&P.ops.length===1?['+','−']:(P.ops||null);
+      add('trueFalse',Object.assign({max:mx},ops?{ops}:{},P.small?{small:1}:{},P.k?{k:P.k}:{}));if(G>=2&&mx>=100)add('missingDigit',{max:mx});else if(G>=1)add('chooseOp',Object.assign({max:mx,ops:['+','−']},P.small?{small:1}:{}));}
+    const nb=has(L,'readNum')||has(L,'seq')||has(L,'neighbor')||has(L,'order');if(nb){const mx=(nb[1]||{}).max||lim(G,{});if(mx>=(G===0?10:20))add('numberLine',{max:Math.min(mx,999999)});}
+    const cp=has(L,'compare');if(cp&&G>=1&&!(cp[1]||{}).mul){const mx=(cp[1]||{}).max||lim(G,{});if(mx>=20&&mx<=100000)add('exprCmp',{max:mx,ops:['+','−']});}
+    const tb=has(L,'table');if(tb){const P=tb[1]||{};const T=P.tables;if(G<=3)add('arrayMul',T?{tables:T}:{});add('factFamily',Object.assign({mul:1},T?{tables:T}:{}));if(G>=3)add('chooseOp',Object.assign({ops:['×',':']},T?{tables:T}:{}));}
+    const mi=has(L,'missing');if(mi&&!(mi[1]||{}).mulOnly)add('factFamily',{max:(mi[1]||{}).max||lim(G,{})});
+    if(has(L,'mental')||has(L,'round'))if(G>=3)add('estimate',{});
+    if(has(L,'mulBig')){add('missingDigit',{mul:1});if(G>=3)add('estimate',{mul:1});}
+    if(has(L,'divBig'))add('trueFalse',{ops:['×',':'],big:1});
+    const ms=has(L,'measOp')||has(L,'conv');if(ms&&G>=1){const k=(ms[1]||{}).kind||((ms[1]||{}).unit==='kg'?'mass':(ms[1]||{}).unit==='l'?'vol':'len');add('unitChoose',{kind:k==='area5'?'area':k});}
+    if((has(L,'clock')||has(L,'timeConv')||has(L,'timeOp'))&&G>=2)add('clockElapsed',{});
+    const ra=has(L,'ratio');if(ra&&G===5&&JSON.stringify(ra[1]||{}).includes('pct'))add('percentWp',{});
+    if((has(L,'wp1')||has(L,'wp2')||has(L,'wpMore'))&&G>=1&&G<=4){const P=(has(L,'wp1')||has(L,'wp2')||has(L,'wpMore'))[1]||{};add('wpChain',{max:P.max||lim(G,{})});}
+    if(G===0&&has(L,'addPic'))add('trueFalse',{max:(has(L,'addPic')[1]||{}).max||10,ops:['+'],small:1});
+    const dop=has(L,'decOp');if(dop&&G===5){const o=((dop[1]||{}).op||['+','−','×']).filter(o=>o!==':');add('decTF',{op:o.length?o:['×']});}
+    if(has(L,'decCompare')||has(L,'decRound'))add('decTF',{op:['+','−']});
+    return out.slice(0,2);};
+  for(const G in PLAN){PLAN[G].forEach(C=>C.forEach((L,d)=>{if(!Array.isArray(L))return;const orig=L.slice();const nw=rules(+G,L);nw.forEach(s=>L.push(s));if(nw.length&&orig.length===1)L.push(orig[0]);}));}
+  /* lớp 5: chặng tỉ số phần trăm có thêm bài toán giảm giá */
+})();
 /* ================= BỘ ĐỀ TOÁN MỚI — tạo bài 15 câu: 6 cơ bản, 6 vận dụng, 3 thử thách ================= */
 function planFor(w,d){const C=(PLAN[GRADE]||[])[w];if(!C)return null;let L=C[d];if(L===MIX||!L){const all=[];C.forEach((x,i)=>{if(i!==d&&Array.isArray(x))x.forEach(s=>{if(!all.some(y=>y[0]===s[0]&&JSON.stringify(y[1])===JSON.stringify(s[1])))all.push(s);});});L=all;}return L&&L.length?L:null;}
 function mgMake(spec,lv){const [name,P]=spec;let q=null;for(let t=0;t<8&&!q;t++){try{q=MG[name](GRADE,lv,P||{});}catch(e){q=null;}}if(!q)return null;
@@ -4337,6 +4670,37 @@ function tdMake(L,lv){let q=null;for(let t=0;t<6&&!q;t++){try{q=TDG[L.gen](GRADE
   return Object.assign(q,{skill:G.k,gen:L.gen,lv,td:L.id,secLab:'🧩 '+L.t,hard:lv===2});}
 function tdBuild(L,n){n=n||10;const lvs=[0,0,0,0,1,1,1,1,2,2].slice(0,n);const out=[],keys=new Set();
   lvs.forEach(lv=>{let q,i=0;do{q=tdMake(L,lv);i++;}while(keys.has(q.prompt+'|'+(q.big||'')+'|'+q.answer)&&i<12);keys.add(q.prompt+'|'+(q.big||'')+'|'+q.answer);out.push(q);});return out;}
+/* ---- 10/2026 (lần 3): thêm 22 bài cho lớp 1–5 và 6 bài cho Lớp Lá ---- */
+TD_ALL.push(
+ {id:21,gr:0,t:'Que diêm xếp hình',gen:'matchSeq',g:[1,5],card:{tiles:[['Đếm que','Đếm số que của 3 hình đầu','4, 7, 10'],['Thêm đều','Mỗi hình sau thêm cùng số que','thêm 3 que'],['Hình thứ n','Que hình 1 + (n − 1) × số que thêm','4 + 9 × 3 = 31'],['Ngược lại','(Số que − que hình 1) : số que thêm + 1','(31 − 4) : 3 + 1 = 10']],tip:'Nhìn xem hình sau dùng chung cạnh với hình trước ở chỗ nào.'}},
+ {id:22,gr:0,t:'Máy biến số',gen:'machine',g:[1,5],card:{tiles:[['So từng cột','Số ra lớn hơn hay bé hơn số vào?','3 → 7, 5 → 9'],['Thử cộng trừ','Hiệu số ra − số vào có đều không?','luôn thêm 4'],['Thử nhân','Số ra có gấp số vào không?','2 → 6, 4 → 12: × 3'],['Nhân rồi cộng','Nếu chưa đúng, thử × rồi + hoặc −','× 2 + 1']],tip:'Tìm quy tắc ở cột thứ nhất rồi kiểm tra lại ở mọi cột.'}},
+ {id:23,gr:0,t:'Quy luật chữ cái',gen:'letters',g:[1,5],card:{tiles:[['Bảng chữ cái','Viết A B C D E F G H…','A đứng thứ 1'],['Nhảy đều','Đếm số chữ bị bỏ qua','A, C, E → nhảy 2'],['Chữ và số','Xét riêng chữ, riêng số','A2, B4, C6 → D8'],['Hai dãy đan xen','Xét vị trí lẻ và vị trí chẵn','A, Z, B, Y → C']],tip:'Đánh số thứ tự cho chữ cái (A = 1, B = 2…) để thấy quy luật.'}},
+ {id:24,gr:1,t:'Đếm đường đi',gen:'paths',g:[1,5],card:{tiles:[['Chỉ phải, xuống','Đi đường ngắn nhất từ A đến B','không quay lại'],['Ghi số 1','Các điểm trên hàng trên cùng và cột trái: 1','1 1 1'],['Cộng dồn','Mỗi điểm = số bên trái + số phía trên','1 + 1 = 2'],['Đọc kết quả','Số ghi tại B là đáp án','lưới 2 × 2 → 6']],tip:'Ghi số ngay trên hình rồi cộng dần, không cần vẽ từng đường.'}},
+ {id:25,gr:1,t:'Số cách trả tiền',gen:'coins',g:[1,5],card:{tiles:[['Tờ lớn trước','Chọn số tờ lớn nhất: 0, 1, 2…','tờ 5 nghìn'],['Phần còn lại','Trả nốt bằng tờ nhỏ hơn','còn 3 nghìn'],['Liệt kê','Ghi mỗi cách thành một dòng','5 + 2 + 1'],['Không tính thứ tự','2 + 1 và 1 + 2 là một cách','không đếm 2 lần']],tip:'Liệt kê theo thứ tự từ nhiều tờ lớn đến ít tờ lớn thì không bị sót.'}},
+ {id:26,gr:1,t:'Đếm số theo chữ số',gen:'digitSum',g:[1,5],card:{tiles:[['Hàng chục khác 0','Số có hai chữ số bắt đầu từ 10','không có 05'],['Tổng chữ số','Thử hàng chục 1, 2, 3…','tổng 4: 13, 22, 31, 40'],['Hiệu chữ số','Hàng chục = hàng đơn vị + hiệu','hiệu 7: 70, 81, 92'],['Tích chữ số','Tìm cặp nhân bằng tích, đổi chỗ','tích 6: 16, 61, 23, 32']],tip:'Viết các số tìm được thành một hàng để đếm và kiểm tra.'}},
+ {id:27,gr:2,t:'Cân bằng hình',gen:'balance',g:[1,5],card:{tiles:[['Hình giống nhau','Có giá trị bằng nhau','🍎 = 🍎'],['Chia đều','3 hình bằng nhau tổng 12 → mỗi hình 4','12 : 3 = 4'],['Thay thế','Thay một hình bằng những hình bằng nó','🍌 = 🍎 + 🍎'],['Cộng cả ba dòng','Mỗi hình được tính hai lần','tổng : 2']],tip:'Bắt đầu từ dòng chỉ có một loại hình.'}},
+ {id:28,gr:2,t:'Ai thích gì?',gen:'whoWhat',g:[2,5],card:{tiles:[['Kẻ bảng','Hàng là bạn, cột là đồ vật','3 × 3 ô'],['Đánh dấu ✗','Câu “không” thì gạch ô đó','An ✗ mèo'],['Tìm ✓','Hàng/cột còn một ô trống là ✓','An ✓ thỏ'],['Gạch tiếp','Có ✓ thì gạch cả hàng, cả cột còn lại','mỗi bạn một thứ']],tip:'Mỗi bạn một thứ khác nhau, nên mỗi hàng và mỗi cột chỉ có một dấu ✓.'}},
+ {id:29,gr:2,t:'Lấy ít nhất để chắc chắn',gen:'pigeon',g:[3,5],card:{tiles:[['Xui nhất','Nghĩ trường hợp lấy toàn thứ không cần','lấy hết bi xanh'],['Thêm 1','Sau đó lấy thêm 1 là chắc chắn','5 xanh + 1'],['Đủ hai màu','Lấy hết màu nhiều hơn rồi thêm 1','8 đỏ + 1 = 9'],['k viên cùng màu','Số màu × (k − 1) + 1','3 màu, 4 viên: 3 × 3 + 1']],tip:'“Chắc chắn” nghĩa là đúng cả khi gặp xui nhất.'}},
+ {id:30,gr:3,t:'Bài toán tuổi',gen:'age',g:[3,5],card:{tiles:[['Hiệu không đổi','Hai người luôn cách nhau bấy nhiêu tuổi','mẹ hơn con 26'],['Mỗi năm','Mỗi người thêm 1 tuổi, tổng thêm số người','2 người: +2'],['Tổng – hiệu','Tuổi bé = (tổng − hiệu) : 2','(46 − 26) : 2'],['Gấp lần','Hiệu ứng với (k − 1) phần','gấp 4, hơn 27 → 27 : 3']],tip:'Vẽ sơ đồ tuổi ở cùng một thời điểm rồi mới tính.'}},
+ {id:31,gr:3,t:'Ba số, trung bình cộng',gen:'sum3',g:[2,5],card:{tiles:[['Biết hai số','Số thứ ba = tổng − hai số kia','30 − 8 − 12'],['Hơn kém nối tiếp','Đưa cả ba về số bé nhất','bớt phần hơn'],['Ba phần bằng nhau','Tổng sau khi bớt : 3','= số bé nhất'],['Trung bình cộng','Tổng = trung bình × số các số','TB 20 → tổng 60']],tip:'Vẽ ba đoạn thẳng để nhìn rõ phần hơn của mỗi bạn.'}},
+ {id:32,gr:3,t:'Tổng, hiệu và tỉ số',gen:'fracRatio',g:[4,5],card:{tiles:[['Đọc tỉ số','Số bé bằng 2/3 số lớn','bé 2 phần, lớn 3 phần'],['Tổng – tỉ','Một phần = tổng : (tổng số phần)','100 : 5 = 20'],['Hiệu – tỉ','Một phần = hiệu : (hiệu số phần)','30 : 1 = 30'],['Nhân lên','Số cần tìm = một phần × số phần','20 × 2 = 40']],tip:'Luôn vẽ sơ đồ: các phần phải dài bằng nhau.'}},
+ {id:33,gr:4,t:'Ốc sên leo cột',gen:'snail',g:[1,5],card:{tiles:[['Ngày đêm','Mỗi ngày đêm lên được leo − tụt','5 − 2 = 3 m'],['Ngày cuối','Ngày cuối leo tới đỉnh, không tụt nữa','bớt quãng ngày cuối'],['Tính số ngày','(Cao − leo ngày) : (leo − tụt) + 1','(20 − 5) : 3 + 1 = 6'],['Thử lại','Vẽ cột và đánh dấu từng ngày','3, 6, 9…']],tip:'Cẩn thận: ngày cuối cùng ốc không bị tụt xuống nữa.'}},
+ {id:34,gr:4,t:'Mỗi lần một nửa',gen:'half',g:[2,5],card:{tiles:[['Đi từ cuối','Bắt đầu từ số còn lại','còn 5'],['Bỏ phần thêm','Cộng lại phần đã cho thêm','5 + 2 = 7'],['Gấp đôi','Một nửa là 7 thì cả là 14','7 × 2'],['Lặp lại','Làm như vậy cho từng ngày','ngày 2 rồi ngày 1']],tip:'Cộng ngược trước, gấp đôi sau.'}},
+ {id:35,gr:4,t:'Tìm số có hai chữ số',gen:'digits2',g:[2,5],card:{tiles:[['Đặt tên','Hàng chục a, hàng đơn vị b','số ab'],['Tổng và hiệu','a + b và a − b → tìm a, b','(9 − 3) : 2 = 3'],['Gấp lần','a = k × b: b là 1 phần, a là k phần','tổng 12, gấp 3 → b = 3'],['Đổi chỗ','ab − ba = 9 × (a − b)','72 − 27 = 45']],tip:'Tìm xong nhớ thử lại với tất cả điều kiện của đề.'}},
+ {id:36,gr:5,t:'Đếm hình chữ nhật',gen:'rects',g:[2,5],card:{tiles:[['Hình 1 ô','Đếm từng ô nhỏ','6 ô'],['Ghép ô','Đếm hình 2 ô, 3 ô… theo hàng, theo cột','ngang rồi dọc'],['Dải n ô','n + (n − 1) + … + 1','3 ô → 6 hình'],['Lưới','(cách chọn 2 đường dọc) × (2 đường ngang)','2 × 3 ô: 6 × 3 = 18']],tip:'Đếm theo kích thước từ nhỏ đến lớn và ghi lại từng loại.'}},
+ {id:37,gr:5,t:'Kim đồng hồ',gen:'clockAng',g:[3,5],card:{tiles:[['12 khoảng','Mặt đồng hồ chia 12 khoảng bằng nhau','mỗi khoảng 30°'],['Góc lúc giờ đúng','Đếm khoảng từ số 12 đến kim giờ','3 giờ: 3 × 30° = 90°'],['Kim phút','Mỗi giờ quay 1 vòng','từ 2 giờ đến 5 giờ: 3 vòng'],['Kim giờ','12 giờ quay 1 vòng','1 giờ: 30°']],tip:'Lúc 3 giờ và 9 giờ hai kim tạo góc vuông, lúc 6 giờ tạo góc bẹt.'}},
+ {id:38,gr:5,t:'Gấp và cắt giấy',gen:'fold',g:[1,5],card:{tiles:[['Gấp đôi','Mỗi lần gấp, số lớp gấp đôi','1 → 2 → 4 → 8'],['Đục lỗ','Số lỗ = số lớp giấy','gấp 3 lần: 8 lỗ'],['Cắt dây gấp','Số đoạn = số sợi + 1','gấp 1 lần: 3 đoạn'],['Cắt thành 4','Mỗi lần thêm 3 mảnh','1 + 3 × n']],tip:'Lấy một tờ giấy thật ra gấp thử là hiểu ngay.'}},
+ {id:39,gr:6,t:'Tổng dãy cách đều',gen:'sumSeq',g:[2,5],card:{tiles:[['Số số hạng','(Số cuối − số đầu) : khoảng cách + 1','(20 − 2) : 2 + 1 = 10'],['Ghép cặp','Số đầu + số cuối','2 + 20 = 22'],['Tổng','(đầu + cuối) × số số hạng : 2','22 × 10 : 2 = 110'],['Kiểm tra','Thử với dãy ngắn','1 + 2 + 3 = 6']],tip:'Các cặp đầu – cuối luôn có tổng bằng nhau.'}},
+ {id:40,gr:6,t:'Nhân nhẩm nhanh',gen:'mulTrick',g:[3,5],card:{tiles:[['× 9, × 99','Nhân 10 (100) rồi trừ chính số đó','23 × 9 = 230 − 23'],['× 11','Nhân 10 rồi cộng chính số đó','34 × 11 = 374'],['× 5, × 25','× 10 : 2, hoặc : 4 × 100','48 × 25 = 1 200'],['× 125',': 8 × 1 000','16 × 125 = 2 000']],tip:'Biến phép nhân khó thành nhân với 10, 100, 1 000.'}},
+ {id:41,gr:6,t:'Chữ số tận cùng',gen:'lastDigit',g:[4,5],card:{tiles:[['Chỉ nhìn hàng đơn vị','Tận cùng của tích chỉ phụ thuộc chữ số tận cùng','…7 × …3 → 1'],['Chu kì','Tận cùng của lũy thừa lặp lại','3: 3, 9, 7, 1'],['Có 5 và số lẻ','Tích tận cùng là 5','1 × 3 × 5 × 7'],['Có 2 và 5','Tích tận cùng là 0','2 × 5 = 10']],tip:'Chu kì thường dài 4: chia số thừa số cho 4 để biết vị trí.'}},
+ {id:42,gr:6,t:'Ghép cặp tròn chục',gen:'pairTen',g:[1,3],card:{tiles:[['Tìm cặp','Hai số cộng lại tròn chục','7 + 3 = 10'],['Đổi chỗ','Đổi chỗ các số hạng tổng không đổi','8 + 5 + 2 = 8 + 2 + 5'],['Tròn trăm','Lớp 3: 64 + 36 = 100','ghép đôi'],['Cộng nốt','Cộng các tổng tròn với số còn lại','10 + 10 + 4']],tip:'Gạch nối các cặp số trước khi tính.'}});
+TD_LA.push(
+ {id:6,gr:0,t:'Số tiếp theo',gen:'la_seqnum',g:[0,0],card:{tiles:[['Đọc to','Đọc các số theo thứ tự','1, 2, 3'],['Đếm tiếp','Số sau hơn số trước 1','3 rồi 4'],['Đếm lùi','Số bé dần thì đếm lùi','9, 8, 7 → 6'],['Nhảy 2','Bỏ qua một số','2, 4, 6 → 8']],tip:'Dùng ngón tay đếm theo từng số.'}},
+ {id:7,gr:1,t:'To hơn, nhỏ hơn',gen:'la_big',g:[0,0],card:{tiles:[['Nghĩ ngoài đời','Con vật to hay nhỏ khi gặp thật','voi rất to'],['So hai con','Con nào to hơn?','🐘 > 🐶'],['To nhất','So từng cặp để tìm','🐘'],['Nhỏ nhất','Con bé xíu nhất','🐜']],tip:'Tưởng tượng các con vật đứng cạnh nhau.'}},
+ {id:8,gr:1,t:'Đếm hình',gen:'la_shape',g:[0,0],card:{tiles:[['Tam giác','Có 3 cạnh, 3 góc','🔺'],['Hình vuông','4 cạnh bằng nhau','🟦'],['Hình tròn','Tròn như cái đĩa','🟡'],['Chỉ đếm một loại','Bỏ qua hình khác','đếm 🔺']],tip:'Chạm vào từng hình được hỏi và đếm to.'}},
+ {id:9,gr:2,t:'Hình nào khác nhóm',gen:'la_odd',g:[0,0],card:{tiles:[['Gọi tên','Nói tên từng hình','táo, chuối, mèo'],['Tìm nhóm','Các hình giống loại nhau','đều là quả'],['Khác loại','Hình không cùng loại','con mèo'],['Nói lí do','Vì sao khác nhóm?','mèo là con vật']],tip:'Hỏi: hình này dùng để làm gì, là quả, con vật hay đồ vật?'}},
+ {id:10,gr:2,t:'Cân thăng bằng',gen:'la_scale',g:[0,0],card:{tiles:[['Nặng như nhau','Các quả nặng bằng nhau','🍎 = 🍎'],['Nhiều hơn','Bên nhiều quả hơn thì nặng hơn','3 > 2'],['Cân bằng','Hai bên bằng nhau','2 = 2'],['Thêm vào','Thêm cho bằng bên kia','2 thêm 1 là 3']],tip:'Đếm số quả mỗi bên rồi so sánh.'}},
+ {id:11,gr:2,t:'Việc nào trước, sau',gen:'la_before',g:[0,0],card:{tiles:[['Trước','Việc làm trước','đi tất'],['Sau','Việc làm sau','đi giày'],['Hằng ngày','Nghĩ việc con làm mỗi ngày','đánh răng rồi đi ngủ'],['Thiên nhiên','Hạt nảy mầm rồi thành cây','🌱 → 🌳']],tip:'Kể lại thành câu: “Đầu tiên… sau đó…”.'}});
 /* ---------------- DỮ LIỆU TRÊN MÁY ---------------- */
 function htInit(){S.tdSt=S.tdSt||{};S.srs=S.srs||{};S.qlog=Array.isArray(S.qlog)?S.qlog:[];S.pg=S.pg||{list:[],log:[]};if(!Array.isArray(S.pg.list))S.pg.list=[];if(!Array.isArray(S.pg.log))S.pg.log=[];
   if(!S.goalMin)S.goalMin=15;S.htDaily=S.htDaily||{};
@@ -4870,10 +5234,377 @@ function htListify(){const scr=document.getElementById('scr');if(!scr||scr.datas
 {const _rh=renderHome;renderHome=function(){const r=_rh.apply(this,arguments);try{htListify();}catch(e){}return r;};}
 if(typeof renderTv==='function'){const _rt=renderTv;renderTv=function(){const r=_rt.apply(this,arguments);try{htListify();}catch(e){}return r;};}
 if(typeof renderEnglish==='function'){const _re=renderEnglish;renderEnglish=function(){const r=_re.apply(this,arguments);try{htListify();}catch(e){}return r;};}
+/* ================= LUYỆN NÓI ĐOẠN VĂN — dữ liệu: PARA[lớp][unit] = [[tiêu đề, đoạn tiếng Anh, nghĩa tiếng Việt], …] ================= */
+const PARA={
+0:[
+ [['Hello!','Hello! I am a boy. Goodbye!','Xin chào! Tớ là bạn trai. Tạm biệt!'],['My teacher','Hello, teacher! I am a girl.','Chào cô ạ! Con là bạn gái.']],
+ [['Colours','It is red. It is blue. It is green.','Nó màu đỏ. Nó màu xanh dương. Nó màu xanh lá.']],
+ [['Count with me','One, two, three. Three cats. Four, five. Five stars.','Một, hai, ba. Ba con mèo. Bốn, năm. Năm ngôi sao.']],
+ [['Big numbers','I am six. Seven ducks. Eight cars. Nine, ten!','Tớ sáu tuổi. Bảy con vịt. Tám chiếc ô tô. Chín, mười!']],
+ [['On the farm','It is a cow. It is a pig. It is a duck.','Đó là con bò. Đó là con lợn. Đó là con vịt.']],
+ [['My pets','I have a cat. I have a dog. I love my pets.','Tớ có một con mèo. Tớ có một con chó. Tớ yêu thú cưng của tớ.']],
+ [['Yummy fruit','I like apples. I like bananas. Yummy!','Tớ thích táo. Tớ thích chuối. Ngon quá!']],
+ [['Milk, please','Milk, please. Bread, please. Thank you!','Cho con sữa ạ. Cho con bánh mì ạ. Con cảm ơn!']],
+ [['My body','Touch your head. Touch your nose. Clap your hands.','Chạm vào đầu. Chạm vào mũi. Vỗ tay nào.']],
+ [['My family','This is my mom. This is my dad. I love my family.','Đây là mẹ tớ. Đây là bố tớ. Tớ yêu gia đình tớ.']],
+ [['My toys','I have a ball. I have a doll. I have a kite.','Tớ có quả bóng. Tớ có búp bê. Tớ có con diều.']],
+ [['At school','This is my book. This is my pencil. This is my bag.','Đây là quyển sách. Đây là bút chì. Đây là cặp của tớ.']],
+ [['Shapes','It is a circle. It is a square. It is a star.','Đây là hình tròn. Đây là hình vuông. Đây là ngôi sao.']],
+ [['At the zoo','Look! A lion. Look! A monkey. Look! An elephant.','Nhìn kìa! Con sư tử. Nhìn kìa! Con khỉ. Nhìn kìa! Con voi.']],
+ [['On the road','I see a bus. I see a bike. I see a train.','Tớ thấy xe buýt. Tớ thấy xe đạp. Tớ thấy tàu hỏa.']],
+ [['I can','I can run. I can jump. I can dance.','Tớ biết chạy. Tớ biết nhảy. Tớ biết múa.']]],
+1:[
+ [['Hello, Bill','Hello. I am Mai. This is my ball. Goodbye!','Xin chào. Tớ là Mai. Đây là quả bóng của tớ. Tạm biệt!']],
+ [['In the dining room','I have a cat. I have a cup. I have a cake.','Tớ có một con mèo. Tớ có một cái cốc. Tớ có một cái bánh.']],
+ [['At the market','This is my bag. This is my hat. I like apples.','Đây là túi của tớ. Đây là mũ của tớ. Tớ thích táo.']],
+ [['In the bedroom','It is a desk. It is a door. Look! A duck.','Đây là cái bàn. Đây là cửa ra vào. Nhìn kìa! Một con vịt.']],
+ [['Fish and chips','I like fish. I like chips. I like milk too.','Tớ thích cá. Tớ thích khoai tây chiên. Tớ cũng thích sữa.']],
+ [['In the classroom','This is a pen. This is a pencil. The pencil is red.','Đây là cái bút. Đây là bút chì. Bút chì màu đỏ.']],
+ [['In the garden','I see a garden. I see a gate. I see a goat.','Tớ thấy khu vườn. Tớ thấy cái cổng. Tớ thấy con dê.']],
+ [['In the park','Touch your head. Touch your hair. Wave your hand.','Chạm vào đầu. Chạm vào tóc. Vẫy tay nào.']],
+ [['In the shop','Two clocks. Four pots. One mop. How many locks?','Hai cái đồng hồ. Bốn cái nồi. Một cây lau nhà. Có bao nhiêu ổ khóa?']],
+ [['At the zoo','That is a monkey. That is a mouse. The monkey likes mangoes.','Đó là con khỉ. Đó là con chuột. Con khỉ thích xoài.']],
+ [['At the bus stop','Look at the bus. Look at the truck. Run to the bus!','Nhìn chiếc xe buýt kìa. Nhìn chiếc xe tải kìa. Chạy ra xe buýt nào!']],
+ [['At the lake','Look at the lake. Look at the lion. The leaf is green.','Nhìn cái hồ kìa. Nhìn con sư tử kìa. Chiếc lá màu xanh.']],
+ [['In the canteen','He is having noodles. She is having bananas. I am having nuts.','Bạn ấy đang ăn mì. Bạn ấy đang ăn chuối. Tớ đang ăn hạt.']],
+ [['In the toy shop','I can see a teddy bear. I can see a tiger. I can see a top.','Tớ thấy con gấu bông. Tớ thấy con hổ. Tớ thấy con quay.']],
+ [['Football match','This is my father. He likes football. Point to your foot.','Đây là bố tớ. Bố thích bóng đá. Chỉ vào bàn chân của bạn.']],
+ [['At home','Wash your hands. Drink some water. Look at the window.','Rửa tay đi. Uống chút nước. Nhìn ra cửa sổ.']]],
+2:[
+ [['My birthday party','Today is my birthday. I like pizza. I like popcorn. The cake is yummy.','Hôm nay là sinh nhật tớ. Tớ thích pizza. Tớ thích bỏng ngô. Cái bánh ngon quá.']],
+ [['In the backyard','I am in the backyard. I have a kite. I have a bike. Look at the kitten!','Tớ đang ở sân sau. Tớ có một con diều. Tớ có một chiếc xe đạp. Nhìn chú mèo con kìa!']],
+ [['At the seaside','I am at the seaside. I can see the sea. I can see the sand. The sun is hot.','Tớ đang ở bãi biển. Tớ thấy biển. Tớ thấy cát. Mặt trời nóng quá.']],
+ [['In the countryside','This is the countryside. Look at the rainbow. Look at the river. A rabbit is on the road.','Đây là vùng quê. Nhìn cầu vồng kìa. Nhìn dòng sông kìa. Một con thỏ ở trên đường.']],
+ [['In the classroom','We are in the classroom. Draw a square. Let us do a quiz. Can I ask a question?','Chúng tớ đang ở trong lớp. Vẽ một hình vuông. Chúng mình làm câu đố nhé. Con hỏi một câu được không ạ?']],
+ [['On the farm','I am on the farm. There is a fox. There is an ox. The fox is in the box.','Tớ đang ở nông trại. Có một con cáo. Có một con bò. Con cáo ở trong cái hộp.']],
+ [['In the kitchen','I am in the kitchen. I want some juice. I want some jelly. The jam is on the table.','Tớ đang ở trong bếp. Tớ muốn uống nước ép. Tớ muốn ăn thạch. Hũ mứt ở trên bàn.']],
+ [['In the village','This is my village. Look at the van. We play volleyball. My sister plays the violin.','Đây là làng của tớ. Nhìn chiếc xe tải nhỏ kìa. Chúng tớ chơi bóng chuyền. Chị tớ chơi đàn vi-ô-lông.']],
+ [['At the store','I am in the store. I want some yogurt. I want some yams. Look at the yellow yo-yos.','Tớ đang ở cửa hàng. Tớ muốn mua sữa chua. Tớ muốn mua khoai. Nhìn những chiếc yo-yo màu vàng kìa.']],
+ [['At the zoo','Let us go to the zoo. I can see a zebra. I can see a lion. The lion is big.','Chúng mình đi sở thú nhé. Tớ thấy ngựa vằn. Tớ thấy sư tử. Con sư tử to quá.']],
+ [['In the playground','I am in the playground. Look at the slide. I can ride a bike. I can swing.','Tớ đang ở sân chơi. Nhìn cầu trượt kìa. Tớ biết đi xe đạp. Tớ biết chơi xích đu.']],
+ [['At the café','We are at the café. I would like a cake. I would like some grapes. Sit at the table, please.','Chúng tớ đang ở quán. Tớ muốn một cái bánh. Tớ muốn ít nho. Mời ngồi vào bàn ạ.']],
+ [['In the maths class','I have eleven pens. I have twelve books. Let us count to fifteen.','Tớ có mười một cái bút. Tớ có mười hai quyển sách. Cùng đếm đến mười lăm nào.']],
+ [['My family at home','This is my family. This is my brother. This is my sister. I love my grandmother.','Đây là gia đình tớ. Đây là anh trai tớ. Đây là chị gái tớ. Tớ yêu bà của tớ.']],
+ [['Clothes shop','I am in the clothes shop. I want a shirt. I want some shoes. This dress is nice.','Tớ đang ở cửa hàng quần áo. Tớ muốn một cái áo sơ mi. Tớ muốn một đôi giày. Cái váy này đẹp quá.']],
+ [['At the campsite','We are at the campsite. This is my tent. I have a blanket. Where is the torch?','Chúng tớ đang ở khu cắm trại. Đây là lều của tớ. Tớ có một cái chăn. Cái đèn pin đâu rồi?']]],
+3:[
+ [['About me','Hello! My name is Mai. I am eight years old. My favourite colour is blue. Nice to meet you!','Xin chào! Tớ tên là Mai. Tớ tám tuổi. Màu tớ thích nhất là xanh dương. Rất vui được gặp bạn!']],
+ [['My toys','This is my doll. This is my teddy bear. That is my kite. I like my toys very much.','Đây là búp bê của tớ. Đây là gấu bông của tớ. Kia là con diều của tớ. Tớ rất thích đồ chơi của tớ.']],
+ [['My school things','This is my pencil case. My pen is in the pencil case. That is his ruler. That is her book.','Đây là hộp bút của tớ. Bút của tớ ở trong hộp bút. Kia là thước của bạn ấy. Kia là sách của bạn ấy.']],
+ [['My family','This is my family. This is my mom and this is my dad. I have a sister. My grandma is kind.','Đây là gia đình tớ. Đây là mẹ và đây là bố tớ. Tớ có một chị gái. Bà tớ rất hiền.']],
+ [['Meet my friend','This is Billy. He is my friend. He is nine years old. Red and white make pink.','Đây là Billy. Cậu ấy là bạn tớ. Cậu ấy chín tuổi. Đỏ và trắng pha thành hồng.']],
+ [['Animals I like','I like monkeys. They are funny. I like birds too. I do not like big elephants.','Tớ thích khỉ. Chúng rất vui nhộn. Tớ cũng thích chim. Tớ không thích những con voi to.']],
+ [['My food','I like rice and meat. I like carrots. I do not like yogurt. I drink milk every day.','Tớ thích cơm và thịt. Tớ thích cà rốt. Tớ không thích sữa chua. Ngày nào tớ cũng uống sữa.']],
+ [['My new friend','I have a new friend. Her name is Rosy. She has long hair. She is tall and thin.','Tớ có một người bạn mới. Bạn ấy tên là Rosy. Bạn ấy có tóc dài. Bạn ấy cao và gầy.']],
+ [['Insects','A bird has feathers. A bee is an insect. It has wings. Do you like fish?','Con chim có lông vũ. Con ong là côn trùng. Nó có cánh. Bạn có thích cá không?']],
+ [['My clothes','I am wearing a blue skirt. I am wearing a white shirt. My brother is wearing jeans and boots.','Tớ đang mặc váy xanh. Tớ đang mặc áo sơ mi trắng. Anh tớ đang mặc quần bò và đi bốt.']],
+ [['At home now','It is Sunday. I am dancing with Dad. Mom is singing. My brother is watching TV.','Hôm nay là Chủ nhật. Tớ đang nhảy cùng bố. Mẹ đang hát. Anh tớ đang xem ti vi.']],
+ [['I can','I can run fast. I can ride a bike. My sister can read and write. She can not swim.','Tớ chạy được nhanh. Tớ biết đi xe đạp. Em gái tớ biết đọc và viết. Em ấy chưa biết bơi.']],
+ [['At the museum','We are at the museum. It is great. May I take a photo? Yes, you may.','Chúng tớ đang ở bảo tàng. Nó thật tuyệt. Con chụp ảnh được không ạ? Được, con chụp đi.']],
+ [['My bedroom','This is my bedroom. There is a bed. There is a pillow on the bed. There are twelve books on the shelf.','Đây là phòng ngủ của tớ. Có một cái giường. Có một cái gối trên giường. Có mười hai quyển sách trên giá.']],
+ [['Our classroom','This is our classroom. These are our tables. Those are our computers. There is a big board.','Đây là lớp học của chúng tớ. Đây là bàn của chúng tớ. Kia là máy tính của chúng tớ. Có một cái bảng lớn.']],
+ [['Five senses','I see with my eyes. I hear with my ears. I smell with my nose. I taste with my tongue.','Tớ nhìn bằng mắt. Tớ nghe bằng tai. Tớ ngửi bằng mũi. Tớ nếm bằng lưỡi.']]],
+4:[
+ [['My friends','I have many friends. Mai is from Viet Nam. Tom is from Britain. Akiko is from Japan. We are good friends.','Tớ có nhiều bạn. Mai đến từ Việt Nam. Tom đến từ Anh. Akiko đến từ Nhật Bản. Chúng tớ là bạn tốt.']],
+ [['My day','I get up at six o\'clock. I have breakfast at half past six. I go to school at seven. I go to bed at nine.','Tớ thức dậy lúc sáu giờ. Tớ ăn sáng lúc sáu rưỡi. Tớ đi học lúc bảy giờ. Tớ đi ngủ lúc chín giờ.']],
+ [['My week','I go to school from Monday to Friday. I study English on Tuesdays. On Saturdays, I help my parents. On Sundays, I visit my grandparents.','Tớ đi học từ thứ Hai đến thứ Sáu. Tớ học tiếng Anh vào thứ Ba. Thứ Bảy, tớ giúp bố mẹ. Chủ nhật, tớ thăm ông bà.']],
+ [['My birthday','My birthday is in June. I have a party with my friends. We eat chips and grapes. We drink lemonade. It is fun.','Sinh nhật tớ vào tháng Sáu. Tớ tổ chức tiệc với các bạn. Chúng tớ ăn khoai tây chiên và nho. Chúng tớ uống nước chanh. Thật vui.']],
+ [['Things I can do','I can swim and I can draw. I can not ride a horse. My sister can dance. My brother can play the guitar.','Tớ biết bơi và biết vẽ. Tớ không biết cưỡi ngựa. Chị tớ biết múa. Anh tớ biết chơi đàn ghi-ta.']],
+ [['My school','This is my school. It is big and beautiful. There is a library and a computer room. The playground is in front of the school.','Đây là trường tớ. Trường to và đẹp. Có thư viện và phòng máy tính. Sân chơi ở phía trước trường.']],
+ [['My subjects','I have Maths and English today. My favourite subject is Science. I like it because it is interesting. I have Art on Fridays.','Hôm nay tớ có Toán và Tiếng Anh. Môn tớ thích nhất là Khoa học. Tớ thích vì nó thú vị. Tớ có môn Mĩ thuật vào thứ Sáu.']],
+ [['Sports day','Our sports day is in November. I am good at running. My friends are playing football. Everyone is happy.','Ngày hội thể thao của trường tớ vào tháng Mười Một. Tớ chạy giỏi. Các bạn tớ đang đá bóng. Mọi người đều vui.']],
+ [['Last summer','Last summer, I was at the beach. I swam in the sea. I built sandcastles with my brother. We took many photos.','Hè năm ngoái, tớ ở bãi biển. Tớ bơi ở biển. Tớ xây lâu đài cát với anh trai. Chúng tớ chụp nhiều ảnh.']],
+ [['My home','I live in a small house in the city. My street is busy and noisy. My grandparents live in a village. It is quiet and beautiful.','Tớ sống trong một ngôi nhà nhỏ ở thành phố. Phố của tớ đông đúc và ồn ào. Ông bà tớ sống ở làng. Ở đó yên tĩnh và đẹp.']],
+ [['Jobs','My father is a farmer. He works on the farm. My mother is a nurse. She works in a hospital. I want to be a teacher.','Bố tớ là nông dân. Bố làm việc ở nông trại. Mẹ tớ là y tá. Mẹ làm việc ở bệnh viện. Tớ muốn làm giáo viên.']],
+ [['Appearance','My best friend is Nam. He is tall and slim. He has short black hair and big eyes. He is very friendly.','Bạn thân nhất của tớ là Nam. Cậu ấy cao và gầy. Cậu ấy có tóc đen ngắn và mắt to. Cậu ấy rất thân thiện.']],
+ [['Our weekends','At the weekend, my family is busy. I do morning exercise. My mother cooks dinner. My father waters the flowers. On Sundays, we go to the cinema.','Cuối tuần, gia đình tớ bận rộn. Tớ tập thể dục buổi sáng. Mẹ nấu bữa tối. Bố tưới hoa. Chủ nhật, cả nhà đi xem phim.']],
+ [['The weather','What is the weather like today? It is sunny and hot. Yesterday it was rainy and cold. I like sunny days.','Hôm nay thời tiết thế nào? Trời nắng và nóng. Hôm qua trời mưa và lạnh. Tớ thích những ngày nắng.']],
+ [['Shopping','I am at the shopping centre with my mother. I want to buy a jacket. How much is the T-shirt? It is seventy thousand dong.','Tớ đang ở trung tâm mua sắm với mẹ. Tớ muốn mua một chiếc áo khoác. Cái áo phông giá bao nhiêu? Nó giá bảy mươi nghìn đồng.']],
+ [['Animals and camp','I like animals. The kangaroo can jump. The monkey can climb. At the summer camp, we put up a tent and sing songs.','Tớ thích động vật. Con chuột túi biết nhảy. Con khỉ biết leo trèo. Ở trại hè, chúng tớ dựng lều và hát.']]],
+5:[
+ [['All about me','My name is Lan. I am in Class 5C. I live in the countryside with my family. I like playing table tennis. My favourite animal is the dolphin.','Tớ tên là Lan. Tớ học lớp 5C. Tớ sống ở vùng quê cùng gia đình. Tớ thích chơi bóng bàn. Con vật tớ yêu thích là cá heo.']],
+ [['Our home','I live in a flat in a tall building. My address is twenty-three Green Street. The building has many floors. I can see the whole city from my window.','Tớ sống trong một căn hộ ở tòa nhà cao. Địa chỉ của tớ là số hai mươi ba phố Green. Tòa nhà có nhiều tầng. Tớ nhìn thấy cả thành phố từ cửa sổ.']],
+ [['My foreign friends','I have two foreign friends. Jack is Australian. He is active and friendly. Yumi is Japanese. She is clever and kind.','Tớ có hai người bạn nước ngoài. Jack là người Úc. Cậu ấy năng động và thân thiện. Yumi là người Nhật. Bạn ấy thông minh và tốt bụng.']],
+ [['My free time','In my free time, I usually ride my bike. I sometimes watch cartoons. My sister always plays the violin. We often go for a walk after dinner.','Lúc rảnh, tớ thường đạp xe. Thỉnh thoảng tớ xem phim hoạt hình. Chị tớ luôn chơi vi-ô-lông. Chúng tớ hay đi dạo sau bữa tối.']],
+ [['My future job','I would like to be a firefighter in the future. I want to help people. My friend would like to be a reporter. She wants to report the news.','Tương lai tớ muốn làm lính cứu hỏa. Tớ muốn giúp đỡ mọi người. Bạn tớ muốn làm phóng viên. Bạn ấy muốn đưa tin tức.']],
+ [['Our school rooms','Our school has four floors. The library is on the ground floor. The computer room is on the third floor. Go upstairs and it is on your left.','Trường tớ có bốn tầng. Thư viện ở tầng trệt. Phòng máy tính ở tầng ba. Đi lên cầu thang và nó ở bên trái bạn.']],
+ [['School activities','I like doing projects at school. It is fun and good for group work. My friend likes solving maths problems. He thinks it is useful.','Tớ thích làm dự án ở trường. Nó vui và tốt cho làm việc nhóm. Bạn tớ thích giải toán. Cậu ấy nghĩ nó có ích.']],
+ [['In our classroom','There are many things in our classroom. The crayons are beside the books. The map is above the board. My school bag is under the desk.','Lớp tớ có nhiều đồ vật. Bút sáp ở cạnh những quyển sách. Bản đồ ở phía trên bảng. Cặp của tớ ở dưới bàn.']],
+ [['Outdoor activities','Yesterday we were at the campsite. We listened to music and played chess. In the evening, we danced around the campfire. It was great.','Hôm qua chúng tớ ở khu cắm trại. Chúng tớ nghe nhạc và chơi cờ. Buổi tối, chúng tớ nhảy quanh lửa trại. Thật tuyệt.']],
+ [['Our school trip','Last month, our class went to Hoan Kiem Lake. We walked around the lake. We visited the old buildings. We played games and took photos.','Tháng trước, lớp tớ đi Hồ Hoàn Kiếm. Chúng tớ đi dạo quanh hồ. Chúng tớ thăm các tòa nhà cổ. Chúng tớ chơi trò chơi và chụp ảnh.']],
+ [['Family time','Last summer, my family went to the beach. We walked on the beach and collected seashells. We ate seafood. I bought souvenirs for my friends.','Hè năm ngoái, gia đình tớ đi biển. Chúng tớ đi dạo trên bãi biển và nhặt vỏ sò. Chúng tớ ăn hải sản. Tớ mua quà lưu niệm cho các bạn.']],
+ [['Our Tet holiday','Tet is coming soon. We will decorate the house. My mother will make banh chung. My father will buy a branch of peach blossoms. We will watch the fireworks show.','Tết sắp đến rồi. Chúng tớ sẽ trang trí nhà cửa. Mẹ sẽ gói bánh chưng. Bố sẽ mua một cành đào. Chúng tớ sẽ xem bắn pháo hoa.']],
+ [['Special days','I love the Mid-Autumn Festival. We carry lanterns and eat mooncakes. On Children\'s Day, we have a party. We eat pizza and drink apple juice.','Tớ yêu Tết Trung thu. Chúng tớ rước đèn và ăn bánh trung thu. Vào ngày Quốc tế Thiếu nhi, chúng tớ có tiệc. Chúng tớ ăn pizza và uống nước táo.']],
+ [['Staying healthy','I want to stay healthy. I do morning exercise every day. I eat vegetables and drink fresh juice. I play sports three times a week.','Tớ muốn khỏe mạnh. Ngày nào tớ cũng tập thể dục buổi sáng. Tớ ăn rau và uống nước ép tươi. Tớ chơi thể thao ba lần một tuần.']],
+ [['Our health','Yesterday I had a headache and a sore throat. My mother said I should have a rest. I drank warm water and went to bed early. Today I feel better.','Hôm qua tớ bị đau đầu và đau họng. Mẹ bảo tớ nên nghỉ ngơi. Tớ uống nước ấm và đi ngủ sớm. Hôm nay tớ thấy khỏe hơn.']],
+ [['Seasons','There are four seasons in Ha Noi. It is warm in spring. It is hot in summer. It is cool in autumn. It is cold in winter.','Hà Nội có bốn mùa. Mùa xuân ấm áp. Mùa hè nóng. Mùa thu mát mẻ. Mùa đông lạnh.']],
+ [['A story','I like the story of the hare and the tortoise. The hare ran fast but he slept under a tree. The tortoise walked slowly. In the end, the tortoise won the race.','Tớ thích câu chuyện thỏ và rùa. Thỏ chạy nhanh nhưng lại ngủ dưới gốc cây. Rùa đi chậm rãi. Cuối cùng rùa thắng cuộc đua.']],
+ [['Transport','I want to visit the Dragon Bridge. I will go there by bus. My friend wants to visit Ngo Mon Square. She will go there by taxi.','Tớ muốn thăm Cầu Rồng. Tớ sẽ đi đến đó bằng xe buýt. Bạn tớ muốn thăm Quảng trường Ngọ Môn. Bạn ấy sẽ đi bằng taxi.']],
+ [['Places of interest','Last year, I visited Ba Na Hills. I think it is beautiful and exciting. It is about forty kilometres from Da Nang. I want to go there again.','Năm ngoái, tớ đã đến Bà Nà. Tớ nghĩ nơi đó đẹp và thú vị. Nó cách Đà Nẵng khoảng bốn mươi ki-lô-mét. Tớ muốn đến đó lần nữa.']],
+ [['Summer plans','This summer, I am going to visit Phu Quoc Island. I am going to practise swimming. My brother is going to join a music club. We are going to have a great summer.','Hè này, tớ sẽ đi đảo Phú Quốc. Tớ sẽ luyện bơi. Anh tớ sẽ tham gia câu lạc bộ âm nhạc. Chúng tớ sẽ có một mùa hè tuyệt vời.']]]};
+/* đoạn văn chung theo chủ đề để luyện thêm (mọi Unit), khó dần theo lớp */
+const PARA_EXTRA={
+ me:[[0,1,'Me','I am a boy. I am five. I like red.','Tớ là bạn trai. Tớ năm tuổi. Tớ thích màu đỏ.'],[2,3,'Introduce myself','Hello! My name is Nam. I am eight years old. I like football. I have a dog.','Xin chào! Tớ tên là Nam. Tớ tám tuổi. Tớ thích bóng đá. Tớ có một con chó.'],[4,5,'Introduce myself','Hello, everyone! My name is Minh and I am ten years old. I am in Class 5A at Hong Hoa Primary School. In my free time, I like reading books and playing badminton.','Chào mọi người! Tớ tên là Minh, tớ mười tuổi. Tớ học lớp 5A trường Tiểu học Hồng Hoa. Lúc rảnh, tớ thích đọc sách và chơi cầu lông.']],
+ day:[[1,3,'My morning','I get up early. I wash my face. I eat breakfast. I go to school.','Tớ dậy sớm. Tớ rửa mặt. Tớ ăn sáng. Tớ đi học.'],[4,5,'My daily routine','I usually get up at six. After breakfast, I walk to school with my friends. In the afternoon, I do my homework. In the evening, I read books and go to bed at half past nine.','Tớ thường dậy lúc sáu giờ. Sau bữa sáng, tớ đi bộ đến trường cùng các bạn. Buổi chiều, tớ làm bài tập. Buổi tối, tớ đọc sách và đi ngủ lúc chín rưỡi.']]};
+/* ĐOẠN VĂN THỨ HAI cho mỗi Unit (lớp 2–5): kể về bản thân con theo chủ đề của bài */
+const PARA2={
+2:[['My party','I like parties. At my party, I eat pizza. My friends sing a song. We are happy.','Tớ thích tiệc. Ở bữa tiệc của tớ, tớ ăn pizza. Các bạn hát một bài. Chúng tớ rất vui.'],
+ ['My kite','This is my kite. It is red and yellow. I fly my kite in the park. It is fun.','Đây là con diều của tớ. Nó màu đỏ và vàng. Tớ thả diều ở công viên. Thật vui.'],
+ ['At the beach','I go to the beach in summer. I swim in the sea. I play in the sand. I love the beach.','Mùa hè tớ đi biển. Tớ bơi ở biển. Tớ chơi trên cát. Tớ yêu bãi biển.'],
+ ['My grandparents','My grandparents live in the countryside. There is a river near their house. I see rabbits and ducks. I like it there.','Ông bà tớ sống ở vùng quê. Có một con sông gần nhà ông bà. Tớ thấy thỏ và vịt. Tớ thích ở đó.'],
+ ['My classroom','My classroom is big. There are many desks. My teacher is kind. I like my class.','Lớp học của tớ rộng. Có nhiều bàn học. Cô giáo tớ rất hiền. Tớ thích lớp của tớ.'],
+ ['Farm animals','I like farm animals. The cow is big. The hen is small. The fox is clever.','Tớ thích các con vật ở trang trại. Con bò thì to. Con gà mái thì nhỏ. Con cáo thì thông minh.'],
+ ['My breakfast','I have breakfast at home. I drink orange juice. I eat bread with jam. It is yummy.','Tớ ăn sáng ở nhà. Tớ uống nước cam. Tớ ăn bánh mì với mứt. Ngon lắm.'],
+ ['Sports I like','I like volleyball. I play it with my friends. My brother likes football. We play after school.','Tớ thích bóng chuyền. Tớ chơi với các bạn. Anh tớ thích bóng đá. Chúng tớ chơi sau giờ học.'],
+ ['Shopping with Mom','I go to the store with my mom. She buys some yogurt. I want a yellow yo-yo. Mom says yes.','Tớ đi cửa hàng với mẹ. Mẹ mua sữa chua. Tớ muốn một chiếc yo-yo màu vàng. Mẹ đồng ý.'],
+ ['My favourite animal','My favourite animal is the zebra. It is black and white. It can run fast. I see it at the zoo.','Con vật tớ thích nhất là ngựa vằn. Nó có màu đen và trắng. Nó chạy rất nhanh. Tớ thấy nó ở sở thú.'],
+ ['After school','After school, I go to the playground. I go down the slide. I play on the swing. Then I go home.','Sau giờ học, tớ ra sân chơi. Tớ chơi cầu trượt. Tớ chơi xích đu. Sau đó tớ về nhà.'],
+ ['At a café','I am at a café with my dad. I would like a cake. Dad would like a cup of tea. We sit near the window.','Tớ ở quán với bố. Tớ muốn một cái bánh. Bố muốn một cốc trà. Chúng tớ ngồi gần cửa sổ.'],
+ ['Counting','I can count to twenty. I have thirteen stickers. My sister has fifteen stickers. We have a lot!','Tớ đếm được đến hai mươi. Tớ có mười ba hình dán. Em tớ có mười lăm hình dán. Chúng tớ có nhiều lắm!'],
+ ['My brother','This is my brother. He is ten years old. He is tall. He helps me with my homework.','Đây là anh trai tớ. Anh ấy mười tuổi. Anh ấy cao. Anh ấy giúp tớ làm bài tập.'],
+ ['My clothes','I like my new shoes. They are white. I have a blue shirt. I wear it to school.','Tớ thích đôi giày mới. Nó màu trắng. Tớ có một áo sơ mi xanh. Tớ mặc nó đi học.'],
+ ['Camping','I go camping with my family. We sleep in a tent. At night, we look at the stars. It is great.','Tớ đi cắm trại với gia đình. Chúng tớ ngủ trong lều. Buổi tối, chúng tớ ngắm sao. Thật tuyệt.']],
+3:[['My best friend','My best friend is Nam. He is eight years old. His favourite colour is green. We go to school together.','Bạn thân nhất của tớ là Nam. Cậu ấy tám tuổi. Màu cậu ấy thích nhất là xanh lá. Chúng tớ đi học cùng nhau.'],
+ ['My favourite toy','My favourite toy is a robot. It is big and grey. It can walk and talk. I play with it every day.','Đồ chơi tớ thích nhất là một con rô-bốt. Nó to và màu xám. Nó biết đi và nói. Ngày nào tớ cũng chơi với nó.'],
+ ['My school bag','This is my school bag. It is blue. In my bag, there are three books and a pencil case. My bag is not heavy.','Đây là cặp sách của tớ. Nó màu xanh. Trong cặp có ba quyển sách và một hộp bút. Cặp của tớ không nặng.'],
+ ['My big family','There are five people in my family. My dad is a doctor. My mom is a teacher. I have a brother and a sister.','Gia đình tớ có năm người. Bố tớ là bác sĩ. Mẹ tớ là giáo viên. Tớ có một anh trai và một em gái.'],
+ ['My colours','I like painting. I mix blue and yellow. They make green. My picture is very colourful.','Tớ thích vẽ màu. Tớ pha màu xanh dương và vàng. Chúng thành màu xanh lá. Bức tranh của tớ rất nhiều màu.'],
+ ['At the zoo','I go to the zoo with my class. I see big elephants and funny monkeys. The giraffes are very tall. I like the zoo.','Tớ đi sở thú với lớp. Tớ thấy những con voi to và những chú khỉ vui nhộn. Những con hươu cao cổ rất cao. Tớ thích sở thú.'],
+ ['My lunch','For lunch, I have rice, fish and vegetables. I drink water. I do not eat sweets. I want to be healthy.','Bữa trưa tớ ăn cơm, cá và rau. Tớ uống nước. Tớ không ăn đồ ngọt. Tớ muốn khỏe mạnh.'],
+ ['About me','I have short black hair and brown eyes. I am not tall. I am friendly. I like making new friends.','Tớ có tóc đen ngắn và mắt nâu. Tớ không cao. Tớ thân thiện. Tớ thích kết bạn mới.'],
+ ['Animals I know','A fish can swim. A bird can fly. A frog can jump. I like all animals.','Con cá biết bơi. Con chim biết bay. Con ếch biết nhảy. Tớ thích tất cả các con vật.'],
+ ['What I wear','Today it is cold. I am wearing a jacket and a scarf. My sister is wearing a hat. We are warm.','Hôm nay trời lạnh. Tớ đang mặc áo khoác và quàng khăn. Em gái tớ đang đội mũ. Chúng tớ thấy ấm.'],
+ ['This evening','It is seven o\'clock in the evening. My dad is cooking. My mom is reading a book. I am doing my homework.','Bây giờ là bảy giờ tối. Bố tớ đang nấu ăn. Mẹ tớ đang đọc sách. Tớ đang làm bài tập.'],
+ ['My talents','I can sing and dance. I can not play the piano. My friend can play football very well. We help each other.','Tớ biết hát và múa. Tớ không biết chơi đàn piano. Bạn tớ chơi bóng đá rất giỏi. Chúng tớ giúp đỡ nhau.'],
+ ['A day out','We are at the park. My brother is flying a kite. I am taking photos. May I have an ice cream, Mom?','Chúng tớ đang ở công viên. Anh tớ đang thả diều. Tớ đang chụp ảnh. Mẹ ơi, con ăn kem được không ạ?'],
+ ['My living room','There is a big sofa in my living room. There are two lamps. There is a TV on the table. I like watching cartoons there.','Phòng khách nhà tớ có một chiếc ghế sô-pha to. Có hai cái đèn. Có một cái ti vi trên bàn. Tớ thích xem phim hoạt hình ở đó.'],
+ ['Our school','Our school is big. There are many classrooms. These are our books. Those are our teachers.','Trường tớ rất rộng. Có nhiều phòng học. Đây là sách của chúng tớ. Kia là các thầy cô của chúng tớ.'],
+ ['I use my senses','I can see the flowers. I can smell the cake. I can hear the birds. I can touch the soft cat.','Tớ nhìn thấy những bông hoa. Tớ ngửi thấy mùi bánh. Tớ nghe thấy tiếng chim. Tớ chạm vào chú mèo mềm mại.']],
+4:[['My pen friend','I have a pen friend. His name is Tony. He is from Australia. He is nine years old. He likes football and swimming.','Tớ có một người bạn qua thư. Cậu ấy tên Tony. Cậu ấy đến từ Úc. Cậu ấy chín tuổi. Cậu ấy thích bóng đá và bơi lội.'],
+ ['My morning','I get up at half past six every morning. I brush my teeth and wash my face. Then I have breakfast with my family. I go to school at seven o\'clock.','Tớ dậy lúc sáu rưỡi mỗi sáng. Tớ đánh răng và rửa mặt. Sau đó tớ ăn sáng cùng gia đình. Tớ đi học lúc bảy giờ.'],
+ ['My weekend','I do not go to school at the weekend. On Saturday morning, I clean my room. In the afternoon, I play with my friends. On Sunday, I go to the park with my family.','Cuối tuần tớ không đi học. Sáng thứ Bảy, tớ dọn phòng. Buổi chiều, tớ chơi với các bạn. Chủ nhật, tớ đi công viên với gia đình.'],
+ ['My mother\'s birthday','My mother\'s birthday is in March. I make a card for her. My father buys flowers. We have a big dinner together.','Sinh nhật mẹ tớ vào tháng Ba. Tớ làm một tấm thiệp tặng mẹ. Bố tớ mua hoa. Cả nhà ăn một bữa tối thật to.'],
+ ['My friend can','My friend Lan is very clever. She can play the piano. She can draw pictures. But she can not swim. I want to teach her.','Bạn tớ Lan rất giỏi. Bạn ấy biết chơi đàn piano. Bạn ấy biết vẽ tranh. Nhưng bạn ấy không biết bơi. Tớ muốn dạy bạn ấy.'],
+ ['My classroom','My classroom is on the second floor. It is big and bright. There are thirty desks. There is a map on the wall.','Lớp tớ ở tầng hai. Lớp rộng và sáng. Có ba mươi cái bàn. Có một tấm bản đồ trên tường.'],
+ ['My timetable','Today is Monday. I have Vietnamese, Maths and English. I like English because I can sing English songs. I do not have Music today.','Hôm nay là thứ Hai. Tớ có môn Tiếng Việt, Toán và Tiếng Anh. Tớ thích Tiếng Anh vì tớ được hát bài hát tiếng Anh. Hôm nay tớ không có môn Âm nhạc.'],
+ ['My favourite sport','My favourite sport is badminton. I play it with my father every evening. I am good at it. Next week, I will play in a school competition.','Môn thể thao tớ thích nhất là cầu lông. Tối nào tớ cũng chơi với bố. Tớ chơi giỏi. Tuần sau, tớ sẽ thi đấu ở trường.'],
+ ['My holiday','Last week, I was in Da Lat with my family. The weather was cool. We visited a flower garden. I ate strawberries. It was a great holiday.','Tuần trước, tớ ở Đà Lạt với gia đình. Thời tiết mát mẻ. Chúng tớ thăm một vườn hoa. Tớ ăn dâu tây. Đó là một kì nghỉ tuyệt vời.'],
+ ['My street','I live on a quiet street. There are many trees. There is a small shop near my house. My neighbours are very friendly.','Tớ sống trên một con phố yên tĩnh. Có nhiều cây xanh. Có một cửa hàng nhỏ gần nhà tớ. Hàng xóm của tớ rất thân thiện.'],
+ ['My dream job','I want to be a doctor. Doctors work in hospitals. They help sick people. I think it is a great job.','Tớ muốn làm bác sĩ. Bác sĩ làm việc ở bệnh viện. Họ giúp những người bị ốm. Tớ nghĩ đó là một nghề tuyệt vời.'],
+ ['My teacher','My English teacher is Ms Hoa. She is young and pretty. She has long hair. She is very kind and funny.','Cô giáo Tiếng Anh của tớ là cô Hoa. Cô trẻ và xinh. Cô có mái tóc dài. Cô rất hiền và vui tính.'],
+ ['Sunday at home','On Sunday, my family stays at home. My father cleans the house. My mother and I cook lunch. In the evening, we watch a film together.','Chủ nhật, cả nhà tớ ở nhà. Bố dọn nhà. Mẹ và tớ nấu bữa trưa. Buổi tối, cả nhà cùng xem phim.'],
+ ['Rainy days','I do not like rainy days. I can not play outside. I stay at home and read comics. I like sunny days better.','Tớ không thích những ngày mưa. Tớ không ra ngoài chơi được. Tớ ở nhà đọc truyện tranh. Tớ thích ngày nắng hơn.'],
+ ['At the market','I go to the market with my grandmother. She buys some fish and vegetables. I want some bananas. They are twenty thousand dong.','Tớ đi chợ với bà. Bà mua cá và rau. Tớ muốn mua chuối. Chuối giá hai mươi nghìn đồng.'],
+ ['At the zoo','Last Sunday, I went to the zoo. I saw tigers and bears. The monkeys were very funny. They were swinging in the trees.','Chủ nhật trước, tớ đi sở thú. Tớ thấy hổ và gấu. Những chú khỉ rất vui nhộn. Chúng đang đu trên cây.']],
+5:[['My hobbies','I have many hobbies. I like reading books about animals. I also like playing chess with my grandfather. At the weekend, I often go swimming with my friends. My hobbies make me happy.','Tớ có nhiều sở thích. Tớ thích đọc sách về động vật. Tớ cũng thích chơi cờ với ông. Cuối tuần, tớ thường đi bơi với các bạn. Sở thích làm tớ vui.'],
+ ['My dream house','In the future, I want to live in a house near the sea. It will have a big garden with many flowers. My bedroom will be on the second floor. I will see the sea from my window.','Trong tương lai, tớ muốn sống trong một ngôi nhà gần biển. Ngôi nhà sẽ có một khu vườn lớn với nhiều hoa. Phòng ngủ của tớ sẽ ở tầng hai. Tớ sẽ nhìn thấy biển từ cửa sổ.'],
+ ['A friend from abroad','My friend Anna is from England. She is tall and has blue eyes. She is very kind and hard-working. She is learning Vietnamese. We often talk on the computer.','Bạn tớ Anna đến từ nước Anh. Bạn ấy cao và có mắt xanh. Bạn ấy rất tốt bụng và chăm chỉ. Bạn ấy đang học tiếng Việt. Chúng tớ thường nói chuyện qua máy tính.'],
+ ['My week','I usually go to the library on Mondays. On Wednesdays, I have a drawing class. I sometimes play football on Fridays. I never stay up late on school days.','Tớ thường đến thư viện vào thứ Hai. Thứ Tư, tớ có lớp vẽ. Thỉnh thoảng tớ đá bóng vào thứ Sáu. Tớ không bao giờ thức khuya vào ngày đi học.'],
+ ['My future job','I would like to be a pilot. I want to fly planes around the world. I will study English hard. I will also keep fit and do exercise every day.','Tớ muốn làm phi công. Tớ muốn lái máy bay đi khắp thế giới. Tớ sẽ học tiếng Anh chăm chỉ. Tớ cũng sẽ giữ dáng và tập thể dục mỗi ngày.'],
+ ['Where is the library?','Excuse me, where is the library? Go along the corridor and turn right. The library is next to the music room. It is on the first floor.','Xin lỗi, thư viện ở đâu ạ? Đi dọc hành lang rồi rẽ phải. Thư viện ở cạnh phòng âm nhạc. Nó ở tầng một.'],
+ ['My favourite activity','My favourite activity at school is reading books in the library. I think it is interesting. I can learn many new things. I read two books every week.','Hoạt động ở trường tớ thích nhất là đọc sách ở thư viện. Tớ nghĩ nó thú vị. Tớ có thể học nhiều điều mới. Mỗi tuần tớ đọc hai quyển sách.'],
+ ['My bedroom','My bedroom is small but tidy. My bed is next to the window. There is a desk in front of the bed. My books are on the shelf above the desk.','Phòng ngủ của tớ nhỏ nhưng gọn gàng. Giường của tớ ở cạnh cửa sổ. Có một cái bàn ở phía trước giường. Sách của tớ ở trên giá phía trên bàn.'],
+ ['Last weekend','Last weekend, I went to the countryside. I helped my grandparents in the garden. We picked fruit and fed the chickens. In the evening, we had dinner in the yard.','Cuối tuần trước, tớ về quê. Tớ giúp ông bà làm vườn. Chúng tớ hái quả và cho gà ăn. Buổi tối, cả nhà ăn tối ngoài sân.'],
+ ['A trip to the museum','Last Friday, my class visited the History Museum. We saw many old things. Our teacher told us interesting stories. I learned a lot about our country.','Thứ Sáu tuần trước, lớp tớ đi thăm Bảo tàng Lịch sử. Chúng tớ thấy nhiều đồ vật cổ. Cô giáo kể cho chúng tớ nhiều câu chuyện thú vị. Tớ học được nhiều điều về đất nước mình.'],
+ ['A family trip','Last month, my family went to Ha Long Bay. We went there by coach. We took a boat around the islands. The view was amazing. I took many photos.','Tháng trước, gia đình tớ đi Vịnh Hạ Long. Chúng tớ đi bằng xe khách. Chúng tớ đi thuyền quanh các đảo. Cảnh đẹp tuyệt vời. Tớ chụp rất nhiều ảnh.'],
+ ['New Year plans','Next Tet, I will visit my grandparents. I will wear new clothes. I will get lucky money. I will help my mother clean the house before Tet.','Tết tới, tớ sẽ thăm ông bà. Tớ sẽ mặc quần áo mới. Tớ sẽ được lì xì. Tớ sẽ giúp mẹ dọn nhà trước Tết.'],
+ ['Teachers\' Day','Teachers\' Day is on the twentieth of November. We make cards for our teachers. We sing songs and give them flowers. Our teachers are very happy.','Ngày Nhà giáo là ngày hai mươi tháng Mười Một. Chúng tớ làm thiệp tặng thầy cô. Chúng tớ hát và tặng hoa thầy cô. Các thầy cô rất vui.'],
+ ['Healthy habits','To stay healthy, I go to bed early. I eat a lot of fruit and vegetables. I do not drink soft drinks. I walk to school every day.','Để khỏe mạnh, tớ đi ngủ sớm. Tớ ăn nhiều hoa quả và rau. Tớ không uống nước ngọt có ga. Ngày nào tớ cũng đi bộ đến trường.'],
+ ['When I am ill','Last week, I had a fever. I felt very tired. My mother took me to the doctor. The doctor said I should take medicine and rest. Now I am fine.','Tuần trước, tớ bị sốt. Tớ thấy rất mệt. Mẹ đưa tớ đi khám. Bác sĩ bảo tớ nên uống thuốc và nghỉ ngơi. Bây giờ tớ khỏe rồi.'],
+ ['My favourite season','My favourite season is autumn. The weather is cool and windy. I can fly kites in the field. We also have the Mid-Autumn Festival in autumn.','Mùa tớ thích nhất là mùa thu. Thời tiết mát mẻ và có gió. Tớ có thể thả diều ngoài cánh đồng. Mùa thu còn có Tết Trung thu.'],
+ ['My favourite character','My favourite character is Tam in the story Tam and Cam. She is kind and gentle. She works very hard. In the end, she becomes a queen.','Nhân vật tớ thích nhất là Tấm trong truyện Tấm Cám. Cô ấy hiền lành và dịu dàng. Cô ấy làm việc rất chăm chỉ. Cuối cùng, cô ấy trở thành hoàng hậu.'],
+ ['How I go to school','I live near my school. I usually go to school on foot. Sometimes my father takes me there by motorbike. My friend lives far away, so she goes by bus.','Tớ sống gần trường. Tớ thường đi bộ đến trường. Thỉnh thoảng bố chở tớ bằng xe máy. Bạn tớ sống xa nên bạn ấy đi xe buýt.'],
+ ['A place I love','I love Hoi An Old Town. It is very beautiful at night with many lanterns. The food there is delicious. I think everyone should visit it.','Tớ yêu Phố cổ Hội An. Ban đêm phố rất đẹp với nhiều đèn lồng. Đồ ăn ở đó rất ngon. Tớ nghĩ ai cũng nên đến thăm.'],
+ ['My summer holiday','This summer, I am going to learn to swim. I am going to read many books. I am also going to visit my aunt in Ho Chi Minh City. I think it will be fun.','Hè này, tớ sẽ học bơi. Tớ sẽ đọc nhiều sách. Tớ cũng sẽ thăm dì ở Thành phố Hồ Chí Minh. Tớ nghĩ sẽ rất vui.']]};
+for(const g in PARA2){(PARA[g]||[]).forEach((L,u)=>{if(PARA2[g][u])L.push(PARA2[g][u]);});}
+/* ================= LUYỆN NÓI ĐOẠN VĂN + NÓI TỪNG CÂU (tiếng Anh) ================= */
+const PA_CSS=`
+html body .en-tools{flex-wrap:wrap}
+html body .en-tools .tool-btn.ht-pa{background:var(--hv-navy,#1E3A8A);color:#fff;border-color:transparent}
+html body .en-tools .tool-btn.ht-pa small{color:#C7D7F5}
+.pa-page{padding-bottom:30px}
+.pa-page .lead{margin:2px 0 10px;color:var(--muted);font-weight:700}
+.pa-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.pa-tabs::-webkit-scrollbar{display:none}
+.pa-tabs .voc-chip{flex:none}
+.pa-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 12px}
+.pa-seg button{border:2px solid var(--line);background:var(--card);border-radius:14px;padding:8px 4px;font:inherit;font-weight:800;font-size:13px;color:var(--ink);line-height:1.2;cursor:pointer}
+.pa-seg button small{display:block;font-weight:700;color:var(--muted);font-size:11px;margin-top:2px}
+.pa-seg button.on{border-color:var(--hv-pri,#2563EB);background:var(--hv-pri,#2563EB);color:#fff}
+.pa-seg button.on small{color:#DCE7FB}
+.pa-card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px;margin:0 0 12px}
+.pa-card h3{margin:0 0 6px;font-size:18px;display:flex;align-items:center;gap:8px}
+.pa-card h3 .spk{margin-left:auto}
+.pa-text{font-size:19px;line-height:1.75;font-weight:700}
+.pa-text .w-hide{display:inline-block;min-width:2.2em;border-bottom:3px solid var(--hv-pri,#2563EB);color:transparent;line-height:1.1;user-select:none}
+.pa-text .w-hide.w-ok,.pa-text .w-hide.w-near{color:inherit;border-bottom-color:transparent}
+.pa-vi{margin:8px 0 0;color:var(--muted);font-size:14px;font-weight:600;line-height:1.45}
+.pa-sents{display:grid;gap:8px;margin:0 0 12px}
+.pa-sent{display:flex;align-items:center;gap:8px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 10px}
+.pa-sent .tx{flex:1;min-width:0}
+.pa-sent .tx b{display:block;font-size:16px;line-height:1.35}
+.pa-sent .tx small{display:block;color:var(--muted);font-weight:600;font-size:12.5px;line-height:1.3}
+.pa-sent .no{flex:none;width:26px;height:26px;border-radius:8px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.pa-sent .mini{flex:none;font-size:12px;font-weight:800;color:#C98A00}
+.pa-sent .spk,.pa-sent .rec-btn{flex:none}
+.pa-sent .rec-btn{padding:6px 10px;font-size:14px;min-height:0}
+.pa-sent.on{border-color:var(--hv-pri,#2563EB)}
+.pa-sent .res{flex-basis:100%}
+.pa-sent{flex-wrap:wrap}
+.pa-big{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 10px}
+.pa-big .rec-btn{font-size:18px;padding:12px 22px}
+.pa-big small{color:var(--muted);font-weight:700;text-align:center}
+.pa-live{font-size:13px;font-weight:800;color:var(--hv-pri,#2563EB);min-height:18px;text-align:center}
+.pa-meter{height:8px;border-radius:6px;background:var(--soft);overflow:hidden;width:100%;max-width:320px}
+.pa-meter i{display:block;height:100%;width:0;background:var(--hv-pri,#2563EB);transition:width .3s}
+.pa-hint{font-size:13px;color:var(--muted);font-weight:600;margin:0 0 10px;line-height:1.4}
+.pa-badges{display:flex;gap:4px;flex:none}
+.pa-badges i{font-style:normal;font-size:11px;font-weight:800;border-radius:6px;padding:1px 5px;background:var(--soft);color:var(--muted)}
+.pa-badges i.ok{background:#DCFCE7;color:#15803D}
+`;
+const paEl=document.createElement('style');paEl.id='ht-para';paEl.textContent=PA_CSS;document.head.appendChild(paEl);
+window.addEventListener('load',()=>document.head.appendChild(paEl));
+
+const PA_MODES=[['Đọc theo','nhìn đủ chữ'],['Che bớt chữ','nhớ từ còn thiếu'],['Tự nói','theo gợi ý']];
+const paS=()=>{S.para=S.para||{};return S.para;};
+const paSt=id=>{const P=paS();return P[id]||(P[id]={m:[0,0,0],s:{}});};
+/* danh sách đoạn văn của 1 unit (u là số) hoặc của nhóm chủ đề chung ('x') */
+function paList(u){if(u==='x'){const out=[];Object.keys(PARA_EXTRA).forEach(cat=>PARA_EXTRA[cat].forEach((e,i)=>{if(GRADE>=e[0]&&GRADE<=e[1])out.push({id:'x'+cat+i,key:'px'+cat,kk:'k'+i,t:e[2],en:e[3],vi:e[4]});}));return out;}
+  const L=(PARA[GRADE]||[])[u]||[];return L.map((p,k)=>({id:'u'+u+'k'+k,key:'pa'+u,kk:'k'+k,t:p[0],en:p[1],vi:p[2]}));}
+const paSplit=t=>(String(t).match(/[^.!?]+[.!?]+["”’)]*|[^.!?]+$/g)||[t]).map(x=>x.trim()).filter(Boolean);
+function paViSplit(p){const e=paSplit(p.en),v=paSplit(p.vi);return v.length===e.length?v:null;}
+/* sao cho cả đoạn: dễ hơn chấm từng câu một chút (đoạn dài khó đọc hoàn hảo từng từ) */
+const paStars=r=>!r.heard?0:r.r>=.93?5:r.r>=.82?4:r.r>=.65?3:r.r>=.45?2:1;
+function paBest(id){const s=paSt(id);return Math.max(...s.m);}
+function paUnitCount(u){const L=paList(u);let d=0;L.forEach(p=>{if(paBest(p.id)>=3)d++;});return[d,L.length];}
+function paAllCount(){let d=0,t=0;const n=(typeof EN_UNITS!=='undefined'?EN_UNITS.length:0);for(let u=0;u<n;u++){const[a,b]=paUnitCount(u);d+=a;t+=b;}const[a,b]=paUnitCount('x');return[d+a,t+b];}
+
+/* chữ hiển thị: tô màu theo kết quả; mode 1 che ~1/3 từ nội dung (đã nói đúng thì hiện ra) */
+function paHide(text){const toks=String(text).split(/\s+/);let c=0;return toks.map((w,i)=>{const core=w.replace(/[^A-Za-z']/g,'');if(core.length<3||i===0)return false;c++;return c%3===1;});}
+function paMark(text,res,mode){const hide=mode===1?paHide(text):null;const hit=res&&res.hit||new Set(),sim=res&&res.sim||new Map(),se=res&&res.sErr||new Set();const toks=String(text).split(/\s+/);let k=0;
+  return toks.map((w,ti)=>{const n=normEn(w);let c=res?'w-ok':'';n.forEach(()=>{const i=k++;if(!res)return;const v=!hit.has(i)?(se.has(i)?'w-s':'w-miss'):sim.get(i)<1?'w-near':'w-ok';if(v!=='w-ok'&&c!=='w-miss')c=v;});
+    if(res&&res.live&&c!=='w-ok'&&c!=='w-near')c='';
+    if(hide&&hide[ti]){const m=w.match(/^(\W*)(.*?)(\W*)$/);return `${H(m[1])}<span class="w-hide ${c}">${H(m[2])}</span>${H(m[3])}`;}
+    return c?`<span class="${c}">${H(w)}</span>`:H(w);}).join(' ');}
+function paCue(p){const vs=paViSplit(p);return paSplit(p.en).map((s,i)=>{const w=s.split(/\s+/);const st=w.slice(0,Math.min(2,Math.max(1,w.length-2))).join(' ');return `<div class="pa-sent"><span class="no">${i+1}</span><span class="tx"><b>${H(st)} …</b>${vs?`<small>${H(vs[i])}</small>`:''}</span></div>`;}).join('')+(vs?'':`<p class="pa-vi">${H(p.vi)}</p>`);}
+
+/* Ghi âm dài cho cả đoạn: nghe liên tục tới ~2 phút, tự dừng khi con im ~4,5 giây hoặc đã nói đủ. */
+async function recLong(target,cb,btn,onLive){
+  if(REC.active){REC.active.stop();return;}
+  stopVoice();let stream=null,mr=null,chunks=[],srDone=!SR_API,mrDone=true,finished=false,timer=null,silTimer=null,srErr='',fatal=false,userStop=false,srRunning=false,restarts=0,heardAt=0,dropRec=false,micErr='',liveT=0;
+  const segs=[];let sess=[];const t0=Date.now(),maxMs=Math.min(120000,12000+String(target).length*130);
+  AUDIO_REC=true;iosAudioPause();setAudioSession('play-and-record');
+  const relMic=()=>{try{stream&&stream.getTracks().forEach(t=>t.stop());}catch(e){}stream=null;};
+  const finish=()=>{if(finished||!srDone||!mrDone)return;finished=true;clearTimeout(timer);clearTimeout(silTimer);REC.active=null;if(btn)btn.classList.remove('rec-on');relMic();
+    AUDIO_REC=false;setTimeout(()=>{if(!AUDIO_REC)setAudioSession(IS_IOS?'playback':'auto');},300);
+    const url=chunks.length&&!dropRec?URL.createObjectURL(new Blob(chunks,{type:(mr&&mr.mimeType)||'audio/webm'})):null;
+    const alts=srCandidates(segs.concat(sess));
+    if(!SR_API||(srErr&&!alts.length&&srErr!=='no-speech'&&srErr!=='aborted')){cb({noScore:true,url,error:srErr||micErr});return;}
+    const r=scoreSpeech(target,alts);cb({...r,stars:paStars(r),url});};
+  const endAll=()=>{srDone=true;if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(_){mrDone=true;}}finish();};
+  const stopAll=()=>{userStop=true;clearTimeout(silTimer);if(srRunning){try{sr.stop();}catch(e){srRunning=false;endAll();}}else endAll();};
+  const useRec=typeof MediaRecorder!=='undefined'&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&!(SR_API&&recSeq);
+  if(useRec){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});const mt=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'].find(x=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x));mr=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);mrDone=false;mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};mr.onstop=()=>{mrDone=true;finish();};mr.onerror=()=>{mrDone=true;dropRec=true;finish();};mr.start();}
+    catch(e){micErr=e&&e.name==='NotAllowedError'?'not-allowed':'audio-capture';relMic();if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast(micErr==='not-allowed'?'Con cần cho phép dùng micro để ghi âm nhé!':'Không mở được micro. Con tắt ứng dụng khác đang dùng micro rồi thử lại nhé!');return;}mr=null;mrDone=true;}}
+  else if(!SR_API){AUDIO_REC=false;setAudioSession(IS_IOS?'playback':'auto');toast('Thiết bị này chưa hỗ trợ ghi âm. Con mở bằng Chrome nhé!');return;}
+  let sr=null;
+  const cur=()=>scoreSpeech(target,srCandidates(segs.concat(sess)));
+  const startSR=()=>{sr=new SR_API();sr.lang='en-US';sr.interimResults=true;sr.maxAlternatives=3;sr.continuous=true;
+    sr.onresult=e=>{const c=[];for(let i=0;i<e.results.length;i++){const R=e.results[i],a=[];for(let k=0;k<R.length;k++){const tx=String(R[k].transcript||'').trim();if(tx)a.push(tx);}if(a.length)c.push(a);}
+      sess=c;if(!c.length)return;heardAt=Date.now();if(srErr==='no-speech')srErr='';clearTimeout(silTimer);
+      let r=null;if(Date.now()-liveT>350){liveT=Date.now();try{r=cur();onLive&&onLive(r);}catch(_){}}
+      if(r&&r.hit.size>=r.words.length&&r.r>=.95){silTimer=setTimeout(stopAll,900);return;}
+      silTimer=setTimeout(stopAll,4500);};
+    sr.onerror=e=>{const er=e.error||'error';if(er==='no-speech'||er==='aborted'){if(!srErr)srErr=er;return;}
+      if(er==='audio-capture'&&mr&&!heardAt&&!dropRec){dropRec=true;try{if(mr.state!=='inactive')mr.stop();}catch(_){mrDone=true;}relMic();recSeq=true;try{localStorage.setItem('hv_rec_seq','1');}catch(_){}sr._retry=true;return;}
+      srErr=er;if(/not-allowed|service-not-allowed|audio-capture|language-not-supported|network/.test(er))fatal=true;if(er==='not-allowed'&&!mr)toast('Con cần cho phép dùng micro để ghi âm nhé!');};
+    sr.onend=()=>{srRunning=false;if(sess.length){segs.push(...sess);sess=[];}
+      if(sr._retry){sr._retry=false;setTimeout(()=>{if(userStop||finished){endAll();return;}try{sr.start();srRunning=true;}catch(e){srErr='audio-capture';endAll();}},250);return;}
+      const left=maxMs-(Date.now()-t0);
+      if(!userStop&&!fatal&&!finished&&left>1500&&restarts<40&&!(heardAt&&Date.now()-heardAt>4500)){restarts++;try{sr.start();srRunning=true;return;}catch(e){}}
+      if(fatal&&!userStop&&!finished&&mr&&mr.state==='recording'){srDone=true;toast('Con đọc xong thì bấm 🎤 lần nữa để dừng nhé!');return;}
+      endAll();};
+    try{sr.start();srRunning=true;}catch(e){srRunning=false;srDone=true;srErr='start';}};
+  if(SR_API)startSR();
+  if(btn)btn.classList.add('rec-on');sfx.tap();
+  REC.active={stop:stopAll};timer=setTimeout(()=>REC.active&&REC.active.stop(),maxMs);
+  if(srDone&&!mr)finish();}
+
+function paResHTML(res,text,mode){if(res.noScore)return recResultHTML(res,text);
+  return `<div class="rec-res"><div class="rec-top">${starsHTML(res.stars)}<b>${praiseFor(res.stars)}</b></div><small>Đúng ${res.hit.size}/${res.words.length} từ (${Math.round(res.r*100)}%). Từ xanh: đúng · cam: gần đúng · đỏ: thiếu/sai.</small>${recTips(text,res)}${res.url?`<button class="say-btn" data-play="${res.url}">▶ Nghe lại giọng con</button>`:''}</div>`;}
+function paGive(p,mode,stars){const s=paSt(p.id);const prev=s.m[mode]||0;if(stars>prev){s.m[mode]=stars;addSpeakPoints(stars-prev,`p.${p.key}.${p.kk}.${'abc'[mode]}`,stars);}save();}
+
+/* ---------- màn luyện nói ---------- */
+function renderPara(u,k,mode){stopVoice();stopRec();k=k||0;mode=mode||0;const L=paList(u);const isX=u==='x';const U=isX?null:EN_UNITS[u];
+  const tabs=L.map((p,j)=>`<button class="voc-chip${j===k?' on':''}" data-k="${j}">📖 ${H(p.t)}${paBest(p.id)?`<span class="mini">${paBest(p.id)}★</span>`:''}</button>`).join('')+(isX?'':`<button class="voc-chip${k===-1?' on':''}" data-k="-1">💬 Nói từng câu</button>`);
+  const title=isX?'Chủ đề chung':`${U.lab}: ${U.t}`;
+  let body='';
+  if(k===-1)body=paSentHTML(u);
+  else{const p=L[k];const s=paSt(p.id);const sents=paSplit(p.en),vs=paViSplit(p);
+    body=`<div class="pa-seg">${PA_MODES.map((m,i)=>`<button data-m="${i}" class="${i===mode?'on':''}">${i+1}. ${m[0]}${s.m[i]?` ${s.m[i]}★`:''}<small>${m[1]}</small></button>`).join('')}</div>
+    <p class="pa-hint">${mode===0?'Nghe cả đoạn, đọc theo từng câu (bấm 🎤 ở mỗi câu), rồi bấm “Nói cả đoạn”.':mode===1?'Một số từ đã bị che. Con nói cả đoạn, từ nào nói đúng sẽ hiện ra.':'Chỉ còn chữ đầu câu và nghĩa tiếng Việt. Con tự nói lại cả đoạn nhé!'}</p>
+    <div class="pa-card"><h3>📖 ${H(p.t)}<button class="spk" id="paSay" aria-label="Nghe cả đoạn">🔊</button></h3>
+      ${mode===2?`<div id="paTx">${paCue(p)}</div>`:`<div class="pa-text" id="paTx">${paMark(p.en,null,mode)}</div>${mode===0?`<p class="pa-vi">${H(p.vi)}</p>`:''}`}</div>
+    <div class="pa-big"><button class="rec-btn" id="paRec">🎤 Nói cả đoạn</button><div class="pa-meter"><i id="paBar"></i></div><div class="pa-live" id="paLive">Bấm 🎤 rồi nói hết đoạn văn. Nói xong bấm lại để dừng.</div></div>
+    <div id="paRes"></div>
+    ${mode===0?`<div class="pa-sents">${sents.map((t,i)=>`<div class="pa-sent" data-s="${i}"><span class="no">${i+1}</span><span class="tx"><b>${H(t)}</b>${vs?`<small>${H(vs[i])}</small>`:''}</span>${s.s[i]?`<span class="mini">${s.s[i]}★</span>`:''}<button class="spk" data-say="${i}" aria-label="Nghe câu ${i+1}">🔊</button><button class="rec-btn" data-rec="${i}" aria-label="Ghi âm câu ${i+1}">🎤</button><div class="res"></div></div>`).join('')}</div>`:''}
+    <div class="voc-nav"><button class="btn btn-soft" id="paPrev" ${mode===0?'disabled':''}>◀ Bước trước</button><button class="btn btn-soft" id="paNext">${mode<2?'Bước tiếp ▶':k<L.length-1?'Đoạn tiếp ▶':isX?'Xong ✓':'Nói từng câu ▶'}</button></div>`;}
+  app.innerHTML=`<div class="screen"><div class="page pa-page"><div class="voc-head"><button class="icon-btn" id="paBack" aria-label="Quay lại">✕</button><h1>🗣️ Luyện nói đoạn văn</h1></div><p class="lead">${H(title)}</p><div class="pa-tabs">${tabs}</div>${body}<button class="btn btn-soft" id="paHome">Tất cả đoạn văn</button><button class="btn btn-soft" id="paBack2">Về English</button></div></div>`;
+  const back=()=>{stopRec();stopVoice();renderEnglish();};$('#paBack').onclick=back;$('#paBack2').onclick=back;$('#paHome').onclick=()=>{stopRec();renderParaHome();};
+  app.querySelectorAll('.pa-tabs [data-k]').forEach(b=>b.onclick=()=>{sfx.tap();renderPara(u,+b.dataset.k,0);});
+  const on=app.querySelector('.pa-tabs .on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'center'});
+  if(k===-1){paSentBind(u);return;}
+  const p=L[k];const s=paSt(p.id);
+  app.querySelectorAll('.pa-seg [data-m]').forEach(b=>b.onclick=()=>{sfx.tap();renderPara(u,k,+b.dataset.m);});
+  $('#paSay').onclick=()=>speak([['en',p.en]]);
+  $('#paRec').onclick=()=>{const btn=$('#paRec');const live=$('#paLive'),bar=$('#paBar');
+    if(REC.active){REC.active.stop();return;}
+    btn.textContent='⏹ Dừng';live.textContent='🎙️ Đang nghe… con nói to, rõ từng câu nhé.';
+    recLong(p.en,res=>{btn.textContent='🎤 Nói lại cả đoạn';
+      if(!res.noScore){bar.style.width=Math.round(res.r*100)+'%';live.textContent='';paGive(p,mode,res.stars);res.stars>=3?sfx.win():sfx.bad();if(res.stars>=4&&typeof confetti==='function')confetti();speak([['en',praiseFor(res.stars)]],{silent:true});
+        const tx=$('#paTx');if(tx)tx.innerHTML=mode===2?`<div class="pa-text">${paMark(p.en,res,0)}</div>`:paMark(p.en,res,mode);
+        const sb=app.querySelector(`.pa-seg [data-m="${mode}"]`);if(sb)sb.firstChild.textContent=`${mode+1}. ${PA_MODES[mode][0]} ${s.m[mode]}★`;}
+      else live.textContent='';
+      $('#paRes').innerHTML=paResHTML(res,p.en,mode);},btn,r=>{try{bar.style.width=Math.round(r.hit.size/Math.max(1,r.words.length)*100)+'%';live.textContent=`🎙️ Đã nghe ${r.hit.size}/${r.words.length} từ…`;if(mode!==2){const tx=$('#paTx');if(tx)tx.innerHTML=paMark(p.en,{...r,live:true},mode);}}catch(_){}});};
+  app.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>speak([['en',paSplit(p.en)[+b.dataset.say]]]));
+  app.querySelectorAll('[data-rec]').forEach(b=>b.onclick=()=>{const i=+b.dataset.rec;const t=paSplit(p.en)[i];const row=b.closest('.pa-sent');
+    app.querySelectorAll('.pa-sent').forEach(x=>x.classList.toggle('on',x===row));
+    recordAndScore(t,res=>{const box=row.querySelector('.res');box.innerHTML=recResultHTML(res,t);
+      if(!res.noScore){const prev=s.s[i]||0;if(res.stars>prev){s.s[i]=res.stars;addSpeakPoints(res.stars-prev,`p.ps${p.key.slice(2)}.${p.kk}_${i}`,res.stars);save();let m=row.querySelector('.mini');if(!m){row.querySelector('.tx').insertAdjacentHTML('afterend','<span class="mini"></span>');m=row.querySelector('.mini');}m.textContent=s.s[i]+'★';}
+        res.stars>=3?sfx.ok():sfx.bad();speak([['en',praiseFor(res.stars)]],{silent:true});}},b);});
+  $('#paPrev').onclick=()=>{if(mode>0)renderPara(u,k,mode-1);};
+  $('#paNext').onclick=()=>{stopRec();if(mode<2)renderPara(u,k,mode+1);else if(k<L.length-1)renderPara(u,k+1,0);else if(!isX)renderPara(u,-1,0);else renderParaHome();};}
+
+/* ---------- Nói từng câu của bài (tất cả câu mẫu trong Unit) ---------- */
+const pcS=u=>{const P=paS();return P['c'+u]||(P['c'+u]={});};
+function paSentHTML(u){const U=EN_UNITS[u];const st=pcS(u);const C=U.c||[];
+  return `<p class="pa-hint">Tất cả ${C.length} câu của ${H(U.lab)}. Bấm 🔊 nghe, bấm 🎤 nói lại — mỗi câu được chấm đến 5 sao.</p><div class="pa-sents">${C.map((c,i)=>`<div class="pa-sent" data-c="${i}"><span class="no">${c[2]&&!/^[A-Za-z0-9]/.test(c[2])?c[2]:i+1}</span><span class="tx"><b>${H(c[0])}</b>${c[1]?`<small>${H(c[1])}</small>`:''}</span>${st[i]?`<span class="mini">${st[i]}★</span>`:''}<button class="spk" data-csay="${i}" aria-label="Nghe câu">🔊</button><button class="rec-btn" data-crec="${i}" aria-label="Ghi âm">🎤</button><div class="res"></div></div>`).join('')}</div>`;}
+function paSentBind(u){const U=EN_UNITS[u];const st=pcS(u);
+  app.querySelectorAll('[data-csay]').forEach(b=>b.onclick=()=>speak([['en',U.c[+b.dataset.csay][0]]]));
+  app.querySelectorAll('[data-crec]').forEach(b=>b.onclick=()=>{const i=+b.dataset.crec,t=U.c[i][0],row=b.closest('.pa-sent');app.querySelectorAll('.pa-sent').forEach(x=>x.classList.toggle('on',x===row));
+    recordAndScore(t,res=>{row.querySelector('.res').innerHTML=recResultHTML(res,t);
+      if(!res.noScore){const prev=st[i]||0;if(res.stars>prev){st[i]=res.stars;addSpeakPoints(res.stars-prev,`p.pc${u}.${i}`,res.stars);save();let m=row.querySelector('.mini');if(!m){row.querySelector('.tx').insertAdjacentHTML('afterend','<span class="mini"></span>');m=row.querySelector('.mini');}m.textContent=st[i]+'★';}
+        res.stars>=3?sfx.ok():sfx.bad();speak([['en',praiseFor(res.stars)]],{silent:true});}},b);});}
+
+/* ---------- danh sách tất cả đoạn văn ---------- */
+function renderParaHome(){stopVoice();stopRec();const n=EN_UNITS.length;const[d,t]=paAllCount();
+  const row=(u,p,j)=>{const s=paSt(p.id);return `<button class="ht-row" data-act="htpara" data-u="${u}" data-k="${j}"><span class="n">📖</span><span class="tx"><b>${H(p.t)}</b><small>${paSplit(p.en).length} câu · ${p.en.split(/\s+/).length} từ</small></span><span class="pa-badges">${PA_MODES.map((m,i)=>`<i class="${s.m[i]>=3?'ok':''}">${i+1}${s.m[i]?' '+s.m[i]+'★':''}</i>`).join('')}</span></button>`;};
+  let h='';for(let u=0;u<n;u++){const U=EN_UNITS[u];const L=paList(u);if(!L.length)continue;const[a,b]=paUnitCount(u);
+    h+=`<div class="ht-gh"><span class="num">${u+1}</span><h2><span class="lab">${H(U.lab)}</span>${H(U.t)}</h2><small>${a}/${b}</small></div>`+L.map((p,j)=>row(u,p,j)).join('')+`<button class="ht-row" data-act="htpara" data-u="${u}" data-k="-1"><span class="n">💬</span><span class="tx"><b>Nói từng câu của bài</b><small>${(U.c||[]).length} câu · ${Object.keys(pcS(u)).length} câu đã nói</small></span></button>`;}
+  const X=paList('x');if(X.length)h=`<div class="ht-gh"><span class="num">★</span><h2><span class="lab">Chủ đề chung</span>Nói về bản thân</h2></div>`+X.map((p,j)=>row('x',p,j)).join('')+h;
+  app.innerHTML=`<div class="screen notebook nogrid ht-list" id="scr">${topbar()}<section class="hello"><div class="owl" aria-hidden="true">🦉</div><div class="say"><b>Luyện nói đoạn văn</b><br>Mỗi đoạn có 3 bước: đọc theo → che bớt chữ → tự nói. Nói cả đoạn liền mạch, app chấm từng từ. Đã đạt ${d}/${t} đoạn.</div></section><div class="stage">${h}</div><p class="map-end">Mỗi bước đạt từ 3★ là con đã nói tốt đoạn đó! 🌟</p></div>${tabbar('en')}`;}
+
+/* nút ở mỗi Unit + banner ở trang English */
+{const _et=enTools;enTools=function(u){let h=_et.apply(this,arguments);try{if(paList(u).length){const[a,b]=paUnitCount(u);h=h.replace(/<\/div>\s*$/,`<button class="tool-btn ht-pa" data-act="htpara" data-u="${u}" data-k="0">📖 Nói đoạn văn <small>${a}/${b}</small></button></div>`);}}catch(e){}return h;};}
+if(typeof renderEnglish==='function'){const _re2=renderEnglish;renderEnglish=function(){const r=_re2.apply(this,arguments);try{const scr=document.getElementById('scr');if(scr&&!scr.querySelector('.ht-pa-banner')){const[d,t]=paAllCount();const b=document.createElement('div');
+  b.innerHTML=`<button class="exam-banner ht-pa-banner" data-act="htparahome" style="--c:#1E3A8A;--cd:#172554"><span class="eb-ic">📖</span><span><b>Luyện nói đoạn văn</b><small>Nói cả đoạn 3–8 câu, app chấm từng từ · ${d}/${t} đoạn</small></span><span class="eb-go">›</span></button>`;
+  const ref=[...scr.querySelectorAll('.exam-banner')].pop();if(ref)ref.after(b.firstChild);else{const h=scr.querySelector('.hello');if(h)h.after(b.firstChild);}}}catch(e){}return r;};}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act="htpara"],[data-act="htparahome"]');if(!b)return;e.stopPropagation();sfx.tap();
+  if(b.dataset.act==='htparahome'){renderParaHome();return;}const u=b.dataset.u==='x'?'x':+b.dataset.u;renderPara(u,+b.dataset.k||0,0);},true);
 /* màn hình đầu tiên đã vẽ trước khi lớp này chạy → vẽ lại để có tab Tư duy và các mục mới */
 try{if(document.querySelector('#scr')&&document.querySelector('.tab[data-t="map"].on'))renderHome();
   else{const tb=document.querySelector('nav.tabbar');if(tb){const on=tb.querySelector('.tab.on');const t=on?on.dataset.t:'';const d=document.createElement('div');d.innerHTML=tabbar(t);if(d.firstElementChild)tb.replaceWith(d.firstElementChild);}}}catch(e){}
-window.HT={TDG,TD_ALL,TD_LA,KC,tdBuild,tdMake,kcFor,kcForChapter,bankQs,cardForQ,GRADE,similarQ,polyomino};
+window.HT={TDG,TD_ALL,TD_LA,KC,tdBuild,tdMake,kcFor,kcForChapter,bankQs,cardForQ,GRADE,similarQ,polyomino,MG,PLAN,renderTd,startTd,renderPara,renderParaHome,paList,paSt,paSplit,pcS,PARA};
 })();
 </script>
 <!--HT:END-->

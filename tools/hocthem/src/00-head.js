@@ -80,6 +80,9 @@ const CSS=`
 .ht-emo{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;font-size:34px;line-height:1.1;margin:6px 0 10px}
 .ht-emo.wrap{max-width:330px;margin-left:auto;margin-right:auto}
 .ht-big{font-size:64px;text-align:center;line-height:1}
+.ht-two{display:flex;gap:10px;justify-content:center}.ht-two svg{width:120px;height:auto}
+.ht-eqs{display:grid;gap:6px;justify-items:center;margin:6px 0}.ht-eq{font-size:26px;font-weight:800;background:var(--card,#fff);border:2px solid var(--line,#D6E2F0);border-radius:14px;padding:6px 14px;letter-spacing:1px}
+.ht-mach span.hd{font-size:13px;font-weight:800;background:var(--soft,#EEF4FB)}
 .ht-grid{display:grid;gap:6px;max-width:240px;margin:6px auto 10px}
 .ht-grid span{border:2px solid var(--line);border-radius:12px;background:var(--card);font-weight:800;font-size:20px;text-align:center;padding:10px 4px}
 .ht-grid span.hid{border-color:var(--berry);color:var(--berry-d);background:var(--soft)}

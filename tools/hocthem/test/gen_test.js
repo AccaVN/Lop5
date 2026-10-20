@@ -1,6 +1,6 @@
 // Kiểm thử bộ sinh đề Toán tư duy: sinh nhiều câu cho mọi lớp/bài/mức, kiểm tra cấu trúc + giải lại độc lập.
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const src=['10-cards.js','20-td.js','30-lessons.js'].map(f=>fs.readFileSync(path.join(__dirname,'..','src',f),'utf8')).join('\n');
+const src=['10-cards.js','20-td.js','21-td-b.js','25-math-a.js','25-math-c.js','30-lessons.js'].map(f=>fs.readFileSync(path.join(__dirname,'..','src',f),'utf8')).join('\n');
 function ctxFor(G){const c={Math,String,Number,Array,Object,JSON,Set,Map,isNaN,console,GRADE:G};
   c.esc=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   c.shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -59,6 +59,53 @@ function solve(gen,q){/* trả về đáp án tính độc lập hoặc undefine
   if(gen==='nth'&&q.type==='input'){if((m=/Dãy số (\d+), (\d+), .*Số thứ (\d+)/.exec(p)))return +m[1]+(+m[3]-1)*(+m[2]-+m[1]);if((m=/Dãy số (\d+), (\d+), .*, ([\d ]+) có bao nhiêu số/.exec(p)))return (num(m[3])-+m[1])/(+m[2]-+m[1])+1;if((m=/dãy số (\d+), (\d+), .*số ([\d ]+) đứng/.exec(p)))return (num(m[3])-+m[1])/(+m[2]-+m[1])+1;}
   if(gen==='days'&&q.type==='mc'){const WD=['thứ Hai','thứ Ba','thứ Tư','thứ Năm','thứ Sáu','thứ Bảy','Chủ nhật'];if((m=/Hôm nay là (.+?)\. Hỏi (\d+) ngày nữa/.exec(p))){const i=WD.indexOf(m[1]);const r=WD[(i+ +m[2])%7];return r.charAt(0).toUpperCase()+r.slice(1);}if((m=/Ngày (\d+) của một tháng là (.+?)\. Ngày (\d+)/.exec(p))){const i=WD.indexOf(m[2]);const r=WD[(i+ +m[3]-+m[1])%7];return r.charAt(0).toUpperCase()+r.slice(1);}}
   return undefined;}
+
+function solve2(gen,q){const p=q.prompt;let m;const vtx=strip(q.visual);
+  if(gen==='matchSeq'){const a=+/Hình 1 dùng (\d+) que/.exec(p)[1],b=+/Hình 2 dùng (\d+) que/.exec(p)[1],c=+/Hình 3 dùng (\d+) que/.exec(p)[1];if(c-b!==b-a)return 'NOT_AP';const d=b-a;if((m=/Hình (\d+) dùng bao nhiêu/.exec(p)))return a+(+m[1]-1)*d;if((m=/Với (\d+) que/.exec(p))){for(let n=1;n<500;n++)if(a+(n-1)*d===+m[1])return n;return 'NOSOL';}}
+  if(gen==='machine'){const cells=[...q.visual.matchAll(/<span class="([^"]*)">([^<]*)<\/span>/g)].map(r=>r[2]);const X=cells.slice(1,5),Y=cells.slice(6,10);const pts=[];let tx,ty;X.forEach((x,i)=>{if(x==='?')tx=i;else if(Y[i]==='?')ty=i;else pts.push([num(x),num(Y[i])]);});
+    const [[x1,y1],[x2,y2],[x3,y3]]=pts;const k=(y2-y1)/(x2-x1),b=y1-k*x1;if(Math.abs(k*x3+b-y3)>1e-9)return 'NOT_LINEAR';if(ty!=null)return k*num(X[ty])+b;return (num(Y[tx])-b)/k;}
+  if(gen==='letters'){const toks=q.big.replace(', ?','').split(', ');const L=toks.map(t=>'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.indexOf(t[0])),N=toks.map(t=>t.length>1?+t.slice(1):null);
+    const ext=a=>{const n=a.length;const d=a[1]-a[0];if(a.every((x,i)=>x===a[0]+i*d))return a[0]+n*d;const ev=a.filter((_,i)=>i%2===0),od=a.filter((_,i)=>i%2===1);const nx=n%2===0?ev:od;const dd=nx[1]-nx[0];if(nx.every((x,i)=>x===nx[0]+i*dd))return nx[0]+nx.length*dd;return null;};
+    const l=ext(L);const ns=N[0]==null?'':ext(N);return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[l]+(N[0]==null?'':ns);}
+  if(gen==='paths'){m=/lưới \((\d+) hàng, (\d+) cột/.exec(p);const a=+m[1],b=+m[2];const g=[];for(let i=0;i<=a;i++){g[i]=[];for(let j=0;j<=b;j++)g[i][j]=i===0||j===0?1:g[i-1][j]+g[i][j-1];}return g[a][b];}
+  if(gen==='coins'){const V=[...p.split('Có bao')[0].matchAll(/(\d+) nghìn/g)].map(r=>+r[1]);const N=+/đúng (\d+) nghìn/.exec(p)[1];let c=0;const go=(i,l)=>{if(i===V.length){if(!l)c++;return;}for(let k=0;k*V[i]<=l;k++)go(i+1,l-k*V[i]);};go(0,N);return c;}
+  if(gen==='digitSum'){let c=0;const S=+(/bằng (\d+)\?/.exec(p)||/hơn chữ số hàng đơn vị (\d+)/.exec(p))[1];const three=/ba chữ số/.test(p);for(let n=three?100:10;n<=(three?999:99);n++){const d=String(n).split('').map(Number);if(/tổng/.test(p)&&d.reduce((a,b)=>a+b)===S)c++;else if(/tích/.test(p)&&d[0]*d[1]===S)c++;else if(/hơn chữ số hàng đơn vị/.test(p)&&d[0]-d[1]===S)c++;}return c;}
+  if(gen==='balance'){const eqs=[...q.visual.matchAll(/<div class="ht-eq">([^<]*)<\/div>/g)].map(r=>r[1].split(' = ').map(s=>s.split(' + ')));const syms=[...new Set(eqs.flat(2).filter(t=>!/^\d/.test(t)))];const ask=/Tìm số của (\S+)\./.exec(p)[1];
+    const val=t=>/^\d/.test(t)?num(t):V[t];let V={};const sols=new Set();const go=i=>{if(i===syms.length){if(eqs.every(([l,r])=>l.reduce((a,t)=>a+val(t),0)===r.reduce((a,t)=>a+val(t),0)))sols.add(V[ask]);return;}for(let v=1;v<=(syms.length===3?100:200);v++){V[syms[i]]=v;go(i+1);}};go(0);return sols.size===1?[...sols][0]:'SOLS '+sols.size;}
+  if(gen==='whoWhat'){const head=/^(.+?) mỗi bạn (.+?) một thứ khác nhau: (.+?)\. (.*) Hỏi (\S+) /.exec(p);const P=head[1].split(', '),verb=head[2],I=head[3].split(', ');const cl=head[4].split(/(?<=\.) /).map(x=>{const r=new RegExp('^(\\S+) (không )?'+verb+' (.+)\\.$').exec(x);return {p:r[1],neg:!!r[2],it:r[3]};});
+    const per=a=>a.length<=1?[a]:a.flatMap((x,i)=>per(a.slice(0,i).concat(a.slice(i+1))).map(r=>[x,...r]));const ok=per(I).filter(pm=>cl.every(c=>(pm[P.indexOf(c.p)]===c.it)!==c.neg));if(ok.length!==1)return 'AMBIG '+ok.length;return ok[0][P.indexOf(head[5])];}
+  if(gen==='pigeon'){if((m=/có (\d+) viên bi đỏ và (\d+) viên bi xanh/.exec(p))){const a=+m[1],b=+m[2];// mô phỏng xui nhất
+      if(/ít nhất 1 viên bi đỏ/.test(p))return b+1;if(/đủ cả hai màu/.test(p))return Math.max(a,b)+1;}
+    const c=(/các màu ([^.(]+)/.exec(p)[1].split(', ')).length;if((m=/có (\d+) viên cùng màu/.exec(p))){const k=+m[1];return c*(k-1)+1;}if(/2 viên cùng màu/.test(p))return c+1;}
+  if(gen==='age'){if((m=/Năm nay \S+ (\d+) tuổi, \S+ của \S+ (\d+) tuổi\. Hỏi khi \S+ (\d+) tuổi/.exec(p)))return +m[2]+(+m[3]-+m[1]);
+    if((m=/hơn \S+ (\d+) tuổi\. Sau (\d+) năm nữa, tổng số tuổi .* là (\d+)\./.exec(p))){const D=+m[1],n=+m[2],S=+m[3];for(let c=1;c<100;c++)if((c+n)+(c+D+n)===S)return c;}
+    if((m=/hơn \S+ (\d+) tuổi\. Tổng số tuổi .* là (\d+)\./.exec(p))){const D=+m[1],S=+m[2];for(let c=1;c<100;c++)if(c+c+D===S)return c;}
+    if((m=/gấp (\d+) lần tuổi \S+, \S+ hơn \S+ (\d+) tuổi/.exec(p))){const k=+m[1],D=+m[2];for(let c=1;c<100;c++)if(k*c-c===D)return c;}}
+  if(gen==='sum3'){if((m=/có tất cả ([\d ]+) [^.]+\. \S+ có ([\d ]+) [^,]+, \S+ có ([\d ]+) /.exec(p)))return num(m[1])-num(m[2])-num(m[3]);
+    if((m=/có tất cả ([\d ]+) [^.]+\. \S+ có nhiều hơn \S+ ([\d ]+) [^,]+, \S+ có nhiều hơn \S+ ([\d ]+) /.exec(p))){const S=num(m[1]),d1=num(m[2]),d2=num(m[3]);for(let c=0;c<=S;c++)if(c+(c+d2)+(c+d2+d1)===S)return c;return 'NOSOL';}
+    if((m=/Trung bình cộng của ba số là ([\d ]+)\. Số thứ nhất là ([\d ]+), số thứ hai là ([\d ]+)\./.exec(p)))return 3*num(m[1])-num(m[2])-num(m[3]);}
+  if(gen==='fracRatio'){m=/bằng (\d+)\/(\d+)/.exec(p);const a=+m[1],b=+m[2];if((m=/Tổng hai số là ([\d ]+)\./.exec(p))){const S=num(m[1]);const x=S*a/(a+b);return q.type==='slots'?[x,S-x].join('|'):x;}m=/Hiệu hai số là ([\d ]+)\./.exec(p);const D=num(m[1]);return D*b/(b-a);}
+  if(gen==='snail'){m=/cột cao (\d+) m\. Ban ngày ốc leo được (\d+) m, ban đêm lại tụt xuống (\d+) m/.exec(p);let h=0;for(let d=1;d<1000;d++){h+=+m[2];if(h>=+m[1])return d;h-=+m[3];}}
+  if(gen==='half'){for(let s=1;s<20000;s++){let x=s,ok=true;const half=()=>{if(x%2){ok=false;}x=x/2;};
+      if((m=/cho \S+ một nửa số bi, rồi cho \S+ (\d+) viên thì còn lại (\d+) viên/.exec(p))){half();x-=+m[1];if(ok&&x===+m[2])return s;continue;}
+      if((m=/Buổi sáng bán một nửa số trứng và thêm (\d+) quả thì còn lại (\d+) quả/.exec(p))){half();x-=+m[1];if(ok&&x===+m[2])return s;continue;}
+      if((m=/Ngày thứ nhất bán một nửa số trứng và thêm (\d+) quả\. Ngày thứ hai bán một nửa số trứng còn lại và thêm (\d+) quả thì còn (\d+) quả/.exec(p))){half();x-=+m[1];if(x<0)continue;half();x-=+m[2];if(ok&&x===+m[3])return s;continue;}
+      return 'NOPAT';}return 'NOSOL';}
+  if(gen==='digits2'){const ok=[];for(let n=10;n<=99;n++){const a=Math.floor(n/10),b=n%10;let g=true;if((m=/hơn chữ số hàng đơn vị (\d+)/.exec(p)))g=g&&a-b===+m[1];if((m=/gấp (\d+) lần/.exec(p)))g=g&&a===+m[1]*b;if((m=/tổng hai chữ số bằng (\d+)/.exec(p)))g=g&&a+b===+m[1];if((m=/bé hơn số cũ (\d+)/.exec(p)))g=g&&b>0&&n-(b*10+a)===+m[1];if(g)ok.push(n);}return ok.length===1?ok[0]:'SOLS '+ok.length;}
+  if(gen==='rects'){m=/lưới (\d+) hàng, (\d+) cột/.exec(p);const a=+m[1],b=+m[2];let c=0;for(let r1=0;r1<=a;r1++)for(let r2=r1+1;r2<=a;r2++)for(let c1=0;c1<=b;c1++)for(let c2=c1+1;c2<=b;c2++)c++;const cells=(q.visual.match(/<rect/g)||[]).length;if(cells!==a*b)return 'BADFIG';return c;}
+  if(gen==='clockAng'){if((m=/Lúc (\d+) giờ đúng/.exec(p))){const h=+m[1];const d=Math.min(h,12-h)*30;if(q.type==='input')return d;if(q.options.length===2)return d===90?'Góc vuông':'Góc không vuông';return d===90?'Góc vuông':d===180?'Góc bẹt':d<90?'Góc nhọn':'Góc tù';}
+    if((m=/Từ (\d+) giờ đến (\d+) giờ/.exec(p)))return +m[2]-+m[1];if((m=/Trong (\d+) giờ, kim giờ/.exec(p)))return +m[1]*360/12;}
+  if(gen==='fold'){if((m=/Gấp đôi một tờ giấy (\d+) lần/.exec(p))){let L=1;for(let i=0;i<+m[1];i++)L*=2;return L;}
+    if((m=/Gấp đôi một sợi dây (\d+) lần/.exec(p))){// mô phỏng: điểm cắt trên dây độ dài 1
+      const k=+m[1];const n=2**k;const pts=new Set();for(let i=0;i<n;i++)pts.add(((i+0.5)/n).toFixed(6));return pts.size+1;}
+    if((m=/tổng cộng (\d+) lần cắt/.exec(p))){let c=1;for(let i=0;i<+m[1];i++)c+=3;return c;}}
+  if(gen==='sumSeq'){const t=q.big.replace(' = ?','').split(' + ').map(x=>x.trim());const a=num(t[0]),b=num(t[1]),e=num(t[t.length-1]);let s=0;for(let x=a;x<=e;x+=b-a)s+=x;return s;}
+  if((gen==='mulTrick'||gen==='pairTen')&&q.big)return Function('return '+q.big.replace('= ?','').replace(/×/g,'*').replace(/[  ]/g,''))();
+  if(gen==='lastDigit'){if((m=/có (\d+) thừa số (\d+)/.exec(p))){let r=1;for(let i=0;i<+m[1];i++)r=r*+m[2]%10;return String(r);}if((m=/… × (\d+) có/.exec(p))){let r=1;for(let i=1;i<=+m[1];i+=2)r=r*i%10;return String(r);}if((m=/… \+ (\d+) có/.exec(p))){let r=0;for(let i=1;i<=+m[1];i++)r=(r+i)%10;return String(r);}}
+  if(gen==='la_seqnum'){const a=q.big.replace(', ?','').split(', ').map(Number);return String(a[2]+(a[1]-a[0]));}
+  if(gen==='la_scale'){const L=(/Bên trái: ([^<]*)</.exec(q.visual)[1].match(/\p{Extended_Pictographic}/gu)||[]).length,Rr=(/Bên phải: ([^<]*)</.exec(q.visual)[1].match(/\p{Extended_Pictographic}/gu)||[]).length;return q.type==='input'?L-Rr:((L>Rr)===/nặng hơn\?$/.test(p)?'Bên trái':'Bên phải');}
+  if(gen==='la_shape'){const e=/(\S+)\?$/.exec(p)[1];return (q.visual.match(new RegExp(e,'gu'))||[]).length;}
+  return undefined;}
 const N=+process.argv[2]||400;
 for(let G=0;G<=5;G++){const c=ctxFor(G);const list=c.TD_LIST();const used=new Set(list.map(l=>l.gen));
   for(const L of list){for(let lv=0;lv<=2;lv++){for(let t=0;t<N;t++){let q;try{q=c.tdMake(L,lv);}catch(e){bad(G,L.gen,lv,'EXC '+e.stack.split('\n').slice(0,2).join(' '));continue;}checked++;
@@ -70,7 +117,7 @@ for(let G=0;G<=5;G++){const c=ctxFor(G);const list=c.TD_LIST();const used=new Se
     else if(q.type==='input'){if(!Number.isInteger(q.answer)||q.answer<0)bad(G,L.gen,lv,'đáp án không phải số tự nhiên',q);if(String(q.answer).length>6)bad(G,L.gen,lv,'đáp án quá 6 chữ số (bàn phím giới hạn)',q);}
     else if(q.type==='slots'){const pool=q.chips.slice();for(const v of q.vals){const i=pool.indexOf(v);if(i<0){bad(G,L.gen,lv,'thiếu thẻ đáp án',q);break;}pool.splice(i,1);}if(q.vals.some(v=>!Number.isInteger(+v)||+v<0))bad(G,L.gen,lv,'giá trị ô không hợp lệ',q);}
     else bad(G,L.gen,lv,'kiểu lạ '+q.type,q);
-    const s=solve(L.gen,q);if(s!==undefined){solved++;const exp=q.type==='slots'?q.vals.join('|'):String(q.answer);if(String(s)!==exp)bad(G,L.gen,lv,'GIẢI LẠI KHÁC: '+s+' vs '+exp,q);}
+    let s=solve(L.gen,q);if(s===undefined)s=solve2(L.gen,q);if(s!==undefined){solved++;const exp=q.type==='slots'?q.vals.join('|'):String(q.answer);if(String(s)!==exp)bad(G,L.gen,lv,'GIẢI LẠI KHÁC: '+s+' vs '+exp,q);}
   }}}
   // thử bài 10 câu không trùng
   for(const L of list){const qs=c.tdBuild(L,10);if(qs.length!==10)bad(G,L.gen,0,'bài không đủ 10 câu');}

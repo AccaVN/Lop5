@@ -269,3 +269,26 @@ node tools/hocthem/test/gen_test.js 500             # kiểm thử bộ sinh đ�
 - **Bỏ tab Siêu tốc** (tính nhẩm 60 giây, khỉ nhảy đảo); tab Tư duy thay vào chỗ đó. Mini game giữa bài vẫn giữ.
 - **Góc phụ huynh vào bằng mật khẩu đăng nhập của tài khoản** (API `POST /api/x/student/verify-password`,
   sai 6 lần khóa 10 phút, không làm đăng xuất con); xác nhận đổi quà cũng dùng mật khẩu. Dùng không đăng nhập thì vẫn làm phép nhân.
+
+## Cập nhật 20/10/2026 (lần 3) — Thêm dạng bài Toán, Toán tư duy; luyện nói đoạn văn tiếng Anh
+
+- **Toán tư duy thêm 22 bài cho lớp 1–5 và 6 bài cho Lớp Lá** (`tools/hocthem/src/21-td-b.js`, danh sách bài ở cuối `30-lessons.js`):
+  que diêm xếp hình, máy biến số, quy luật chữ cái, đếm đường đi trên lưới, số cách trả tiền, đếm số theo chữ số,
+  cân bằng hình, ai thích gì (bảng suy luận), lấy ít nhất để chắc chắn, bài toán tuổi, ba số – trung bình cộng,
+  tổng/hiệu – tỉ (phân số), ốc sên leo cột, mỗi lần một nửa, tìm số có hai chữ số, đếm hình chữ nhật, kim đồng hồ,
+  gấp – cắt giấy, tổng dãy cách đều, nhân nhẩm nhanh, chữ số tận cùng, ghép cặp tròn chục.
+  Lớp Lá: số tiếp theo, to hơn – nhỏ hơn, đếm hình, hình nào khác nhóm, cân thăng bằng, việc nào trước – sau.
+  Mỗi bài có thẻ kiến thức, gợi ý từng bước, 3 mức khó, đề đổi số mỗi lần làm.
+- **Toán thêm 13 dạng câu hỏi** (`25-math-e.js`, gắn vào bài học ở `26z-plan.js`, mỗi bài thêm tối đa 2 dạng hợp nội dung):
+  đúng hay sai, điền dấu phép tính, tia số, chữ số còn thiếu, so sánh hai biểu thức, gia đình phép tính, ước lượng,
+  chọn đơn vị đo, thời gian trôi qua, giảm giá – lãi theo phần trăm, toán nhiều bước, mảng nhân (hàng × cột),
+  đúng/sai với số thập phân.
+- **Tiếng Anh: luyện nói đoạn văn** (`90-para-data*.js`, `91-speak.js`): mỗi Unit có 1–2 đoạn văn tự soạn theo chủ đề
+  (Lá 3 câu ngắn → lớp 5 khoảng 5–6 câu), tổng 169 đoạn, có nghĩa tiếng Việt từng câu. Mỗi đoạn luyện 3 bước:
+  đọc theo (có nghe và ghi âm từng câu) → che bớt chữ → tự nói theo chữ đầu câu và nghĩa tiếng Việt.
+  Ghi âm cả đoạn đến 2 phút, nghe liên tục kể cả khi con ngừng giữa các câu, tô màu từng từ đúng/gần đúng/thiếu,
+  có thanh tiến độ ngay khi đang nói, nghe lại giọng con. Thêm tab “Nói từng câu” luyện mọi câu mẫu của Unit.
+  Vào từ banner “Luyện nói đoạn văn” ở trang English hoặc nút “📖 Nói đoạn văn” ở mỗi Unit.
+  Sao được cộng điểm như luyện nói cũ (khóa `p.pa…`, `p.ps…`, `p.pc…`), không cần đổi máy chủ.
+- Kiểm thử: `node tools/hocthem/test/gen_test.js 150`, `node tools/hocthem/test/math_test.js 15`,
+  `python3 tools/hocthem/test/ui_new.py <URL> <email> <mk> <thư mục ảnh>` (giả lập nhận dạng giọng nói).
