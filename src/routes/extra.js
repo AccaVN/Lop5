@@ -46,7 +46,8 @@ router.use(async (req, res, next) => {
 });
 
 const str = (v, n) => (v == null ? '' : String(v)).slice(0, n);
-async function ownStudentId(userId) {
+async function ownStudentId(userId, user) {
+  if (user && user.student_id != null) return user.student_id; // đã lấy sẵn ở authMiddleware
   const { rows } = await pool.query('SELECT id FROM students WHERE user_id=$1', [userId]);
   return rows[0] ? rows[0].id : null;
 }
@@ -57,7 +58,7 @@ student.use(authMiddleware, requireRole('student'));
 
 // Báo câu hỏi sai / khó hiểu (tối đa 40 báo cáo mỗi ngày cho mỗi học sinh)
 student.post('/report', async (req, res) => {
-  const sid = await ownStudentId(req.user.id);
+  const sid = await ownStudentId(req.user.id, req.user);
   if (!sid) return res.status(404).json({ error: 'Không tìm thấy hồ sơ học sinh' });
   const { rows: c } = await pool.query(
     `SELECT COUNT(*)::int AS n FROM question_reports WHERE student_id=$1 AND created_at > now() - interval '1 day'`, [sid]);
@@ -114,13 +115,13 @@ function cleanGifts(g) {
   return out;
 }
 student.get('/gifts', async (req, res) => {
-  const sid = await ownStudentId(req.user.id);
+  const sid = await ownStudentId(req.user.id, req.user);
   if (!sid) return res.status(404).json({ error: 'Không tìm thấy hồ sơ học sinh' });
   const { rows } = await pool.query('SELECT gifts FROM student_rewards WHERE student_id=$1', [sid]);
   res.json({ gifts: cleanGifts(rows[0] && rows[0].gifts) });
 });
 student.put('/gifts', async (req, res) => {
-  const sid = await ownStudentId(req.user.id);
+  const sid = await ownStudentId(req.user.id, req.user);
   if (!sid) return res.status(404).json({ error: 'Không tìm thấy hồ sơ học sinh' });
   const gifts = cleanGifts(req.body && req.body.gifts);
   await pool.query(
@@ -161,7 +162,7 @@ const RANK2_SQL = `
   LEFT JOIN mo ON mo.student_id = s.id
   LEFT JOIN st ON st.student_id = s.id`;
 student.get('/rank2', async (req, res) => {
-  const sid = await ownStudentId(req.user.id);
+  const sid = await ownStudentId(req.user.id, req.user);
   const { rows } = await pool.query(RANK2_SQL);
   res.json({ students: rows.map((r) => ({ ...r, total_points: Number(r.total_points) || 0, me: r.id === sid })) });
 });

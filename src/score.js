@@ -69,14 +69,23 @@ async function saveAttempt(studentId, body) {
          skills = $7::jsonb,
          updated_at = now()
        RETURNING best_stars, attempts
+     ), tot AS (
+       -- Tổng điểm tính lại ngay trong câu lệnh này (thay cho 1 query recalcTotal riêng):
+       -- điểm các bài KHÁC (chưa đổi) + điểm bài vừa nộp ($4) + luyện nói + thưởng cũ — y hệt RECALC_SQL.
+       UPDATE students s
+       SET total_points = COALESCE((SELECT SUM(p.points) FROM progress p WHERE p.student_id = s.id AND p.level_key <> $2), 0) + $4
+         + 2 * COALESCE((SELECT SUM(b.stars) FROM speak_best b WHERE b.student_id = s.id), 0)
+         + s.bonus_points
+       WHERE s.id = $1
+       RETURNING total_points
      )
      SELECT (SELECT points FROM old) AS prev_points, (SELECT stars FROM old) AS prev_stars,
             (SELECT best_points FROM old) AS prev_best,
-            up.best_stars, up.attempts FROM up`,
+            up.best_stars, up.attempts, (SELECT total_points FROM tot) AS total_points FROM up`,
     [studentId, level_key, stars, points, correct, total, JSON.stringify(skills)]
   );
-  const total_points = await recalcTotal(studentId);
   const r = rows[0] || {};
+  const total_points = Number(r.total_points) || 0;
   return {
     ok: true,
     level_key,
@@ -164,13 +173,23 @@ async function saveSpeak(studentId, items) {
          SELECT $1, item_key, stars, now() FROM inp
          ON CONFLICT (student_id, item_key) DO UPDATE SET stars = GREATEST(speak_best.stars, EXCLUDED.stars),
            updated_at = CASE WHEN EXCLUDED.stars > speak_best.stars THEN now() ELSE speak_best.updated_at END
-         RETURNING item_key, stars)
-       SELECT COALESCE(SUM(up.stars - COALESCE(old.stars, 0)), 0)::int AS gained FROM up LEFT JOIN old USING (item_key)`,
+         RETURNING item_key, stars),
+       g AS (SELECT COALESCE(SUM(up.stars - COALESCE(old.stars, 0)), 0)::int AS gained FROM up LEFT JOIN old USING (item_key)),
+       -- Tính lại tổng điểm trong cùng câu lệnh: sao luyện nói cũ + phần vừa tăng (g) — y hệt RECALC_SQL.
+       tot AS (
+         UPDATE students s
+         SET total_points = COALESCE((SELECT SUM(p.points) FROM progress p WHERE p.student_id = s.id), 0)
+           + 2 * (COALESCE((SELECT SUM(b.stars) FROM speak_best b WHERE b.student_id = s.id), 0) + (SELECT gained FROM g))
+           + s.bonus_points
+         WHERE s.id = $1
+         RETURNING total_points)
+       SELECT (SELECT gained FROM g) AS gained, (SELECT total_points FROM tot) AS total_points`,
       [studentId, keys, vals]
     );
     gained = Number(rows[0].gained) || 0;
+    return { ok: true, gained_points: gained * 2, total_points: Number(rows[0].total_points) || 0 };
   }
-  return { ok: true, gained_points: gained * 2, total_points: await recalcTotal(studentId) };
+  return { ok: true, gained_points: 0, total_points: await recalcTotal(studentId) };
 }
 
 module.exports = { saveAttempt, recalcTotal, studentDetail, mergeSkills, toInt, saveSpeak };

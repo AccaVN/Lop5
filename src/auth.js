@@ -30,18 +30,19 @@ async function authMiddleware(req, res, next) {
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Thiếu token đăng nhập' });
   }
-  let payload, rows0role;
+  let payload, rows0role, studentId;
   try {
     payload = jwt.verify(header.slice(7), SECRET);
   } catch (e) {
     return res.status(401).json({ error: 'Token không hợp lệ hoặc đã hết hạn' });
   }
   try {
-    const { rows } = await pool.query('SELECT session_id, last_login_at, last_login_device, role, (trial_expires_at IS NOT NULL AND trial_expires_at < now()) AS trial_expired FROM users WHERE id=$1', [payload.id]);
+    const { rows } = await pool.query('SELECT session_id, last_login_at, last_login_device, role, (trial_expires_at IS NOT NULL AND trial_expires_at < now()) AS trial_expired, (SELECT s.id FROM students s WHERE s.user_id = users.id) AS student_id FROM users WHERE id=$1', [payload.id]);
     // Không còn tài khoản phụ huynh: phiên cũ của phụ huynh (nếu còn sót) được chuyển thành học sinh
     if (rows[0] && rows[0].role === 'parent') {
       await require('./convert').parentToStudent(payload.id);
       rows[0].role = 'student';
+      rows[0].student_id = undefined; // hồ sơ học sinh vừa tạo → tra lại khi cần
     }
     if (!rows[0]) return res.status(401).json({ error: 'Tài khoản không còn tồn tại' });
     if (rows[0].trial_expired && rows[0].role !== 'admin') {
@@ -56,10 +57,12 @@ async function authMiddleware(req, res, next) {
       });
     }
     rows0role = rows[0].role; // quyền lấy theo DB (không theo token cũ)
+    studentId = rows[0].student_id;
   } catch (e) {
     return next(e);
   }
-  req.user = { ...payload, role: rows0role };
+  // student_id lấy sẵn trong query trên → các API học sinh không phải tra bảng students thêm 1 lần nữa
+  req.user = { ...payload, role: rows0role, student_id: studentId };
   next();
 }
 
